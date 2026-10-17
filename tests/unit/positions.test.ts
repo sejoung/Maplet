@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { createMap, addNode, renameNode, updateNode } from '../../src/domain/commands';
 import { setNodePositions, resetNodePositions } from '../../src/domain/positions';
 import { createHistory, commit, undo, redo } from '../../src/application/history';
-import { layoutMap, moveLayoutNode } from '../../src/engine/layout';
+import { layoutMap, moveLayoutSubtree } from '../../src/engine/layout';
 import { parseMup, serializeMup } from '../../src/adapters/mup/codec';
 
 function example() {
@@ -72,7 +72,7 @@ describe('manual node positions and connection lengths', () => {
   it('previews movement and connected lines without changing the document', () => {
     const map = example();
     const base = layoutMap(map);
-    const preview = moveLayoutNode(base, 'a', { x: 900, y: -200 });
+    const preview = moveLayoutSubtree(map, base, 'a', { x: 900, y: -200 });
     expect(preview.nodes.find((node) => node.id === 'a')).toMatchObject({ x: 900, y: -200 });
     expect(base.nodes.find((node) => node.id === 'a')!.x).not.toBe(900);
     expect(

@@ -1,4 +1,5 @@
 import type { MindMap, NodePosition, Side } from '../domain/model';
+import { positionsForSubtreeMove } from '../domain/positions';
 
 export interface LayoutNode {
   id: string;
@@ -228,9 +229,20 @@ function finishLayout(nodes: LayoutNode[], relations: Omit<LayoutEdge, 'path'>[]
   };
 }
 
-export function moveLayoutNode(layout: Layout, id: string, position: NodePosition): Layout {
+export function moveLayoutSubtree(
+  map: MindMap,
+  layout: Layout,
+  id: string,
+  position: NodePosition,
+): Layout {
+  const positions = positionsForSubtreeMove(
+    map,
+    Object.fromEntries(layout.nodes.map((node) => [node.id, { x: node.x, y: node.y }])),
+    id,
+    position,
+  );
   return finishLayout(
-    layout.nodes.map((node) => (node.id === id ? { ...node, ...position } : { ...node })),
+    layout.nodes.map((node) => ({ ...node, ...positions[node.id] })),
     layout.edges.map(({ from, to, branch }) => ({ from, to, branch })),
   );
 }

@@ -12,7 +12,8 @@ import { CanvasNodes } from './CanvasNodes';
 import type { CanvasProps } from './canvas-types';
 export type { CanvasControls, CanvasProps } from './canvas-types';
 import type { NodePosition } from '../domain/model';
-import { layoutMap, moveLayoutNode } from '../engine/layout';
+import { layoutMap, moveLayoutSubtree } from '../engine/layout';
+import { positionsForSubtreeMove } from '../domain/positions';
 
 export function Canvas(props: CanvasProps) {
   const {
@@ -35,8 +36,10 @@ export function Canvas(props: CanvasProps) {
   );
   const layout = useMemo(
     () =>
-      dragPreview ? moveLayoutNode(baseLayout, dragPreview.id, dragPreview.position) : baseLayout,
-    [baseLayout, dragPreview],
+      dragPreview
+        ? moveLayoutSubtree(map, baseLayout, dragPreview.id, dragPreview.position)
+        : baseLayout,
+    [map, baseLayout, dragPreview],
   );
   const viewport = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 900, height: 650 });
@@ -322,7 +325,7 @@ export function Canvas(props: CanvasProps) {
               suppressClick.current = false;
             }, 0);
             if (drag.position.x !== drag.origin.x || drag.position.y !== drag.origin.y)
-              onReposition({ ...drag.positions, [drag.id]: drag.position });
+              onReposition(positionsForSubtreeMove(map, drag.positions, drag.id, drag.position));
           }
         }
         const remaining = [...pointers.current.values()][0];
