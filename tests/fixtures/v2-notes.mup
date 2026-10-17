@@ -1,0 +1,24 @@
+{
+  "formatVersion": 2,
+  "id": "root",
+  "title": "읽기와 쓰기",
+  "attr": {
+    "attachment": {
+      "contentType": "text/plain",
+      "content": "메모 원본"
+    }
+  },
+  "ideas": {
+    "1": {
+      "id": "child",
+      "title": "긴 한국어 제목을 안전하게 줄바꿈해 표시합니다",
+      "attr": {
+        "style": {
+          "background": "#ffffff",
+          "color": "#ffffff"
+        },
+        "hyperlink": "javascript:alert(1)"
+      }
+    }
+  }
+}

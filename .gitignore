@@ -141,9 +141,34 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+.vite-temp/
 
 # Astro generated types
 .astro/
 
 # Turbo Repo
 .turbo
+
+# Editor and browser test artifacts
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/launch.json
+!.vscode/tasks.json
+!.vscode/*.code-snippets
+.history/
+*.swp
+*.swo
+*~
+playwright-report/
+# Timestamped test runs and latest symlinks (local artifacts)
+/test-results/
+blob-report/
+playwright/.cache/
+
+# Operating system metadata
+.DS_Store
+._*
+Thumbs.db
+Desktop.ini

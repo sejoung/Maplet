@@ -1,0 +1,26 @@
+{
+  "formatVersion": 3,
+  "id": "aggregate",
+  "attr": {
+    "theme": "default"
+  },
+  "ideas": {
+    "1": {
+      "id": "root-a",
+      "title": "프로젝트 A",
+      "ideas": {
+        "-0.5": {
+          "id": "left",
+          "title": "왼쪽 작업"
+        }
+      }
+    },
+    "2": {
+      "id": "root-b",
+      "title": "프로젝트 B"
+    }
+  },
+  "metadata": {
+    "retain": true
+  }
+}

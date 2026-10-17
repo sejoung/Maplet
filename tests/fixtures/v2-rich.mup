@@ -1,0 +1,68 @@
+{
+  "formatVersion": 2,
+  "id": 1,
+  "title": "새로운 시작",
+  "attr": {
+    "style": {
+      "background": "#e8f0ec"
+    },
+    "theme": "original"
+  },
+  "ideas": {
+    "-2": {
+      "id": 2,
+      "title": "발견하기",
+      "attr": {
+        "attachment": {
+          "contentType": "text/html",
+          "content": "<b>원문</b>"
+        },
+        "hyperlink": "https://example.com",
+        "style": {
+          "background": "#e9eff8"
+        },
+        "position": [
+          10,
+          20
+        ]
+      },
+      "vendor": {
+        "a": [
+          1,
+          2
+        ]
+      }
+    },
+    "1": {
+      "id": "a",
+      "title": "계획하기",
+      "attr": {
+        "notes": "중요 메모",
+        "collapsed": true
+      },
+      "ideas": {
+        "1": {
+          "id": 4,
+          "title": "작은 단계"
+        }
+      }
+    }
+  },
+  "links": [
+    {
+      "ideaIdFrom": 2,
+      "ideaIdTo": "a",
+      "attr": {
+        "style": {
+          "color": "red"
+        }
+      }
+    }
+  ],
+  "resources": {
+    "image": "base64-original"
+  },
+  "unknown": {
+    "future": 42
+  }
+}

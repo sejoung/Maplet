@@ -1,0 +1,142 @@
+.workspace {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  outline: none;
+}
+.canvas {
+  height: 100%;
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+  background: #f8fafb;
+  touch-action: none;
+}
+.canvas.is-panning {
+  cursor: grabbing;
+}
+.map-layer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+.connections {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: visible;
+}
+.mind-node {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 18px;
+  border: 1px solid #d1d9d5;
+  border-radius: 8px;
+  text-align: center;
+  font-size: 15px;
+  line-height: 23px;
+  color: #25352d;
+  cursor: pointer;
+  outline: none;
+  user-select: none;
+  white-space: pre-wrap;
+}
+.mind-node.root-node {
+  border-color: #9cab9f;
+  font-weight: 600;
+}
+.mind-node.selected {
+  border: 2px solid #397760;
+  padding: 13px 17px;
+  box-shadow: 0 0 0 3px #3977600d;
+}
+.mind-node:focus-visible {
+  outline: 2px solid #236b58;
+  outline-offset: 4px;
+}
+.node-text {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+}
+.node-text > span {
+  display: block;
+  overflow-wrap: anywhere;
+}
+.inline-node-editor {
+  display: block;
+  width: 100%;
+  min-height: 23px;
+  max-height: 240px;
+  resize: none;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  text-align: center;
+  line-height: 23px;
+  color: inherit;
+  font-weight: inherit;
+  overflow-wrap: anywhere;
+  outline: none !important;
+}
+.mind-node:has(.inline-node-editor) {
+  min-width: 200px;
+  z-index: 2;
+}
+.collapse-node {
+  position: absolute;
+  right: -12px;
+  top: calc(50% - 11px);
+  height: 22px;
+  min-width: 22px;
+  padding: 0 3px;
+  border: 1px solid #d0d9d2;
+  border-radius: 12px;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  color: #596b5c;
+  font-size: 10px;
+}
+.collapse-node::before {
+  content: '';
+  position: absolute;
+  inset: -5px;
+}
+.collapse-node.left {
+  right: auto;
+  left: -12px;
+}
+.note-indicator {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #607c6a;
+}
+
+.mind-node {
+  cursor: grab;
+}
+.canvas.is-dragging,
+.canvas.is-dragging .mind-node {
+  cursor: grabbing;
+}
+.mind-node.dragging {
+  z-index: 3;
+}
+.inline-node-editor {
+  cursor: text;
+}

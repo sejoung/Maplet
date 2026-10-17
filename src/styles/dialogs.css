@@ -1,0 +1,146 @@
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  background: #24362a33;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.dialog {
+  width: 100%;
+  max-width: 430px;
+  max-height: 90dvh;
+  overflow: auto;
+  background: #fff;
+  border: 1px solid #d6dfd8;
+  border-radius: 10px;
+  box-shadow: 0 12px 40px #2135281a;
+  padding: 22px 24px;
+}
+.dialog-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  margin-bottom: 16px;
+}
+.dialog-heading h2 {
+  margin: 0;
+}
+.dialog-heading .icon-button {
+  margin: -5px -8px -5px 0;
+}
+.dialog p {
+  font-size: 13px;
+}
+.dialog-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 20px;
+}
+.tool-selection {
+  color: #5d6864;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-bottom: 20px;
+}
+.form-error {
+  color: #97333b;
+  background: #fff1ef;
+  border-radius: 5px;
+  padding: 10px;
+}
+.color-options {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.color-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 12px;
+}
+.color-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid #d0d8d2;
+  border-radius: 5px;
+}
+.external-link {
+  display: inline-block;
+  margin-top: 12px;
+  font-size: 12px;
+}
+.search-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.search-results {
+  margin-top: 16px;
+  max-height: 40dvh;
+  overflow-y: auto;
+}
+.search-result {
+  display: block;
+  width: 100%;
+  padding: 11px 10px;
+  text-align: left;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+  border-bottom: 1px solid var(--border);
+}
+.shortcut-list {
+  margin: 0;
+}
+.shortcut-list > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 9px 0;
+  border-bottom: 1px solid #edf0ee;
+}
+.shortcut-list dd {
+  margin: 0;
+  font-size: 12px;
+  color: #526159;
+}
+.drive-intro {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin: 16px 0;
+  color: var(--accent);
+}
+.drive-intro p {
+  margin: 0;
+}
+.drive-status {
+  padding: 10px;
+  background: #f1f5f2;
+  border-radius: 6px;
+  color: #41634b;
+}
+.drive-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.text-button {
+  color: var(--accent);
+  font-size: 12px;
+  padding: 8px;
+}

@@ -1,0 +1,120 @@
+@media (max-width: 820px) {
+  .desktop-tool {
+    display: none;
+  }
+  .mobile-tools {
+    display: block;
+  }
+  .editor-toolbar {
+    padding: 0 9px;
+    gap: 3px;
+  }
+  .node-menu summary span,
+  .node-menu summary > svg:last-child,
+  .mobile-tools summary span,
+  .mobile-tools summary > svg:last-child,
+  .add-node > span {
+    display: none;
+  }
+  .node-menu summary,
+  .mobile-tools summary,
+  .add-node {
+    width: 34px;
+    padding: 0;
+  }
+  .mobile-tools .menu-items {
+    left: auto;
+    right: 0;
+  }
+}
+@media (max-width: 480px) {
+  .app-header {
+    padding: 0 12px;
+    gap: 12px;
+    height: 50px;
+    min-height: 50px;
+  }
+  .brand > span {
+    display: none;
+  }
+  .document-name {
+    flex: 1;
+    font-size: 12px;
+  }
+  .document-name > span:first-child {
+    max-width: 110px;
+  }
+  .app-header .toolbar-menu summary {
+    padding: 0 5px;
+  }
+  .save-button {
+    padding: 7px 10px;
+    font-size: 11px;
+    min-height: 32px;
+  }
+  .editor-toolbar {
+    height: 44px;
+    min-height: 44px;
+    gap: 1px;
+    padding: 0 8px;
+  }
+  .icon-button {
+    width: 32px;
+    min-width: 32px;
+    height: 34px;
+  }
+  .tool-divider {
+    margin: 0 3px;
+  }
+  .zoom-tools output {
+    min-width: 37px;
+    font-size: 11px;
+  }
+  .status-bar {
+    padding: 0 10px;
+    font-size: 10px;
+    gap: 8px;
+  }
+  .save-status {
+    gap: 5px;
+    overflow: hidden;
+  }
+  .save-status > span:last-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .node-count {
+    font-size: 10px;
+  }
+  .dialog-backdrop {
+    padding: 15px;
+  }
+  .dialog {
+    padding: 20px;
+  }
+  .message {
+    padding-left: 10px;
+    font-size: 11px;
+  }
+}
+@media (max-width: 370px) {
+  .editor-toolbar .help-button {
+    display: none;
+  }
+  .document-name > span:first-child {
+    max-width: 72px;
+  }
+}
+
+@media (max-width: 820px) {
+  .editor-toolbar .help-button {
+    display: none;
+  }
+  .mobile-tools .menu-items,
+  .node-menu .menu-items {
+    position: fixed;
+    top: 100px;
+    left: 8px;
+    right: auto;
+  }
+}

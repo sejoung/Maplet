@@ -1,0 +1,5 @@
+@import './styles/base.css';
+@import './styles/editor.css';
+@import './styles/canvas.css';
+@import './styles/dialogs.css';
+@import './styles/responsive.css';

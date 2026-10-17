@@ -1,0 +1,9 @@
+README.md
+LICENSE
+node_modules
+dist
+coverage
+test-results
+playwright-report
+package-lock.json
+tests/fixtures
