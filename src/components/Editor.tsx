@@ -41,6 +41,7 @@ export interface EditorProps
   onNew(): void;
   onOpen(file: File): void;
   onSave(): void;
+  onExportMup(): void;
   onBackup(): void;
   onHelp(): void;
   onDrive(): void;
@@ -106,7 +107,11 @@ export function Editor(props: EditorProps) {
           </button>
           <button onClick={command(props.onSave)}>
             <ArrowDownToLine size={17} />
-            .mup 저장
+            .maplet 저장
+          </button>
+          <button onClick={command(props.onExportMup)}>
+            <ArrowDownToLine size={17} />
+            .mup 내보내기
           </button>
           {map.original && (
             <button onClick={command(props.onBackup)}>
@@ -121,7 +126,7 @@ export function Editor(props: EditorProps) {
           </button>
         </ToolbarMenu>
         <div className="document-name" title={props.filename}>
-          <span>{props.filename.replace(/\.mup$/i, '')}</span>
+          <span>{props.filename.replace(/\.(maplet|mup)$/i, '')}</span>
           {props.dirty && (
             <span className="unsaved-marker" aria-label="저장하지 않은 변경">
               •
@@ -130,12 +135,12 @@ export function Editor(props: EditorProps) {
         </div>
         <button className="button primary save-button" onClick={props.onSave}>
           <ArrowDownToLine size={16} />
-          <span>.mup 저장</span>
+          <span>.maplet 저장</span>
         </button>
         <input
           ref={input}
           type="file"
-          accept=".mup,.json,application/json"
+          accept=".maplet,.mup,.json,application/json"
           aria-label="마인드맵 파일 열기"
           className="visually-hidden"
           tabIndex={-1}
@@ -359,7 +364,7 @@ export function Editor(props: EditorProps) {
       {dragging && (
         <div className="file-drop-overlay">
           <FolderOpen size={36} />
-          <p>.mup 파일을 놓아 열기</p>
+          <p>.maplet 또는 .mup 파일을 놓아 열기</p>
         </div>
       )}
     </div>

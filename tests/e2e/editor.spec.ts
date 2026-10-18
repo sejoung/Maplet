@@ -41,7 +41,8 @@ test('opens, edits inline, undoes, exports and reimports without losing metadata
   await expect(page.getByRole('treeitem', { name: '새 노드', exact: true })).toBeVisible();
   await page.getByRole('button', { name: '다시 실행', exact: true }).click();
   const downloaded = page.waitForEvent('download');
-  await page.getByRole('button', { name: '.mup 저장', exact: true }).click();
+  await page.getByRole('button', { name: '파일', exact: true }).click();
+  await page.getByRole('button', { name: '.mup 내보내기', exact: true }).click();
   const path = await (await downloaded).path();
   const raw = JSON.parse(await readFile(path!, 'utf8'));
   expect(raw.ideas['-2'].vendor).toEqual({ a: [1, 2] });

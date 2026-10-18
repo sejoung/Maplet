@@ -10,7 +10,10 @@ import {
 import type { MindMap, MindNode } from '../domain/model';
 import { setNodePositions, resetNodePositions } from '../domain/positions';
 import { commit, createHistory, undo, redo } from '../application/history';
-import { parseMup, serializeMup } from '../adapters/mup/codec';
+import { serializeMup } from '../adapters/mup/codec';
+import { serializeMaplet } from '../adapters/maplet/codec';
+import { parseDocument, nativeFilename, mupFilename } from '../adapters/documents';
+import { restoreDraft } from '../adapters/storage/recovery';
 import { DraftStore, type Draft } from '../adapters/storage/drafts';
 import { downloadFile, readMapFile } from '../adapters/storage/files';
 import { Editor } from '../components/Editor';
@@ -25,9 +28,9 @@ const initial = createMap('중심 주제');
 export function App() {
   const [history, setHistory] = useState(() => createHistory(initial));
   const map = history.present;
-  const content = useMemo(() => serializeMup(map), [map]);
+  const content = useMemo(() => serializeMaplet(map), [map]);
   const [savedContent, setSavedContent] = useState(content);
-  const [filename, setFilename] = useState('제목 없음.mup');
+  const [filename, setFilename] = useState('제목 없음.maplet');
   const [selected, setSelected] = useState(map.roots[0]);
   const [documentKey, setDocumentKey] = useState(0);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -108,7 +111,7 @@ export function App() {
     try {
       downloadFile(content, filename);
       setSavedContent(content);
-      setNotice('파일 다운로드를 요청했습니다. 다운로드 폴더에서 .mup 파일을 확인해 주세요.');
+      setNotice('파일 다운로드를 요청했습니다. 다운로드 폴더에서 .maplet 파일을 확인해 주세요.');
     } catch (reason) {
       report(reason);
     }
@@ -168,8 +171,8 @@ export function App() {
     setEditingId(null);
     setHistory(createHistory(next));
     setSelected(next.roots[0]);
-    setFilename(name);
-    setSavedContent(lastSaved ?? serializeMup(next));
+    setFilename(nativeFilename(name));
+    setSavedContent(lastSaved ?? serializeMaplet(next));
     setDocumentKey((key) => key + 1);
     setError(null);
     setNotice(next.warnings.length ? next.warnings.join(' ') : null);
@@ -177,12 +180,12 @@ export function App() {
   const allowReplace = () =>
     !dirty ||
     window.confirm(
-      '아직 파일로 내려받지 않은 변경이 있습니다. 현재 맵을 바꿀까요? 취소 후 .mup 저장으로 보관할 수 있습니다.',
+      '아직 파일로 내려받지 않은 변경이 있습니다. 현재 맵을 바꿀까요? 취소 후 .maplet 저장으로 보관할 수 있습니다.',
     );
   const open = async (file: File) => {
     const generation = ++importGeneration.current;
     try {
-      const next = parseMup(await readMapFile(file));
+      const next = parseDocument(await readMapFile(file));
       if (generation !== importGeneration.current || !allowReplace()) return;
       replace(next, file.name);
       driveState.clearFile();
@@ -239,9 +242,8 @@ export function App() {
   const recover = () => {
     if (!recovery) return;
     try {
-      const next = parseMup(recovery.content);
-      next.original = recovery.original;
-      replace(next, recovery.filename, recovery.savedContent);
+      const restored = restoreDraft(recovery);
+      replace(restored.map, restored.filename, restored.savedContent);
       setRecovery(null);
       setNotice('이 기기의 초안을 복구했습니다. 파일로 다운로드해 보관하세요.');
     } catch (reason) {
@@ -303,9 +305,17 @@ export function App() {
         }}
         onOpen={(file) => void open(file)}
         onSave={save}
+        onExportMup={() => {
+          try {
+            downloadFile(serializeMup(map), mupFilename(filename));
+            setNotice('.mup 호환 파일을 내보냈습니다. Maplet 원본은 .maplet 저장으로 보관하세요.');
+          } catch (reason) {
+            report(reason);
+          }
+        }}
         onBackup={() => {
           if (map.original)
-            downloadFile(map.original, filename.replace(/\.mup$/i, '') + '.original.mup');
+            downloadFile(map.original, filename.replace(/\.maplet$/i, '') + '.original.mup');
         }}
         onHelp={() => setDialog('help')}
         onDrive={driveState.showDrive}
@@ -337,7 +347,7 @@ export function App() {
               event.preventDefault();
               if (allowReplace()) {
                 const next = createMap(newTitle.trim());
-                replace(next, `${newTitle.trim().slice(0, 80)}.mup`, '');
+                replace(next, `${newTitle.trim().slice(0, 80)}.maplet`, '');
                 driveState.clearFile();
                 setDialog(null);
               }

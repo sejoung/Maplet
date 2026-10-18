@@ -13,7 +13,7 @@ export function ShortcutHelpDialog({ onClose }: { onClose(): void }) {
           ['Delete / ⌫', '노드와 하위 노드 삭제'],
           ['⌘ / Ctrl + Z', '실행 취소'],
           ['⌘ / Ctrl + Shift + Z', '다시 실행'],
-          ['⌘ / Ctrl + S', '.mup 파일 다운로드'],
+          ['⌘ / Ctrl + S', '.maplet 파일 다운로드'],
           ['Space + 드래그', '캔버스 이동'],
           ['Ctrl + 휠 / 핀치', '확대·축소'],
           ['노드 드래그', '위치·연결선 길이 조절'],

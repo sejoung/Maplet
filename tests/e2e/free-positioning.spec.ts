@@ -112,7 +112,7 @@ test('preserves manual positions through recovery, download and reimport at a ch
     .toBe(left);
   await expect.poll(() => node.evaluate((element) => (element as HTMLElement).style.top)).toBe(top);
   const downloaded = page.waitForEvent('download');
-  await page.getByRole('button', { name: '.mup 저장', exact: true }).click();
+  await page.getByRole('button', { name: '.maplet 저장', exact: true }).click();
   await page.locator('input[type=file]').setInputFiles((await (await downloaded).path())!);
   await expect
     .poll(() => node.evaluate((element) => (element as HTMLElement).style.left))

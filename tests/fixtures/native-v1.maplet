@@ -1,0 +1,35 @@
+{
+  "format": "maplet",
+  "version": 1,
+  "roots": ["root"],
+  "nodes": {
+    "root": {
+      "id": "root",
+      "title": "Maplet document",
+      "parentId": null,
+      "children": ["left"],
+      "rank": "1",
+      "side": "right",
+      "collapsed": false,
+      "position": {"x": 100, "y": 160},
+      "style": {},
+      "notes": "",
+      "links": []
+    },
+    "left": {
+      "id": "left",
+      "title": "직접 저장한 좌표",
+      "parentId": "root",
+      "children": [],
+      "rank": "-1",
+      "side": "left",
+      "collapsed": false,
+      "position": {"x": -140.5, "y": 180.25},
+      "style": {"background": "#ffffff"},
+      "notes": "Native note",
+      "links": ["https://example.com"],
+      "extensions": {"example:node": true}
+    }
+  },
+  "extensions": {"example:document": "preserved"}
+}

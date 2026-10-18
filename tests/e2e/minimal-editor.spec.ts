@@ -53,7 +53,7 @@ test('commits inline typing before keyboard save and protects Korean composition
   const stream = await (await downloaded).createReadStream();
   const chunks = [];
   for await (const chunk of stream!) chunks.push(chunk);
-  expect(JSON.parse(Buffer.concat(chunks).toString()).title).toBe('한글 입력');
+  expect(JSON.parse(Buffer.concat(chunks).toString()).nodes.root.title).toBe('한글 입력');
 });
 
 test('finds a node without a persistent outline', async ({ page }) => {

@@ -4,7 +4,7 @@
 
 <h1 align="center">Maplet</h1>
 
-<p align="center">A local-first mind map editor for MindMup files.</p>
+<p align="center">A local-first mind map editor with MindMup compatibility.</p>
 
 <p align="center">
   <strong>English</strong> · <a href="README.ko.md" lang="ko">한국어</a>
@@ -15,7 +15,7 @@
 [![Node.js 24](https://img.shields.io/badge/Node.js-24-339933?logo=nodedotjs&logoColor=white)](.nvmrc)
 [![TypeScript 5.9](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white)](package.json)
 
-Open a `.mup` file, arrange your ideas, and download your changes. Maplet keeps editing in your browser, with a simple toolbar and a readable canvas. Local file editing requires no account or backend. Google Drive is optional.
+Create `.maplet` documents or import `.mup` files, arrange your ideas, and download your changes. Maplet keeps editing in your browser, with a simple toolbar and a readable canvas. Local file editing requires no account or backend. Google Drive is optional.
 
 ![Maplet editor with a sample mind map and freely positioned nodes](docs/screenshots/free-positioning.png)
 
@@ -23,7 +23,8 @@ Open a `.mup` file, arrange your ideas, and download your changes. Maplet keeps 
 
 ## Features
 
-- **MindMup files:** open `.mup` files by selecting or dropping them, export edits, and download an untouched original backup.
+- **Native documents:** save `.maplet` files with a versioned JSON model for hierarchy, coordinates, notes, and styles.
+- **MindMup compatibility:** import `.mup` files, export compatible copies, and download an untouched MindMup original backup.
 - **Direct editing:** create, rename, delete, and reparent nodes; add notes, links, and optional background colors from the toolbar.
 - **Move whole branches:** drag a parent and all its descendants together, preserving their relative positions. Connections follow as you move. Other branches stay in place.
 - **Navigate your map:** search, collapse branches, zoom, pan, fit to screen, or restore automatic layout.
@@ -43,7 +44,7 @@ npm ci
 npm run dev
 ```
 
-Open [http://127.0.0.1:5173](http://127.0.0.1:5173). Start from the central topic or open a file through **파일 → 열기** (File → Open). Double-click a node to edit it, drag it to move its branch, and use **.mup 저장** to download the map.
+Open [http://127.0.0.1:5173](http://127.0.0.1:5173). Start from the central topic or open a file through **파일 → 열기** (File → Open). Double-click a node to edit it, drag it to move its branch, and use **.maplet 저장** to download the document. Use **파일 → .mup 내보내기** for a MindMup-compatible copy.
 
 Local editing works without environment variables. To enable Drive, copy [`.env.example`](.env.example) to `.env.local`, fill in the public Google configuration, and follow the [Drive setup guide](docs/google-drive.md) (Korean). Never include a client secret in a browser build.
 
@@ -64,13 +65,15 @@ Local editing works without environment variables. To enable Drive, copy [`.env.
 
 While editing a title: `Enter` applies, `Shift` + `Enter` inserts a newline, `Escape` cancels, and `Tab` applies the title and starts a child. During a drag, `Escape` cancels the whole branch movement.
 
-## File compatibility
+## Document formats
 
-Maplet reads MindMup v1, v2, and v3, including multiple roots in v3. It preserves unknown metadata and the original imported text. Manual positions are stored in the **Maplet-specific** `attr["maplet:position"]` extension; other editors may display a different layout.
+The default [`.maplet` format](docs/maplet-format.md) stores node coordinates and hierarchy directly in a versioned JSON document. Unknown native document and node fields are preserved. Existing browser drafts are migrated when recovered.
+
+MindMup v1, v2, and v3 are supported for import/export, including multiple roots in v3. Original metadata and imported text are kept in a separate compatibility section. MUP exports retain positions in the **Maplet-specific** `attr["maplet:position"]` extension; other editors may display a different layout. Native saving and MUP export are separate actions.
 
 Images, HTML attachments, and cross-links are preserved as data but do not have dedicated rendering. Compatibility tests currently use synthetic fixtures; full compatibility with every MindMup file is not guaranteed. See the [compatibility matrix](docs/compatibility.md) and [verification record](docs/verification.md) (Korean).
 
-Import limits: **10 MiB**, **5,000 nodes**, **100 levels**, and **10,000 characters per title**. Download `.mup` files for a portable copy; browser drafts are stored separately on the current device.
+Import limits: **50 MiB for `.maplet`**, **10 MiB for `.mup`**, **5,000 nodes**, **100 levels**, and **10,000 characters per title**. Download `.maplet` files for a portable working copy; browser drafts are stored separately on the current device. Saving a Drive-imported `.mup` creates a new `.maplet` file and keeps the original untouched.
 
 ## Development
 
@@ -112,7 +115,7 @@ src/
   components/    Toolbar, canvas, node editing, dialogs
   domain/        Map model and editing commands
   application/   History and use cases
-  adapters/      MindMup codec, file I/O, IndexedDB, Google Drive
+  adapters/      Maplet/MindMup codecs, file I/O, IndexedDB, Google Drive
   engine/        Layout and connection geometry
   styles/        Base, editor, canvas, dialog, and responsive styles
 tests/
@@ -120,7 +123,7 @@ tests/
   integration/   Draft storage and development tooling tests
   architecture/  Dependency boundaries and cycle checks
   e2e/           Browser scenarios
-  fixtures/      Synthetic .mup samples
+  fixtures/      Native and synthetic MindMup samples
 docs/            Guides, screenshots, and architecture decisions
 ```
 
@@ -141,6 +144,7 @@ Detailed guides are currently in Korean.
 | ----------------------------------------------- | ----------------------------------------------------- |
 | [Design guide](docs/design-guide.md)            | Readability, colors, interaction, and accessibility   |
 | [Development guide](docs/contributing.md)       | TDD, quality checks, test artifacts, and deployment   |
+| [Native format](docs/maplet-format.md)          | Versioned `.maplet` schema, metadata, and migration   |
 | [Compatibility](docs/compatibility.md)          | Supported formats and preservation rules              |
 | [Google Drive](docs/google-drive.md)            | Optional configuration and deployment checks          |
 | [Verification](docs/verification.md)            | Implemented scope, evidence, and remaining validation |

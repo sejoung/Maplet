@@ -117,7 +117,7 @@ test('runs document keyboard shortcuts while a canvas node has focus', async ({ 
   await expect(node).toHaveCount(1);
   const download = page.waitForEvent('download');
   await root.press(`${modifier}+s`);
-  expect((await download).suggestedFilename()).toBe('interaction.mup');
+  expect((await download).suggestedFilename()).toBe('interaction.maplet');
 });
 
 test('keeps the parent when dragging a node over another node', async ({ page }) => {

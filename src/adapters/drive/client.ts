@@ -1,3 +1,5 @@
+import { MAX_MAPLET_BYTES } from '../maplet/codec';
+
 export interface DriveFile {
   id: string;
   name: string;
@@ -46,8 +48,9 @@ export class DriveClient {
       version: string;
       size: string;
     };
-    if (Number(meta.size) > 10 * 1024 * 1024)
-      throw new Error('Drive 파일 크기는 10 MiB 이하여야 합니다.');
+    const limit = /\.mup$/i.test(meta.name ?? '') ? 10 * 1024 * 1024 : MAX_MAPLET_BYTES;
+    if (Number(meta.size) > limit)
+      throw new Error(`Drive 파일 크기는 ${limit / 1024 / 1024} MiB 이하여야 합니다.`);
     const response = await this.request(`${endpoint}?alt=media`);
     return {
       ...meta,

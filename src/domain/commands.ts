@@ -38,7 +38,7 @@ export function createMap(title = '중심 주제'): MindMap {
         notes: '',
         links: [],
         position: null,
-        rawExtensions: { formatVersion: 2 },
+        rawExtensions: {},
       },
     },
     rawExtensions: {},

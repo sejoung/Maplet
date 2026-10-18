@@ -201,5 +201,6 @@ export function serializeMup(map: MindMap): string {
           ideas: Object.fromEntries(map.roots.map((id) => [map.nodes[id].rank, visit(id)])),
         }
       : visit(map.roots[0]);
+  if (map.formatVersion === 2) raw.formatVersion = 2;
   return JSON.stringify(raw, null, 2) + '\n';
 }

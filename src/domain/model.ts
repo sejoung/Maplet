@@ -20,9 +20,11 @@ export interface MindNode {
   links: string[];
   position: NodePosition | null;
   rawExtensions: JsonObject;
+  nativeExtensions?: JsonObject;
 }
 
 export interface MindMap {
+  nativeExtensions?: JsonObject;
   formatVersion: 1 | 2 | 3;
   roots: string[];
   nodes: Record<string, MindNode>;

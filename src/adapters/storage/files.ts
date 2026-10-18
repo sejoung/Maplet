@@ -1,7 +1,9 @@
 import { MAX_BYTES } from '../mup/codec';
+import { MAX_MAPLET_BYTES } from '../maplet/codec';
 
 export async function readMapFile(file: File): Promise<string> {
-  if (file.size > MAX_BYTES) throw new Error('파일 크기는 10 MiB 이하여야 합니다.');
+  const limit = file.name && !/\.mup$/i.test(file.name) ? MAX_MAPLET_BYTES : MAX_BYTES;
+  if (file.size > limit) throw new Error(`파일 크기는 ${limit / 1024 / 1024} MiB 이하여야 합니다.`);
   return file.text();
 }
 
@@ -10,12 +12,11 @@ export function downloadFile(content: string, name: string): void {
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
   anchor.href = url;
-  anchor.download =
-    [...name]
-      .map((char) => (char.charCodeAt(0) < 32 ? '_' : char))
-      .join('')
-      .replace(/[\\/:*?"<>|]/g, '_')
-      .replace(/\.mup$/i, '') + '.mup';
+  const sanitized = [...name]
+    .map((char) => (char.charCodeAt(0) < 32 ? '_' : char))
+    .join('')
+    .replace(/[\\/:*?"<>|]/g, '_');
+  anchor.download = /\.(maplet|mup)$/i.test(sanitized) ? sanitized : sanitized + '.maplet';
   document.body.append(anchor);
   anchor.click();
   anchor.remove();

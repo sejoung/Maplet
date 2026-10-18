@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import type { MindMap } from '../domain/model';
-import { parseMup, serializeMup } from '../adapters/mup/codec';
+import { parseDocument, nativeFilename, driveSaveTarget } from '../adapters/documents';
+import { serializeMaplet } from '../adapters/maplet/codec';
 import { DriveClient, DriveConflict, type DriveFile } from '../adapters/drive/client';
 import { GoogleConnection, type GoogleConfig } from '../adapters/drive/google';
 
@@ -70,10 +71,10 @@ export function useDrive({
       const id = await google.pick();
       if (id) {
         const file = await drive.open(id);
-        const next = parseMup(file.content);
-        replace(next, file.name);
+        const next = parseDocument(file.content);
+        replace(next, nativeFilename(file.name));
         setDriveFile(file);
-        setDriveSavedContent(serializeMup(next));
+        setDriveSavedContent(serializeMaplet(next));
         setDriveStatus('Drive 파일을 열었습니다');
         setDialog(null);
       }
@@ -89,13 +90,10 @@ export function useDrive({
     setBusy(true);
     setDriveStatus('Drive 저장 중…');
     try {
-      const file =
-        mode === 'copy' || !driveFile
-          ? await drive.create(
-              mode === 'copy' ? filename.replace(/\.mup$/i, '') + ' (사본).mup' : filename,
-              content,
-            )
-          : await drive.save(driveFile, content, mode === 'overwrite');
+      const target = driveSaveTarget(filename, driveFile, mode === 'copy');
+      const file = target.create
+        ? await drive.create(target.name, content)
+        : await drive.save(driveFile!, content, mode === 'overwrite');
       setDriveFile(file);
       setDriveSavedContent(content);
       setDriveStatus('Drive에 저장됨');
