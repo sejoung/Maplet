@@ -37,7 +37,7 @@
   padding: 14px 18px;
   border: 1px solid #d1d9d5;
   border-radius: 8px;
-  text-align: center;
+  text-align: left;
   font-size: 15px;
   line-height: 23px;
   color: #25352d;
@@ -72,7 +72,7 @@
 .inline-node-editor {
   display: block;
   width: 100%;
-  min-height: 23px;
+  min-height: 1.5em;
   max-height: 240px;
   resize: none;
   padding: 0;
@@ -80,8 +80,8 @@
   border: 0;
   border-radius: 0;
   background: transparent;
-  text-align: center;
-  line-height: 23px;
+  text-align: inherit;
+  line-height: inherit;
   color: inherit;
   font-weight: inherit;
   overflow-wrap: anywhere;

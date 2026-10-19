@@ -3,6 +3,7 @@ import { useLayoutEffect, useRef, type KeyboardEvent, type RefObject } from 'rea
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { InlineNodeEditor } from './InlineNodeEditor';
 import type { CanvasProps } from './canvas-types';
+import { FONT_FAMILIES, nodeTypography } from '../domain/typography';
 import type { Layout } from '../engine/layout';
 
 type CanvasNodesProps = Pick<
@@ -70,6 +71,7 @@ export function CanvasNodes(props: CanvasNodesProps) {
     >
       {layout.nodes.map((placed) => {
         const node = map.nodes[placed.id];
+        const typography = nodeTypography(node.style);
         let depth = 1;
         let parent = node.parentId;
         while (parent) {
@@ -89,6 +91,10 @@ export function CanvasNodes(props: CanvasNodesProps) {
             data-node-id={node.id}
             draggable={false}
             style={{
+              textAlign: typography.textAlign,
+              fontSize: typography.fontSize,
+              fontFamily: FONT_FAMILIES[typography.fontFamily],
+              lineHeight: `${typography.lineHeight}px`,
               left: placed.x,
               top: placed.y,
               width: placed.width,

@@ -29,13 +29,16 @@ test('opens color options only from the toolbar and returns to the canvas', asyn
   await tool(page, '서식');
   await expect(page.getByRole('dialog', { name: '노드 서식' })).toBeVisible();
   await page.getByRole('button', { name: '블루', exact: true }).click();
+  await page.getByRole('button', { name: '서식 적용', exact: true }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page.getByRole('treeitem')).toHaveCSS('background-color', 'rgb(232, 238, 248)');
   await tool(page, '서식');
   await page.getByRole('button', { name: '기본 색상', exact: true }).click();
+  await page.getByRole('button', { name: '서식 적용', exact: true }).click();
   await expect(page.getByRole('treeitem')).toHaveCSS('background-color', 'rgb(228, 240, 234)');
   await tool(page, '서식');
   await page.getByRole('button', { name: '화이트', exact: true }).click();
+  await page.getByRole('button', { name: '서식 적용', exact: true }).click();
   await expect(page.getByRole('treeitem')).toHaveCSS('background-color', 'rgb(255, 255, 255)');
 });
 

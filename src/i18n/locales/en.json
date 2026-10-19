@@ -197,5 +197,18 @@
   ".maplet 문서를 편집하고 MindMup 파일을 가져오는 로컬 우선 마인드맵 에디터.": "A local-first mind map editor for .maplet documents and MindMup files.",
   "설정": "Settings",
   "완료": "Done",
-  "변경 즉시 적용되며 다음 방문에도 유지됩니다.": "Changes take effect immediately and are remembered for future visits."
+  "변경 즉시 적용되며 다음 방문에도 유지됩니다.": "Changes take effect immediately and are remembered for future visits.",
+  "글꼴": "Font",
+  "기본 고딕": "System sans",
+  "명조": "Serif",
+  "고정폭": "Monospace",
+  "글자 크기": "Font size",
+  "작게": "Small",
+  "보통": "Normal",
+  "크게": "Large",
+  "텍스트 정렬": "Text alignment",
+  "왼쪽 정렬": "Align left",
+  "가운데 정렬": "Align center",
+  "오른쪽 정렬": "Align right",
+  "서식 적용": "Apply style"
 }

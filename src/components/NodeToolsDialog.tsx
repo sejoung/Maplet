@@ -1,9 +1,10 @@
 import { useI18n } from '../i18n/react';
 import { useCallback, useState } from 'react';
-import { Check, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
 import type { MindMap, MindNode } from '../domain/model';
 import { isDescendant, safeUrl } from '../domain/commands';
 import { Dialog } from './Dialog';
+import { NodeStyleForm } from './NodeStyleForm';
 
 export type NodeTool = 'notes' | 'link' | 'style' | 'move' | 'search';
 export interface NodeToolActions {
@@ -13,14 +14,6 @@ export interface NodeToolActions {
   ): boolean;
   onMove(id: string, parent: string): boolean;
 }
-const colors = [
-  ['세이지', '#e9f1e8'],
-  ['블루', '#e8eef8'],
-  ['앰버', '#fbf0db'],
-  ['로즈', '#f7e8e7'],
-  ['라벤더', '#eee9f5'],
-  ['화이트', '#ffffff'],
-];
 const titles: Record<NodeTool, string> = {
   notes: '메모',
   link: '링크',
@@ -133,40 +126,11 @@ export function NodeToolsDialog({
         </form>
       )}
       {tool === 'style' && (
-        <>
-          <p className="field-label">{t('배경색')}</p>
-          <div className="color-options">
-            {colors.map(([name, color]) => (
-              <button
-                key={name}
-                className="color-option"
-                aria-label={t(name)}
-                aria-pressed={node.style.background === color}
-                onClick={() => {
-                  if (onUpdate(selected, { style: { ...node.style, background: color } }))
-                    onClose();
-                }}
-              >
-                <span className="color-chip" style={{ background: color }}>
-                  {node.style.background === color && <Check size={16} />}
-                </span>
-                <span>{t(name)}</span>
-              </button>
-            ))}
-          </div>
-          <div className="dialog-actions">
-            <button
-              className="button"
-              onClick={() => {
-                const style = { ...node.style };
-                delete style.background;
-                if (onUpdate(selected, { style })) onClose();
-              }}
-            >
-              {t('기본 색상')}
-            </button>
-          </div>
-        </>
+        <NodeStyleForm
+          initialStyle={node.style}
+          onApply={(style) => onUpdate(selected, { style })}
+          onClose={onClose}
+        />
       )}
       {tool === 'move' && (
         <form

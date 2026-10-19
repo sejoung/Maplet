@@ -23,6 +23,7 @@ Create `.maplet` documents or import `.mup` files, arrange your ideas, and downl
 
 ## Features
 
+- **Basic formatting:** left-aligned text by default, with three alignments, three sizes, three system font families, and background colors in the Style dialog.
 - **Native documents:** save `.maplet` files with a versioned JSON model for hierarchy, coordinates, notes, and styles.
 - **MindMup compatibility:** import `.mup` files, export compatible copies, and download an untouched MindMup original backup.
 - **Direct editing:** create, rename, delete, and reparent nodes; add notes, links, and optional background colors from the toolbar.

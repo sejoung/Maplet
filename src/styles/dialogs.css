@@ -60,8 +60,36 @@
 }
 .color-options {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
   gap: 8px;
+}
+.typography-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.node-style-form fieldset {
+  min-width: 0;
+  padding: 0;
+  margin: 0 0 20px;
+  border: 0;
+}
+.alignment-options {
+  display: flex;
+  gap: 8px;
+}
+.alignment-options .button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+}
+.alignment-options [aria-pressed='true'],
+.color-option[aria-pressed='true'] {
+  background: #e4f0ea;
+  border-color: var(--accent);
+  color: var(--accent);
 }
 .color-option {
   display: flex;
