@@ -9,13 +9,14 @@ import {
   useState,
   type KeyboardEvent,
 } from 'react';
+import { useEditingLayout } from './useEditingLayout';
 import { useNodeResize } from './useNodeResize';
 import { canvasKeydown } from './canvas-keyboard';
 import { CanvasNodes } from './CanvasNodes';
 import type { CanvasProps } from './canvas-types';
 export type { CanvasControls, CanvasProps } from './canvas-types';
 import type { NodePosition } from '../domain/model';
-import { layoutMap, moveLayoutSubtree } from '../engine/layout';
+import { moveLayoutSubtree } from '../engine/layout';
 import { positionsForSubtreeMove } from '../domain/positions';
 
 export function Canvas(props: CanvasProps) {
@@ -30,7 +31,7 @@ export function Canvas(props: CanvasProps) {
     controlsRef,
     onZoomChange,
   } = props;
-  const baseLayout = useMemo(() => layoutMap(map), [map]);
+  const { layout: baseLayout, onDraftChange } = useEditingLayout(map, editingId, documentKey);
   const [dragPreview, setDragPreview] = useState<{ id: string; position: NodePosition } | null>(
     null,
   );
@@ -352,6 +353,7 @@ export function Canvas(props: CanvasProps) {
         <CanvasNodes
           {...props}
           layout={layout}
+          onDraftChange={onDraftChange}
           resizeHandlers={resizing.handlers}
           draggingId={dragPreview?.id}
           viewport={viewport}

@@ -34,7 +34,7 @@ test('resizes at the current zoom with live connectors, stable positions and one
   const after = (await root.boundingBox())!;
   expect(after.x).toBeCloseTo(before.x, 0);
   expect(after.y).toBeCloseTo(before.y, 0);
-  expect(after.height - before.height).toBeCloseTo(55, 0);
+  expect(after.height).toBeCloseTo(before.height, 0);
   await page.getByRole('button', { name: '실행 취소', exact: true }).click();
   await expect
     .poll(async () => Math.round((await root.boundingBox())!.width))
@@ -112,7 +112,7 @@ test('keeps long text visible when narrowing a node and cancels interrupted resi
   const title = '긴 제목도 크기를 줄였을 때 모든 내용을 읽을 수 있어야 합니다';
   await page.getByRole('textbox', { name: '노드 제목' }).fill(title);
   await page.getByRole('textbox', { name: '노드 제목' }).press('Enter');
-  await dragCorner(page, node, -160, -200);
+  await dragCorner(page, node, -400, -200);
   await page.mouse.up();
   const measurement = await node.evaluate((element) => {
     const node = element as HTMLElement;
@@ -121,15 +121,16 @@ test('keeps long text visible when narrowing a node and cancels interrupted resi
     return {
       width: node.offsetWidth,
       height: node.offsetHeight,
-      minimumHeight: text.children.length * lineHeight + 30,
+      minimumHeight: text.children.length * lineHeight + 14,
       text: [...text.children].map((line) => line.textContent).join(''),
     };
   });
-  expect(measurement.width).toBe(120);
+  expect(measurement.width).toBe(56);
   expect(measurement.height).toBeGreaterThanOrEqual(measurement.minimumHeight);
   expect(measurement.text).toBe(title);
+  await page.getByRole('button', { name: '화면에 맞추기', exact: true }).click();
   await node.dblclick();
-  await expect(node).toHaveCSS('width', '120px');
+  await expect(node).toHaveCSS('width', '56px');
   await page.getByRole('textbox', { name: '노드 제목' }).press('Escape');
   const handle = node.getByRole('button', { name: '노드 크기 조절' });
   const before = await node.evaluate((element) => (element as HTMLElement).style.width);

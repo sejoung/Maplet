@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState, type ButtonHTMLAttributes } from 'react';
 import type { MindMap, NodePosition } from '../domain/model';
-import { clampNodeSize, resizeNode, type NodeSize } from '../domain/node-size';
+import { clampNodeWidth, resizeNode } from '../domain/node-size';
+import { measureNodeText } from './text-measure';
 import { layoutMap, type Layout } from '../engine/layout';
 
 export type ResizeAction = (
   id: string,
-  size: NodeSize | null,
+  width: number | null,
   positions: Record<string, NodePosition>,
 ) => boolean;
 
@@ -13,7 +14,7 @@ export function useNodeResize(map: MindMap, base: Layout, zoom: number, onResize
   type Preview = {
     source: MindMap;
     id: string;
-    size: NodeSize;
+    width: number;
     positions: Record<string, NodePosition>;
   };
   const [preview, setPreview] = useState<Preview | null>(null);
@@ -23,7 +24,7 @@ export function useNodeResize(map: MindMap, base: Layout, zoom: number, onResize
         x: number;
         y: number;
         zoom: number;
-        origin: NodeSize;
+        origin: number;
         moved: boolean;
       })
     | null
@@ -31,7 +32,7 @@ export function useNodeResize(map: MindMap, base: Layout, zoom: number, onResize
   const layout = useMemo(
     () =>
       preview?.source === map
-        ? layoutMap(resizeNode(map, preview.id, preview.size, preview.positions))
+        ? layoutMap(resizeNode(map, preview.id, preview.width, preview.positions), measureNodeText)
         : base,
     [map, base, preview],
   );
@@ -51,12 +52,12 @@ export function useNodeResize(map: MindMap, base: Layout, zoom: number, onResize
       event.currentTarget.focus({ preventScroll: true });
       event.currentTarget.setPointerCapture(event.pointerId);
       const placed = base.nodes.find((node) => node.id === id)!;
-      const size = { width: placed.width, height: placed.height };
+      const width = placed.width;
       drag.current = {
         source: map,
         id,
-        size: clampNodeSize(size),
-        origin: size,
+        width: clampNodeWidth(width),
+        origin: width,
         positions: positions(),
         pointer: event.pointerId,
         x: event.clientX,
@@ -74,10 +75,7 @@ export function useNodeResize(map: MindMap, base: Layout, zoom: number, onResize
         dy = event.clientY - current.y;
       if (!current.moved && Math.hypot(dx, dy) < 4) return;
       current.moved = true;
-      current.size = clampNodeSize({
-        width: current.origin.width + dx / current.zoom,
-        height: current.origin.height + dy / current.zoom,
-      });
+      current.width = clampNodeWidth(current.origin + dx / current.zoom);
       setPreview({ ...current });
     },
     onPointerUp(event) {
@@ -88,11 +86,8 @@ export function useNodeResize(map: MindMap, base: Layout, zoom: number, onResize
       cancel();
       if (event.currentTarget.hasPointerCapture(event.pointerId))
         event.currentTarget.releasePointerCapture(event.pointerId);
-      if (
-        current.moved &&
-        (placed.width !== current.origin.width || placed.height !== current.origin.height)
-      )
-        onResize(id, current.size, current.positions);
+      if (current.moved && placed.width !== current.origin)
+        onResize(id, current.width, current.positions);
     },
     onPointerCancel(event) {
       event.stopPropagation();
@@ -122,20 +117,14 @@ export function useNodeResize(map: MindMap, base: Layout, zoom: number, onResize
         event.stopPropagation();
         onResize(id, null, {});
       }
-      if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) return;
+      if (!['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
       event.preventDefault();
       event.stopPropagation();
       const node = base.nodes.find((node) => node.id === id)!;
       const step = event.shiftKey ? 25 : 10;
       onResize(
         id,
-        clampNodeSize({
-          width:
-            node.width +
-            (event.key === 'ArrowRight' ? step : event.key === 'ArrowLeft' ? -step : 0),
-          height:
-            node.height + (event.key === 'ArrowDown' ? step : event.key === 'ArrowUp' ? -step : 0),
-        }),
+        clampNodeWidth(node.width + (event.key === 'ArrowRight' ? step : -step)),
         positions(),
       );
     },

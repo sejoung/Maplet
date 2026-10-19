@@ -303,8 +303,8 @@ export function App() {
           patch: Partial<Pick<MindNode, 'notes' | 'links' | 'style' | 'side' | 'collapsed'>>,
         ) => edit((current) => updateNode(current, id, patch))}
         onMove={(id, parent) => edit((current) => moveNode(current, id, parent))}
-        onResize={(id, size, positions) =>
-          edit((current) => resizeNode(current, id, size, positions))
+        onResize={(id, width, positions) =>
+          edit((current) => resizeNode(current, id, width, positions))
         }
         onReposition={(positions) => edit((current) => setNodePositions(current, positions))}
         onAutoLayout={() => edit((current) => resetNodePositions(current))}

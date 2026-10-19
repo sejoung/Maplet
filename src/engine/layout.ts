@@ -1,5 +1,5 @@
 import type { MindMap, NodePosition, Side } from '../domain/model';
-import { measureNode } from './node-measure';
+import { measureNode, type TextMeasurer } from './node-measure';
 import { positionsForSubtreeMove } from '../domain/positions';
 
 export interface LayoutNode {
@@ -27,12 +27,12 @@ export interface Layout {
   minY: number;
 }
 
-export function layoutMap(map: MindMap): Layout {
+export function layoutMap(map: MindMap, measureText?: TextMeasurer): Layout {
   const nodes: LayoutNode[] = [];
   const sizes = new Map<string, { width: number; height: number; lines: string[]; span: number }>();
   const measure = (id: string): number => {
     const node = map.nodes[id];
-    const { width, height, lines } = measureNode(node);
+    const { width, height, lines } = measureNode(node, measureText);
     const children = node.collapsed ? [] : node.children;
     const childrenSpan = children.reduce((span, child) => span + measure(child) + 24, -24);
     const span = Math.max(height, childrenSpan);

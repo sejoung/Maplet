@@ -34,9 +34,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 14px 18px;
+  padding: var(--node-padding-y) var(--node-padding-x);
   border: 1px solid #d1d9d5;
   border-radius: 8px;
+  font-kerning: normal;
   text-align: left;
   font-size: 15px;
   line-height: 23px;
@@ -50,10 +51,13 @@
   border-color: #9cab9f;
   font-weight: 600;
 }
+.mind-node[aria-expanded='false'] {
+  z-index: 1;
+}
 .mind-node.selected {
   z-index: 1;
   border: 2px solid #397760;
-  padding: 13px 17px;
+  padding: calc(var(--node-padding-y) - 1px) calc(var(--node-padding-x) - 1px);
   box-shadow: 0 0 0 3px #3977600d;
 }
 .mind-node:focus-visible {
@@ -70,11 +74,17 @@
   display: block;
   overflow-wrap: anywhere;
 }
+.node-text,
+.inline-node-editor {
+  white-space: break-spaces;
+  word-break: break-all;
+  line-break: anywhere;
+  tab-size: 1;
+}
 .inline-node-editor {
   display: block;
   width: 100%;
-  min-height: 1.5em;
-  max-height: 240px;
+  min-height: 0;
   resize: none;
   padding: 0;
   margin: 0;
@@ -85,6 +95,8 @@
   line-height: inherit;
   color: inherit;
   font-weight: inherit;
+  font-kerning: inherit;
+  overflow: hidden;
   overflow-wrap: anywhere;
   outline: none !important;
 }
@@ -126,11 +138,11 @@
   position: absolute;
   right: 2px;
   bottom: 2px;
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
   padding: 0;
   border-radius: 2px;
-  cursor: nwse-resize;
+  cursor: ew-resize;
   touch-action: none;
 }
 .resize-node::after {
@@ -146,7 +158,7 @@
 .resize-node::before {
   content: '';
   position: absolute;
-  inset: -6px;
+  inset: -2px;
 }
 @media (hover: none) {
   .collapse-node {

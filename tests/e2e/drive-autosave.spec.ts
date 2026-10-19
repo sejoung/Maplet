@@ -101,11 +101,14 @@ test('chooses a native destination once after MUP import and automatically updat
   await expect(page.getByLabel('저장하지 않은 변경', { exact: true })).toHaveCount(0);
   await expect(page.locator('.save-status')).toContainText('Drive에 저장됨');
   const node = page.getByRole('treeitem');
+  const widthBefore = await node.evaluate((element) =>
+    parseFloat((element as HTMLElement).style.width),
+  );
   await node.getByRole('button', { name: '노드 크기 조절' }).press('ArrowRight');
   await page.clock.runFor(1600);
   await expect.poll(() => updates.length).toBe(2);
   expect(updates[1]).toMatchObject({ id: 'native-copy', etag: '"v2"' });
-  expect(JSON.parse(updates[1].content).nodes.root.style.width).toBeGreaterThan(156);
+  expect(JSON.parse(updates[1].content).nodes.root.style.width).toBeGreaterThan(widthBefore);
   expect(creates).toHaveLength(1);
   await expect(page.locator('html')).toHaveAttribute('data-authorizations', '1');
 });

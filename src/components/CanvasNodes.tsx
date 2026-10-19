@@ -6,11 +6,13 @@ import {
   type KeyboardEvent,
   type RefObject,
   type ButtonHTMLAttributes,
+  type CSSProperties,
 } from 'react';
 import { Minus, Plus } from 'lucide-react';
 import { InlineNodeEditor } from './InlineNodeEditor';
 import type { CanvasProps } from './canvas-types';
 import { FONT_FAMILIES, nodeTypography } from '../domain/typography';
+import { NODE_PADDING_X, NODE_PADDING_Y } from '../domain/node-size';
 import type { Layout } from '../engine/layout';
 
 type CanvasNodesProps = Pick<
@@ -26,6 +28,7 @@ type CanvasNodesProps = Pick<
   | 'onToggle'
 > & {
   layout: Layout;
+  onDraftChange(id: string, title: string): void;
   resizeHandlers(id: string): ButtonHTMLAttributes<HTMLButtonElement>;
   draggingId?: string;
   viewport: RefObject<HTMLDivElement | null>;
@@ -54,6 +57,7 @@ export function CanvasNodes(props: CanvasNodesProps) {
     onAdd,
     onToggle,
     layout,
+    onDraftChange,
     resizeHandlers,
     draggingId,
     viewport,
@@ -65,7 +69,7 @@ export function CanvasNodes(props: CanvasNodesProps) {
       if (!canvas?.querySelector('[data-inline-editor]')) {
         canvas
           ?.querySelector<HTMLElement>(`[data-node-id="${CSS.escape(id)}"][aria-selected="true"]`)
-          ?.focus();
+          ?.focus({ preventScroll: true });
       }
     });
   const latestAdd = useRef(onAdd);
@@ -80,7 +84,7 @@ export function CanvasNodes(props: CanvasNodesProps) {
       style={{ position: 'absolute', inset: 0 }}
     >
       <span id={resizeHelpId} className="visually-hidden">
-        {t('방향키로 크기 조절, Home으로 자동 크기')}
+        {t('좌우 방향키로 너비 조절, Home으로 자동 크기')}
       </span>
       {layout.nodes.map((placed) => {
         const node = map.nodes[placed.id];
@@ -103,20 +107,24 @@ export function CanvasNodes(props: CanvasNodesProps) {
             tabIndex={selected === node.id ? 0 : -1}
             data-node-id={node.id}
             draggable={false}
-            style={{
-              textAlign: typography.textAlign,
-              fontSize: typography.fontSize,
-              fontFamily: FONT_FAMILIES[typography.fontFamily],
-              lineHeight: `${typography.lineHeight}px`,
-              left: placed.x,
-              top: placed.y,
-              width: placed.width,
-              minHeight: placed.height,
-              background: readableBackground(
-                node.style.background,
-                node.parentId === null ? '#e4f0ea' : '#ffffff',
-              ),
-            }}
+            style={
+              {
+                '--node-padding-x': `${NODE_PADDING_X}px`,
+                '--node-padding-y': `${NODE_PADDING_Y}px`,
+                textAlign: typography.textAlign,
+                fontSize: typography.fontSize,
+                fontFamily: FONT_FAMILIES[typography.fontFamily],
+                lineHeight: `${typography.lineHeight}px`,
+                left: placed.x,
+                top: placed.y,
+                width: placed.width,
+                minHeight: placed.height,
+                background: readableBackground(
+                  node.style.background,
+                  node.parentId === null ? '#e4f0ea' : '#ffffff',
+                ),
+              } as CSSProperties
+            }
             onFocus={() => onSelect(node.id)}
             onClick={() => onSelect(node.id)}
             onDoubleClick={() => onEdit(node.id)}
@@ -132,6 +140,9 @@ export function CanvasNodes(props: CanvasNodesProps) {
               <InlineNodeEditor
                 key={node.id}
                 title={node.title}
+                lines={placed.lines.length}
+                lineHeight={typography.lineHeight}
+                onDraftChange={(title) => onDraftChange(node.id, title)}
                 onCommit={(title, restoreFocus) => {
                   const saved = onRename(node.id, title);
                   if (saved && restoreFocus) restoreNodeFocus(node.id);
@@ -169,7 +180,7 @@ export function CanvasNodes(props: CanvasNodesProps) {
                 className="resize-node"
                 aria-label={t('노드 크기 조절')}
                 aria-describedby={resizeHelpId}
-                title={t('드래그로 크기 조절 · 더블클릭으로 자동 크기')}
+                title={t('드래그로 너비 조절 · 더블클릭으로 자동 크기')}
                 {...resizeHandlers(node.id)}
               />
             )}

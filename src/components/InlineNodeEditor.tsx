@@ -3,11 +3,17 @@ import { useLayoutEffect, useRef, useState } from 'react';
 
 export function InlineNodeEditor({
   title,
+  lines,
+  lineHeight,
+  onDraftChange,
   onCommit,
   onCancel,
   onAdd,
 }: {
   title: string;
+  lines: number;
+  lineHeight: number;
+  onDraftChange(title: string): void;
   onCommit(title: string, restoreFocus: boolean): boolean;
   onCancel(): void;
   onAdd(): void;
@@ -17,7 +23,7 @@ export function InlineNodeEditor({
   const input = useRef<HTMLTextAreaElement>(null);
   const finished = useRef(false);
   useLayoutEffect(() => {
-    input.current?.focus();
+    input.current?.focus({ preventScroll: true });
     input.current?.select();
   }, []);
   const commit = (restoreFocus = true) => {
@@ -25,7 +31,7 @@ export function InlineNodeEditor({
     finished.current = true;
     if (!onCommit(value, restoreFocus)) {
       finished.current = false;
-      requestAnimationFrame(() => input.current?.focus());
+      requestAnimationFrame(() => input.current?.focus({ preventScroll: true }));
       return false;
     }
     return true;
@@ -37,9 +43,13 @@ export function InlineNodeEditor({
       aria-label={t('노드 제목')}
       data-inline-editor
       value={value}
-      rows={Math.max(1, value.split('\n').length)}
+      rows={lines}
+      style={{ height: lines * lineHeight }}
       maxLength={10000}
-      onChange={(event) => setValue(event.target.value)}
+      onChange={(event) => {
+        setValue(event.target.value);
+        onDraftChange(event.target.value);
+      }}
       onBlur={() => commit(false)}
       onClick={(event) => event.stopPropagation()}
       onDoubleClick={(event) => event.stopPropagation()}

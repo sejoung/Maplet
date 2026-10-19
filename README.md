@@ -23,7 +23,7 @@ Create `.maplet` documents or import `.mup` files, arrange your ideas, and downl
 
 ## Features
 
-- **Node dimensions:** drag the selected node’s bottom-right corner to resize, or double-click it to restore automatic sizing. Small −/+ controls collapse and expand branches.
+- **Node dimensions:** drag the corner horizontally to change width; height follows the text using actual font measurements. Double-click the corner to restore automatic sizing. Small −/+ controls collapse and expand branches.
 - **Basic formatting:** left-aligned text by default, with three alignments, three sizes, three system font families, and background colors in the Style dialog.
 - **Native documents:** save `.maplet` files with a versioned JSON model for hierarchy, coordinates, notes, and styles.
 - **MindMup compatibility:** import `.mup` files, export compatible copies, and download an untouched MindMup original backup.
