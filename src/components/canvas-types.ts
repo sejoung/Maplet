@@ -1,3 +1,4 @@
+import type { ResizeAction } from './useNodeResize';
 import type { Ref } from 'react';
 import type { MindMap, NodePosition } from '../domain/model';
 
@@ -21,5 +22,6 @@ export interface CanvasProps {
   onAdd(sibling?: boolean): void;
   onDelete(): void;
   onToggle(id: string): void;
+  onResize: ResizeAction;
   onReposition(positions: Record<string, NodePosition>): boolean;
 }

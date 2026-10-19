@@ -74,6 +74,11 @@ export function DriveDialogs({ controller, save }: { controller: DriveController
                         : t(driveStatus)}
                 </p>
               )}
+              <p className="muted">
+                {target.create
+                  ? t('처음 .maplet 파일을 저장하면 이후 변경 사항이 자동 저장됩니다.')
+                  : t('편집을 마치면 변경 사항을 Drive에 자동 저장합니다.')}
+              </p>
               <div className="drive-actions">
                 <button
                   className="button"

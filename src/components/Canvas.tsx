@@ -9,6 +9,8 @@ import {
   useState,
   type KeyboardEvent,
 } from 'react';
+import { useNodeResize } from './useNodeResize';
+import { canvasKeydown } from './canvas-keyboard';
 import { CanvasNodes } from './CanvasNodes';
 import type { CanvasProps } from './canvas-types';
 export type { CanvasControls, CanvasProps } from './canvas-types';
@@ -23,10 +25,6 @@ export function Canvas(props: CanvasProps) {
     selected,
     documentKey,
     onSelect,
-    onEdit,
-    onAdd,
-    onDelete,
-    onToggle,
     onReposition,
     editingId,
     controlsRef,
@@ -36,16 +34,17 @@ export function Canvas(props: CanvasProps) {
   const [dragPreview, setDragPreview] = useState<{ id: string; position: NodePosition } | null>(
     null,
   );
+  const viewport = useRef<HTMLDivElement>(null);
+  const [size, setSize] = useState({ width: 900, height: 650 });
+  const [view, setView] = useState({ x: 0, y: 0, zoom: 0.85 });
+  const resizing = useNodeResize(map, baseLayout, view.zoom, props.onResize);
   const layout = useMemo(
     () =>
       dragPreview
         ? moveLayoutSubtree(map, baseLayout, dragPreview.id, dragPreview.position)
-        : baseLayout,
-    [map, baseLayout, dragPreview],
+        : resizing.layout,
+    [map, baseLayout, dragPreview, resizing.layout],
   );
-  const viewport = useRef<HTMLDivElement>(null);
-  const [size, setSize] = useState({ width: 900, height: 650 });
-  const [view, setView] = useState({ x: 0, y: 0, zoom: 0.85 });
   const [panMode, setPanMode] = useState(false);
   const [panning, setPanning] = useState(false);
   const pointers = useRef(new Map<number, { x: number; y: number }>());
@@ -147,7 +146,7 @@ export function Canvas(props: CanvasProps) {
     const element = viewport.current!;
     const wheel = (event: WheelEvent) => {
       event.preventDefault();
-      if (nodeDrag.current) return;
+      if (nodeDrag.current || resizing.active) return;
       if (event.ctrlKey || event.metaKey) {
         const rect = element.getBoundingClientRect();
         zoomAt(
@@ -164,54 +163,16 @@ export function Canvas(props: CanvasProps) {
     };
     element.addEventListener('wheel', wheel, { passive: false });
     return () => element.removeEventListener('wheel', wheel);
-  }, [zoomAt]);
-  const keydown = (event: KeyboardEvent) => {
-    if ((event.target as HTMLElement).closest('button,input,textarea,select')) return;
-    if (event.nativeEvent.isComposing) return;
-    const node = map.nodes[selected];
-    if (event.key === 'Escape' && nodeDrag.current) {
-      event.preventDefault();
-      cancelNodeDrag();
-      gesture.current = null;
-      return;
-    }
-    if (event.key === 'Tab' && !event.shiftKey) {
-      event.preventDefault();
-      onAdd();
-    } else if (event.key === 'Enter') {
-      event.preventDefault();
-      onAdd(true);
-    } else if (event.key === 'F2') {
-      event.preventDefault();
-      onEdit();
-    } else if (event.key === 'Delete' || event.key === 'Backspace') {
-      event.preventDefault();
-      onDelete();
-    } else if (event.key.startsWith('Arrow')) {
-      event.preventDefault();
-      let next: string | undefined;
-      if (event.key === 'ArrowLeft')
-        next = node.side === 'left' ? node.children[0] : (node.parentId ?? undefined);
-      if (event.key === 'ArrowRight')
-        next = node.side === 'left' ? (node.parentId ?? undefined) : node.children[0];
-      if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
-        const siblings = node.parentId ? map.nodes[node.parentId].children : map.roots;
-        next = siblings[siblings.indexOf(selected) + (event.key === 'ArrowUp' ? -1 : 1)];
-      }
-      if (next) {
-        if (node.collapsed && node.children.includes(next)) onToggle(selected);
-        onSelect(next);
-        requestAnimationFrame(() =>
-          viewport.current
-            ?.querySelector<HTMLElement>(`[data-node-id="${CSS.escape(next!)}"]`)
-            ?.focus(),
-        );
-      }
-    } else if (event.key === ' ') {
-      event.preventDefault();
-      setPanMode(true);
-    }
-  };
+  }, [zoomAt, resizing.active]);
+  const keydown = (event: KeyboardEvent) =>
+    canvasKeydown(event, props, viewport, {
+      isDragging: () => Boolean(nodeDrag.current),
+      cancelDrag: () => {
+        cancelNodeDrag();
+        gesture.current = null;
+      },
+      pan: () => setPanMode(true),
+    });
   // A spatial canvas owns keyboard gestures; individual treeitems expose navigation to assistive tools.
   return (
     // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
@@ -234,7 +195,12 @@ export function Canvas(props: CanvasProps) {
       }}
       onPointerDown={(event) => {
         const target = event.target as HTMLElement;
-        if (event.button !== 0 || target.closest('button,input,textarea,select,a')) return;
+        if (
+          resizing.active ||
+          event.button !== 0 ||
+          target.closest('button,input,textarea,select,a')
+        )
+          return;
         const nodeElement = target.closest<HTMLElement>('[data-node-id]');
         const id = nodeElement?.dataset.nodeId;
         if (id === editingId) return;
@@ -386,6 +352,7 @@ export function Canvas(props: CanvasProps) {
         <CanvasNodes
           {...props}
           layout={layout}
+          resizeHandlers={resizing.handlers}
           draggingId={dragPreview?.id}
           viewport={viewport}
           onKeyDown={keydown}

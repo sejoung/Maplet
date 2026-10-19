@@ -8,6 +8,7 @@ import {
   updateNode,
 } from '../domain/commands';
 import type { MindMap, MindNode } from '../domain/model';
+import { resizeNode } from '../domain/node-size';
 import { setNodePositions, resetNodePositions } from '../domain/positions';
 import { commit, createHistory, undo, redo } from '../application/history';
 import { serializeMup } from '../adapters/mup/codec';
@@ -181,9 +182,7 @@ export function App() {
   const allowReplace = () =>
     !dirty ||
     window.confirm(
-      t(
-        '아직 파일로 내려받지 않은 변경이 있습니다. 현재 맵을 바꿀까요? 취소 후 .maplet 저장으로 보관할 수 있습니다.',
-      ),
+      t('아직 저장하지 않은 변경이 있습니다. 현재 맵을 바꿀까요? 취소 후 저장할 수 있습니다.'),
     );
   const open = async (file: File) => {
     const generation = ++importGeneration.current;
@@ -262,7 +261,15 @@ export function App() {
     }
   };
 
-  const driveState = useDrive({ content, filename, allowReplace, replace, setNotice });
+  const driveState = useDrive({
+    content,
+    filename,
+    documentKey,
+    markSaved: setSavedContent,
+    allowReplace,
+    replace,
+    setNotice,
+  });
   const closeDialog = useCallback(() => setDialog(null), []);
   const preventRecoveryClose = useCallback(() => {}, []);
 
@@ -296,6 +303,9 @@ export function App() {
           patch: Partial<Pick<MindNode, 'notes' | 'links' | 'style' | 'side' | 'collapsed'>>,
         ) => edit((current) => updateNode(current, id, patch))}
         onMove={(id, parent) => edit((current) => moveNode(current, id, parent))}
+        onResize={(id, size, positions) =>
+          edit((current) => resizeNode(current, id, size, positions))
+        }
         onReposition={(positions) => edit((current) => setNodePositions(current, positions))}
         onAutoLayout={() => edit((current) => resetNodePositions(current))}
         onUndo={() => setHistory(undo)}
@@ -323,6 +333,7 @@ export function App() {
         onDrive={driveState.showDrive}
         driveConnected={driveState.connected}
         driveBusy={driveState.busy}
+        driveSaveStatus={driveState.autoSaveStatus}
         onDismissError={() => setError(null)}
         onDismissNotice={() => setNotice(null)}
       />

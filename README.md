@@ -23,6 +23,7 @@ Create `.maplet` documents or import `.mup` files, arrange your ideas, and downl
 
 ## Features
 
+- **Node dimensions:** drag the selected node’s bottom-right corner to resize, or double-click it to restore automatic sizing. Small −/+ controls collapse and expand branches.
 - **Basic formatting:** left-aligned text by default, with three alignments, three sizes, three system font families, and background colors in the Style dialog.
 - **Native documents:** save `.maplet` files with a versioned JSON model for hierarchy, coordinates, notes, and styles.
 - **MindMup compatibility:** import `.mup` files, export compatible copies, and download an untouched MindMup original backup.
@@ -30,7 +31,7 @@ Create `.maplet` documents or import `.mup` files, arrange your ideas, and downl
 - **Move whole branches:** drag a parent and all its descendants together, preserving their relative positions. Connections follow as you move. Other branches stay in place.
 - **Navigate your map:** search, collapse branches, zoom, pan, fit to screen, or restore automatic layout.
 - **Undo and recovery:** undo or redo a whole drag in one step; recover browser drafts from IndexedDB and keep manual positions when reopening files.
-- **Optional Google Drive:** connect through Google Picker, open files, save changes or a new copy, and resolve version conflicts explicitly.
+- **Optional Google Drive:** choose a .maplet destination once to autosave later changes. Imported .mup originals are preserved; version conflicts pause autosave for explicit resolution.
 
 The current app interface is in Korean. Both README versions describe the same features and commands.
 

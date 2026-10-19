@@ -18,6 +18,8 @@ export function ShortcutHelpDialog({ onClose }: { onClose(): void }) {
           ['⌘ / Ctrl + S', '.maplet 파일 다운로드'],
           ['Space + 드래그', '캔버스 이동'],
           ['Ctrl + 휠 / 핀치', '확대·축소'],
+          ['모서리 드래그', '노드 크기 조절'],
+          ['모서리 더블클릭 / Home', '자동 크기'],
           ['노드 드래그', '위치·연결선 길이 조절'],
         ].map(([key, action]) => (
           <div key={key}>

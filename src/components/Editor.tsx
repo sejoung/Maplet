@@ -48,6 +48,7 @@ export interface EditorProps
   onDrive(): void;
   driveConnected: boolean;
   driveBusy: boolean;
+  driveSaveStatus: string | null;
   onDismissError(): void;
   onDismissNotice(): void;
 }
@@ -313,7 +314,7 @@ export function Editor(props: EditorProps) {
           <span className={`status-dot ${props.dirty ? 'pending' : ''}`} />
           <span>{props.dirty ? t('저장하지 않은 변경') : t('파일 변경 없음')}</span>
           <span className="status-separator">·</span>
-          <span>{t(props.draftStatus)}</span>
+          <span title={t(props.draftStatus)}>{t(props.driveSaveStatus ?? props.draftStatus)}</span>
         </div>
         <div className="status-tools">
           <span className="node-count">

@@ -1,6 +1,13 @@
 import { useI18n } from '../i18n/react';
-import { useLayoutEffect, useRef, type KeyboardEvent, type RefObject } from 'react';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import {
+  useId,
+  useLayoutEffect,
+  useRef,
+  type KeyboardEvent,
+  type RefObject,
+  type ButtonHTMLAttributes,
+} from 'react';
+import { Minus, Plus } from 'lucide-react';
 import { InlineNodeEditor } from './InlineNodeEditor';
 import type { CanvasProps } from './canvas-types';
 import { FONT_FAMILIES, nodeTypography } from '../domain/typography';
@@ -19,6 +26,7 @@ type CanvasNodesProps = Pick<
   | 'onToggle'
 > & {
   layout: Layout;
+  resizeHandlers(id: string): ButtonHTMLAttributes<HTMLButtonElement>;
   draggingId?: string;
   viewport: RefObject<HTMLDivElement | null>;
   onKeyDown(event: KeyboardEvent): void;
@@ -34,6 +42,7 @@ export function readableBackground(value: unknown, fallback: string): string {
 
 export function CanvasNodes(props: CanvasNodesProps) {
   const { t } = useI18n();
+  const resizeHelpId = useId();
   const {
     map,
     selected,
@@ -45,6 +54,7 @@ export function CanvasNodes(props: CanvasNodesProps) {
     onAdd,
     onToggle,
     layout,
+    resizeHandlers,
     draggingId,
     viewport,
     onKeyDown,
@@ -69,6 +79,9 @@ export function CanvasNodes(props: CanvasNodesProps) {
       aria-multiselectable="false"
       style={{ position: 'absolute', inset: 0 }}
     >
+      <span id={resizeHelpId} className="visually-hidden">
+        {t('방향키로 크기 조절, Home으로 자동 크기')}
+      </span>
       {layout.nodes.map((placed) => {
         const node = map.nodes[placed.id];
         const typography = nodeTypography(node.style);
@@ -147,15 +160,18 @@ export function CanvasNodes(props: CanvasNodesProps) {
                   onToggle(node.id);
                 }}
               >
-                {node.collapsed ? (
-                  <>
-                    <span>{node.children.length}</span>
-                    <ChevronRight size={12} />
-                  </>
-                ) : (
-                  <ChevronDown size={14} />
-                )}
+                {node.collapsed ? <Plus size={12} /> : <Minus size={12} />}
               </button>
+            )}
+            {selected === node.id && editingId !== node.id && (
+              <button
+                type="button"
+                className="resize-node"
+                aria-label={t('노드 크기 조절')}
+                aria-describedby={resizeHelpId}
+                title={t('드래그로 크기 조절 · 더블클릭으로 자동 크기')}
+                {...resizeHandlers(node.id)}
+              />
             )}
           </div>
         );

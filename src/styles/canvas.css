@@ -51,6 +51,7 @@
   font-weight: 600;
 }
 .mind-node.selected {
+  z-index: 1;
   border: 2px solid #397760;
   padding: 13px 17px;
   box-shadow: 0 0 0 3px #3977600d;
@@ -88,38 +89,73 @@
   outline: none !important;
 }
 .mind-node:has(.inline-node-editor) {
-  min-width: 200px;
   z-index: 2;
 }
 .collapse-node {
   position: absolute;
-  right: -12px;
-  top: calc(50% - 11px);
-  height: 22px;
-  min-width: 22px;
-  padding: 0 3px;
-  border: 1px solid #d0d9d2;
-  border-radius: 12px;
-  background: #fff;
+  right: -9px;
+  top: calc(50% - 8px);
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  background: #f8fafb;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 2px;
-  color: #596b5c;
-  font-size: 10px;
+  color: #748078;
+  opacity: 0;
 }
 .collapse-node::before {
   content: '';
   position: absolute;
-  inset: -5px;
+  inset: -8px;
+}
+.mind-node:hover .collapse-node,
+.mind-node:focus-within .collapse-node,
+.mind-node.selected .collapse-node,
+.mind-node[aria-expanded='false'] .collapse-node {
+  opacity: 1;
 }
 .collapse-node.left {
   right: auto;
-  left: -12px;
+  left: -9px;
+}
+.resize-node {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border-radius: 2px;
+  cursor: nwse-resize;
+  touch-action: none;
+}
+.resize-node::after {
+  content: '';
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  width: 7px;
+  height: 7px;
+  border-right: 1px solid #7d9085;
+  border-bottom: 1px solid #7d9085;
+}
+.resize-node::before {
+  content: '';
+  position: absolute;
+  inset: -6px;
+}
+@media (hover: none) {
+  .collapse-node {
+    opacity: 1;
+  }
 }
 .note-indicator {
   position: absolute;
-  right: 8px;
+  left: 8px;
   bottom: 8px;
   width: 4px;
   height: 4px;

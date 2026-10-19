@@ -1,5 +1,5 @@
 import type { MindMap, NodePosition, Side } from '../domain/model';
-import { characterWidth, nodeTypography } from '../domain/typography';
+import { measureNode } from './node-measure';
 import { positionsForSubtreeMove } from '../domain/positions';
 
 export interface LayoutNode {
@@ -27,44 +27,12 @@ export interface Layout {
   minY: number;
 }
 
-function wrap(title: string, typography: ReturnType<typeof nodeTypography>): string[] {
-  const lines: string[] = [];
-  let line = '';
-  let units = 0;
-  for (const char of title) {
-    const size = characterWidth(char, typography);
-    if (char === '\n' || units + size > 198) {
-      lines.push(line);
-      line = '';
-      units = 0;
-    }
-    if (char !== '\n') {
-      line += char;
-      units += size;
-    }
-  }
-  if (line || !lines.length) lines.push(line);
-  return lines;
-}
-
 export function layoutMap(map: MindMap): Layout {
   const nodes: LayoutNode[] = [];
   const sizes = new Map<string, { width: number; height: number; lines: string[]; span: number }>();
   const measure = (id: string): number => {
     const node = map.nodes[id];
-    const typography = nodeTypography(node.style);
-    const lines = wrap(node.title, typography);
-    const width = Math.max(
-      156,
-      Math.ceil(
-        Math.max(
-          ...lines.map((line) =>
-            [...line].reduce((sum, char) => sum + characterWidth(char, typography), 0),
-          ),
-        ) + 38,
-      ),
-    );
-    const height = Math.max(56, lines.length * typography.lineHeight + 30);
+    const { width, height, lines } = measureNode(node);
     const children = node.collapsed ? [] : node.children;
     const childrenSpan = children.reduce((span, child) => span + measure(child) + 24, -24);
     const span = Math.max(height, childrenSpan);
