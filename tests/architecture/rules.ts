@@ -7,9 +7,10 @@ const allowed: Record<string, string[]> = {
   domain: ['domain'],
   application: ['application', 'domain'],
   engine: ['engine', 'domain'],
-  adapters: ['adapters', 'domain'],
-  components: ['components', 'application', 'domain', 'engine'],
-  app: ['app', 'components', 'application', 'domain', 'engine', 'adapters'],
+  adapters: ['adapters', 'domain', 'i18n'],
+  components: ['components', 'application', 'domain', 'engine', 'i18n'],
+  app: ['app', 'components', 'application', 'domain', 'engine', 'adapters', 'i18n'],
+  i18n: ['i18n'],
 };
 
 export function checkGraph(graph: Graph): string[] {

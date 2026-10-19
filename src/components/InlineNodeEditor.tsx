@@ -1,3 +1,4 @@
+import { useI18n } from '../i18n/react';
 import { useLayoutEffect, useRef, useState } from 'react';
 
 export function InlineNodeEditor({
@@ -11,6 +12,7 @@ export function InlineNodeEditor({
   onCancel(): void;
   onAdd(): void;
 }) {
+  const { t } = useI18n();
   const [value, setValue] = useState(title);
   const input = useRef<HTMLTextAreaElement>(null);
   const finished = useRef(false);
@@ -32,7 +34,7 @@ export function InlineNodeEditor({
     <textarea
       ref={input}
       className="inline-node-editor"
-      aria-label="노드 제목"
+      aria-label={t('노드 제목')}
       data-inline-editor
       value={value}
       rows={Math.max(1, value.split('\n').length)}

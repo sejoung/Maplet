@@ -16,7 +16,14 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reportsDirectory: join(results, 'coverage'),
-      include: ['src/domain/**', 'src/application/**', 'src/adapters/**', 'src/engine/**'],
+      include: [
+        'src/domain/**',
+        'src/application/**',
+        'src/adapters/**',
+        'src/engine/**',
+        'src/i18n/core.ts',
+        'src/i18n/locale.ts',
+      ],
       thresholds: { statements: 85, branches: 75, functions: 90, lines: 85 },
     },
   },

@@ -1,3 +1,4 @@
+import { useI18n } from '../i18n/react';
 import { useLayoutEffect, useRef, type KeyboardEvent, type RefObject } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { InlineNodeEditor } from './InlineNodeEditor';
@@ -31,6 +32,7 @@ export function readableBackground(value: unknown, fallback: string): string {
 }
 
 export function CanvasNodes(props: CanvasNodesProps) {
+  const { t } = useI18n();
   const {
     map,
     selected,
@@ -62,7 +64,7 @@ export function CanvasNodes(props: CanvasNodesProps) {
   return (
     <div
       role="tree"
-      aria-label="마인드맵"
+      aria-label={t('마인드맵')}
       aria-multiselectable="false"
       style={{ position: 'absolute', inset: 0 }}
     >
@@ -129,11 +131,11 @@ export function CanvasNodes(props: CanvasNodesProps) {
                 ))}
               </span>
             )}
-            {node.notes && <span className="note-indicator" aria-label="메모 있음" />}
+            {node.notes && <span className="note-indicator" aria-label={t('메모 있음')} />}
             {node.children.length > 0 && (
               <button
                 className={`collapse-node ${placed.side}`}
-                aria-label={`${node.title} ${node.collapsed ? '펼치기' : '접기'}`}
+                aria-label={`${node.title} ${node.collapsed ? t('펼치기') : t('접기')}`}
                 onClick={(event) => {
                   event.stopPropagation();
                   onToggle(node.id);

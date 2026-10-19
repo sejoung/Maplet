@@ -5,7 +5,7 @@ export async function mockGoogle(page: Page) {
   await page.route('https://accounts.google.com/gsi/client', (route) =>
     route.fulfill({
       contentType: 'application/javascript',
-      body: `window.google = { accounts: { oauth2: {
+      body: `window.google = { ...window.google, accounts: { oauth2: {
       initTokenClient: (config) => ({ requestAccessToken: () => {
         const root = document.documentElement;
         root.dataset.authorizations = String(Number(root.dataset.authorizations || 0) + 1);
@@ -26,6 +26,7 @@ export async function mockGoogle(page: Page) {
         setMode() { return this; }
       }
       class PickerBuilder {
+        setLocale(locale) { this.locale = locale; return this; }
         setTitle(title) { this.title = title; return this; }
         setDeveloperKey() { return this; }
         setAppId() { return this; }
@@ -37,6 +38,7 @@ export async function mockGoogle(page: Page) {
           const dialog = document.createElement('div');
           dialog.setAttribute('role', 'dialog');
           dialog.setAttribute('aria-label', this.title);
+          dialog.setAttribute('data-picker-locale', this.locale);
           dialog.style.cssText = 'position:fixed;inset:20px;z-index:1000;background:white;padding:24px';
           const choose = document.createElement('button');
           choose.textContent = this.view.folders ? '테스트 폴더 선택' : '테스트 파일 선택';
@@ -48,6 +50,7 @@ export async function mockGoogle(page: Page) {
           return { setVisible: () => document.body.append(dialog), dispose: () => dialog.remove() };
         }
       }
+      window.google = window.google || {};
       window.google.picker = { PickerBuilder, DocsView, DocsViewMode: { LIST: 'list' }, ViewId: { DOCS: 'docs', FOLDERS: 'folders' } };
       window.gapi = { load: (_name, options) => options.callback() };
     `,

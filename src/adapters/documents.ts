@@ -18,9 +18,14 @@ const stem = (name: string) => name.replace(/\.(maplet|mup|json)$/i, '');
 export const nativeFilename = (name: string) => `${stem(name)}.maplet`;
 export const mupFilename = (name: string) => `${stem(name)}.mup`;
 
-export function driveSaveTarget(name: string, current: { name: string } | null, copy: boolean) {
+export function driveSaveTarget(
+  name: string,
+  current: { name: string } | null,
+  copy: boolean,
+  copyLabel = '사본',
+) {
   return {
     create: copy || !current || !/\.maplet$/i.test(current.name),
-    name: copy ? nativeFilename(`${stem(name)} (사본)`) : nativeFilename(name),
+    name: copy ? nativeFilename(`${stem(name)} (${copyLabel})`) : nativeFilename(name),
   };
 }

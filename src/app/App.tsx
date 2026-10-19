@@ -20,17 +20,19 @@ import { Editor } from '../components/Editor';
 import { Dialog } from '../components/Dialog';
 import { ShortcutHelpDialog } from '../components/ShortcutHelpDialog';
 import { useDrive } from './useDrive';
+import { useI18n } from '../i18n/react';
+import { NewMapDialog } from '../components/NewMapDialog';
 import { DriveDialogs } from './DriveDialogs';
 
 const drafts = new DraftStore();
-const initial = createMap('중심 주제');
 
 export function App() {
-  const [history, setHistory] = useState(() => createHistory(initial));
+  const { t, locale } = useI18n();
+  const [history, setHistory] = useState(() => createHistory(createMap(t('중심 주제'))));
   const map = history.present;
   const content = useMemo(() => serializeMaplet(map), [map]);
   const [savedContent, setSavedContent] = useState(content);
-  const [filename, setFilename] = useState('제목 없음.maplet');
+  const [filename, setFilename] = useState(() => `${t('제목 없음')}.maplet`);
   const [selected, setSelected] = useState(map.roots[0]);
   const [documentKey, setDocumentKey] = useState(0);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -40,7 +42,6 @@ export function App() {
   const [recoveryReady, setRecoveryReady] = useState(false);
   const [recovery, setRecovery] = useState<Draft | null>(null);
   const [dialog, setDialog] = useState<'new' | 'help' | null>(null);
-  const [newTitle, setNewTitle] = useState('');
   const hasWork = useRef(false);
   const saveQueue = useRef(Promise.resolve());
   const importGeneration = useRef(0);
@@ -180,7 +181,9 @@ export function App() {
   const allowReplace = () =>
     !dirty ||
     window.confirm(
-      '아직 파일로 내려받지 않은 변경이 있습니다. 현재 맵을 바꿀까요? 취소 후 .maplet 저장으로 보관할 수 있습니다.',
+      t(
+        '아직 파일로 내려받지 않은 변경이 있습니다. 현재 맵을 바꿀까요? 취소 후 .maplet 저장으로 보관할 수 있습니다.',
+      ),
     );
   const open = async (file: File) => {
     const generation = ++importGeneration.current;
@@ -213,7 +216,7 @@ export function App() {
         map,
         sibling && node.parentId ? node.parentId : selectedId,
         id,
-        '새 노드',
+        t('새 노드'),
         sibling && node.parentId ? selectedId : undefined,
       );
       edit(() => next);
@@ -227,7 +230,7 @@ export function App() {
     const node = map.nodes[selectedId];
     if (
       node.children.length &&
-      !window.confirm('이 노드와 모든 하위 노드를 삭제할까요? 실행 취소로 복원할 수 있습니다.')
+      !window.confirm(t('이 노드와 모든 하위 노드를 삭제할까요? 실행 취소로 복원할 수 있습니다.'))
     )
       return;
     const fallback = node.parentId ?? map.roots.find((id) => id !== selectedId);
@@ -300,7 +303,6 @@ export function App() {
         canUndo={history.past.length > 0}
         canRedo={history.future.length > 0}
         onNew={() => {
-          setNewTitle('');
           setDialog('new');
         }}
         onOpen={(file) => void open(file)}
@@ -325,56 +327,37 @@ export function App() {
         onDismissNotice={() => setNotice(null)}
       />
       {recovery && (
-        <Dialog title="초안 복구" onClose={preventRecoveryClose}>
+        <Dialog title={t('초안 복구')} onClose={preventRecoveryClose}>
           <p>
-            이 기기에 저장된 <strong>{recovery.filename}</strong> 초안이 있습니다.
+            {t('이 기기에 저장된 {filename} 초안이 있습니다.', { filename: recovery.filename })}
           </p>
           <p className="muted">
-            {new Date(recovery.updatedAt).toLocaleString('ko-KR')} · 아직 파일로 저장하지 않은 변경
+            {new Date(recovery.updatedAt).toLocaleString(locale)}
+            {' · '}
+            {t('아직 파일로 저장하지 않은 변경')}
           </p>
           <div className="dialog-actions">
             <button className="button quiet" onClick={() => void discardRecovery()}>
-              초안 삭제
+              {t('초안 삭제')}
             </button>
             <button className="button primary" onClick={recover}>
-              초안 복구
+              {t('초안 복구')}
             </button>
           </div>
         </Dialog>
       )}
       {dialog === 'new' && (
-        <Dialog title="새 맵" onClose={closeDialog}>
-          <form
-            onSubmit={(event) => {
-              event.preventDefault();
-              if (allowReplace()) {
-                const next = createMap(newTitle.trim());
-                replace(next, `${newTitle.trim().slice(0, 80)}.maplet`, '');
-                driveState.clearFile();
-                setDialog(null);
-              }
-            }}
-          >
-            <label htmlFor="new-title">중심 주제</label>
-            <input
-              id="new-title"
-              data-autofocus
-              value={newTitle}
-              onChange={(event) => setNewTitle(event.target.value)}
-              placeholder="중심 주제"
-              required
-              maxLength={10000}
-            />
-            <div className="dialog-actions">
-              <button className="button quiet" type="button" onClick={closeDialog}>
-                취소
-              </button>
-              <button className="button primary" type="submit">
-                만들기
-              </button>
-            </div>
-          </form>
-        </Dialog>
+        <NewMapDialog
+          onClose={closeDialog}
+          onCreate={(title) => {
+            if (allowReplace()) {
+              const next = createMap(title);
+              replace(next, `${title.slice(0, 80)}.maplet`, '');
+              driveState.clearFile();
+              setDialog(null);
+            }
+          }}
+        />
       )}
       {dialog === 'help' && <ShortcutHelpDialog onClose={closeDialog} />}
       <DriveDialogs controller={driveState} save={save} />

@@ -1,3 +1,4 @@
+import { useI18n } from '../i18n/react';
 import {
   useCallback,
   useEffect,
@@ -16,6 +17,7 @@ import { layoutMap, moveLayoutSubtree } from '../engine/layout';
 import { positionsForSubtreeMove } from '../domain/positions';
 
 export function Canvas(props: CanvasProps) {
+  const { t } = useI18n();
   const {
     map,
     selected,
@@ -216,7 +218,7 @@ export function Canvas(props: CanvasProps) {
     <div
       ref={viewport}
       role="application"
-      aria-label="마인드맵 캔버스"
+      aria-label={t('마인드맵 캔버스')}
       tabIndex={0}
       className={`canvas ${panning || panMode ? 'is-panning' : ''} ${dragPreview ? 'is-dragging' : ''}`}
       onKeyDown={keydown}

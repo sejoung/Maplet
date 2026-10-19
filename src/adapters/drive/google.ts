@@ -1,3 +1,5 @@
+import { translate, type Language } from '../../i18n/core';
+
 export interface GoogleConfig {
   clientId: string;
   apiKey: string;
@@ -22,6 +24,7 @@ interface DocsView {
   setMode(mode: unknown): DocsView;
 }
 interface PickerBuilder {
+  setLocale(locale: string): PickerBuilder;
   setTitle(title: string): PickerBuilder;
   setDeveloperKey(key: string): PickerBuilder;
   setAppId(id: string): PickerBuilder;
@@ -139,7 +142,7 @@ export class GoogleConnection {
     });
   }
 
-  async pick(kind: 'file' | 'folder' = 'file'): Promise<string | null> {
+  async pick(kind: 'file' | 'folder' = 'file', language: Language = 'ko'): Promise<string | null> {
     const token = this.getToken();
     if (!token) throw new Error('먼저 Google Drive에 연결해 주세요.');
     return new Promise((resolve) => {
@@ -149,7 +152,8 @@ export class GoogleConnection {
         .setSelectFolderEnabled(kind === 'folder')
         .setMode(api.DocsViewMode.LIST);
       const picker = new window.google!.picker.PickerBuilder()
-        .setTitle(kind === 'folder' ? '저장할 폴더 선택' : '열 파일 선택')
+        .setLocale(language)
+        .setTitle(translate(kind === 'folder' ? '저장할 폴더 선택' : '열 파일 선택', language))
         .setDeveloperKey(this.config.apiKey)
         .setAppId(this.config.appId)
         .setOAuthToken(token)

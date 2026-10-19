@@ -1,9 +1,11 @@
+import { useI18n } from '../i18n/react';
 import { Cloud, Download, FolderOpen } from 'lucide-react';
 import { Dialog } from '../components/Dialog';
 import { driveSaveTarget } from '../adapters/documents';
 import type { DriveController } from './useDrive';
 
 export function DriveDialogs({ controller, save }: { controller: DriveController; save(): void }) {
+  const { t } = useI18n();
   const {
     dialog,
     closeDialog,
@@ -32,42 +34,44 @@ export function DriveDialogs({ controller, save }: { controller: DriveController
             <p>
               <span className="muted">
                 {connected
-                  ? '파일을 열거나 현재 맵을 Drive에 저장하세요.'
-                  : '열기 또는 저장을 선택하면 Google 로그인 후 선택 창이 열립니다.'}
+                  ? t('파일을 열거나 현재 맵을 Drive에 저장하세요.')
+                  : t('열기 또는 저장을 선택하면 Google 로그인 후 선택 창이 열립니다.')}
               </span>
             </p>
           </div>
           {!configured ? (
             <>
               <p>
-                이 배포에는 Google 연결 설정이 아직 없습니다. 로컬 파일 열기·편집·저장 기능은 바로
-                사용할 수 있습니다.
+                {t(
+                  '이 배포에는 Google 연결 설정이 아직 없습니다. 로컬 파일 열기·편집·저장 기능은 바로 사용할 수 있습니다.',
+                )}
               </p>
               <button className="button primary" onClick={save}>
-                <Download size={16} /> 로컬 파일 다운로드
+                <Download size={16} />
+                {t('로컬 파일 다운로드')}
               </button>
             </>
           ) : (
             <>
               {driveError && (
                 <p className="form-error" role="alert">
-                  {driveError}
+                  {t(driveError)}
                 </p>
               )}
               <p className="drive-filename">
-                저장할 파일: <strong>{target.name}</strong>
+                {t('저장할 파일:')} <strong>{target.name}</strong>
               </p>
               {(connected || busy) && (
                 <p role="status" className="drive-status">
                   {!driveReady
-                    ? 'Drive 준비 중…'
+                    ? t('Drive 준비 중…')
                     : busy
-                      ? 'Drive 작업을 진행하고 있습니다…'
+                      ? t('Drive 작업을 진행하고 있습니다…')
                       : driveFile &&
                           driveSavedContent !== content &&
                           driveStatus === 'Drive에 저장됨'
-                        ? 'Drive에 저장한 이후 편집한 변경이 있습니다'
-                        : driveStatus}
+                        ? t('Drive에 저장한 이후 편집한 변경이 있습니다')
+                        : t(driveStatus)}
                 </p>
               )}
               <div className="drive-actions">
@@ -76,14 +80,15 @@ export function DriveDialogs({ controller, save }: { controller: DriveController
                   disabled={busy || !driveReady}
                   onClick={() => void openDrive()}
                 >
-                  <FolderOpen size={17} /> Drive에서 열기
+                  <FolderOpen size={17} />
+                  {t('Drive에서 열기')}
                 </button>
                 <button
                   className="button primary"
                   disabled={busy || !driveReady}
                   onClick={() => void saveDrive()}
                 >
-                  {target.create ? '저장 위치 선택' : 'Drive에 저장'}
+                  {target.create ? t('저장 위치 선택') : t('Drive에 저장')}
                 </button>
                 {driveFile && (
                   <button
@@ -91,12 +96,12 @@ export function DriveDialogs({ controller, save }: { controller: DriveController
                     disabled={busy || !driveReady}
                     onClick={() => void saveDrive('copy')}
                   >
-                    다른 위치에 새 사본 저장
+                    {t('다른 위치에 새 사본 저장')}
                   </button>
                 )}
                 {!driveReady && !busy && (
                   <button className="button" onClick={showDrive}>
-                    다시 불러오기
+                    {t('다시 불러오기')}
                   </button>
                 )}
                 {connected && (
@@ -107,7 +112,7 @@ export function DriveDialogs({ controller, save }: { controller: DriveController
                       disconnect();
                     }}
                   >
-                    연결 해제
+                    {t('연결 해제')}
                   </button>
                 )}
               </div>
@@ -116,10 +121,11 @@ export function DriveDialogs({ controller, save }: { controller: DriveController
         </Dialog>
       )}
       {dialog === 'conflict' && (
-        <Dialog title="Drive 파일을 확인해 주세요." onClose={closeDialog}>
+        <Dialog title={t('Drive 파일을 확인해 주세요.')} onClose={closeDialog}>
           <p>
-            다른 곳에서 파일이 변경되었거나 버전 검증 정보를 얻지 못했습니다. 현재 편집과 로컬
-            초안은 유지됩니다.
+            {t(
+              '다른 곳에서 파일이 변경되었거나 버전 검증 정보를 얻지 못했습니다. 현재 편집과 로컬 초안은 유지됩니다.',
+            )}
           </p>
           <div className="drive-actions">
             <button
@@ -127,23 +133,23 @@ export function DriveDialogs({ controller, save }: { controller: DriveController
               disabled={busy}
               onClick={() => void saveDrive('copy')}
             >
-              새 사본으로 저장
+              {t('새 사본으로 저장')}
             </button>
             <button className="button" onClick={save}>
-              로컬 파일 다운로드
+              {t('로컬 파일 다운로드')}
             </button>
             <button
               className="button danger-quiet"
               disabled={busy}
               onClick={() => {
-                if (window.confirm('Drive의 현재 내용을 이 맵으로 덮어쓸까요?'))
+                if (window.confirm(t('Drive의 현재 내용을 이 맵으로 덮어쓸까요?')))
                   void saveDrive('overwrite');
               }}
             >
-              Drive 파일 덮어쓰기
+              {t('Drive 파일 덮어쓰기')}
             </button>
             <button className="button quiet" onClick={closeDialog}>
-              편집으로 돌아가기
+              {t('편집으로 돌아가기')}
             </button>
           </div>
         </Dialog>

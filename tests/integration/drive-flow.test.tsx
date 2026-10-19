@@ -110,7 +110,7 @@ describe('Drive actions continue through sign-in and selection', () => {
     await waitFor(() =>
       expect(api.create).toHaveBeenCalledWith('local.maplet', 'local content', 'selected-id'),
     );
-    expect(bridge.pick).toHaveBeenCalledWith('folder');
+    expect(bridge.pick).toHaveBeenCalledWith('folder', 'ko');
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Drive' }));
     await user.click(screen.getByRole('button', { name: 'Drive에 저장' }));

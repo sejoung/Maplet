@@ -1,3 +1,4 @@
+import { useI18n } from '../i18n/react';
 import { useCallback, useState } from 'react';
 import { Check, Search } from 'lucide-react';
 import type { MindMap, MindNode } from '../domain/model';
@@ -43,6 +44,7 @@ export function NodeToolsDialog({
   onSelect(id: string): void;
   onClose(): void;
 }) {
+  const { t } = useI18n();
   const node = map.nodes[selected];
   const [notes, setNotes] = useState(node.notes);
   const [link, setLink] = useState(node.links[0] ?? '');
@@ -51,7 +53,7 @@ export function NodeToolsDialog({
   const [error, setError] = useState<string | null>(null);
   const close = useCallback(onClose, [onClose]);
   return (
-    <Dialog title={titles[tool]} onClose={close}>
+    <Dialog title={t(titles[tool])} onClose={close}>
       {tool !== 'search' && (
         <p className="tool-selection" title={node.title}>
           {node.title}
@@ -59,7 +61,7 @@ export function NodeToolsDialog({
       )}
       {error && (
         <p className="form-error" role="alert">
-          {error}
+          {t(error)}
         </p>
       )}
       {tool === 'notes' && (
@@ -69,7 +71,7 @@ export function NodeToolsDialog({
             if (onUpdate(selected, { notes })) onClose();
           }}
         >
-          <label htmlFor="node-notes">메모</label>
+          <label htmlFor="node-notes">{t('메모')}</label>
           <textarea
             id="node-notes"
             data-autofocus
@@ -79,10 +81,10 @@ export function NodeToolsDialog({
           />
           <div className="dialog-actions">
             <button className="button" type="button" onClick={onClose}>
-              취소
+              {t('취소')}
             </button>
             <button className="button primary" type="submit">
-              메모 저장
+              {t('메모 저장')}
             </button>
           </div>
         </form>
@@ -99,7 +101,7 @@ export function NodeToolsDialog({
             if (onUpdate(selected, { links: value ? [value] : [] })) onClose();
           }}
         >
-          <label htmlFor="node-link">링크</label>
+          <label htmlFor="node-link">{t('링크')}</label>
           <input
             id="node-link"
             data-autofocus
@@ -117,28 +119,28 @@ export function NodeToolsDialog({
               target="_blank"
               rel="noopener noreferrer"
             >
-              현재 링크 열기 ↗
+              {t('현재 링크 열기 ↗')}
             </a>
           )}
           <div className="dialog-actions">
             <button className="button" type="button" onClick={onClose}>
-              취소
+              {t('취소')}
             </button>
             <button className="button primary" type="submit">
-              링크 적용
+              {t('링크 적용')}
             </button>
           </div>
         </form>
       )}
       {tool === 'style' && (
         <>
-          <p className="field-label">배경색</p>
+          <p className="field-label">{t('배경색')}</p>
           <div className="color-options">
             {colors.map(([name, color]) => (
               <button
                 key={name}
                 className="color-option"
-                aria-label={name}
+                aria-label={t(name)}
                 aria-pressed={node.style.background === color}
                 onClick={() => {
                   if (onUpdate(selected, { style: { ...node.style, background: color } }))
@@ -148,7 +150,7 @@ export function NodeToolsDialog({
                 <span className="color-chip" style={{ background: color }}>
                   {node.style.background === color && <Check size={16} />}
                 </span>
-                <span>{name}</span>
+                <span>{t(name)}</span>
               </button>
             ))}
           </div>
@@ -161,7 +163,7 @@ export function NodeToolsDialog({
                 if (onUpdate(selected, { style })) onClose();
               }}
             >
-              기본 색상
+              {t('기본 색상')}
             </button>
           </div>
         </>
@@ -173,7 +175,7 @@ export function NodeToolsDialog({
             if (onMove(selected, parent)) onClose();
           }}
         >
-          <label htmlFor="parent-node">상위 노드</label>
+          <label htmlFor="parent-node">{t('상위 노드')}</label>
           <select
             id="parent-node"
             data-autofocus
@@ -193,17 +195,17 @@ export function NodeToolsDialog({
           </select>
           <div className="dialog-actions">
             <button className="button" type="button" onClick={onClose}>
-              취소
+              {t('취소')}
             </button>
             <button className="button primary" type="submit">
-              이동
+              {t('이동')}
             </button>
           </div>
         </form>
       )}
       {tool === 'search' && (
         <>
-          <label htmlFor="node-search">노드 검색</label>
+          <label htmlFor="node-search">{t('노드 검색')}</label>
           <div className="search-field">
             <Search size={17} />
             <input
@@ -211,7 +213,7 @@ export function NodeToolsDialog({
               data-autofocus
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="검색어 입력"
+              placeholder={t('검색어 입력')}
             />
           </div>
           <div className="search-results" aria-live="polite">
@@ -233,12 +235,12 @@ export function NodeToolsDialog({
                   </button>
                 ))
             ) : (
-              <p className="muted">제목으로 노드를 검색합니다.</p>
+              <p className="muted">{t('제목으로 노드를 검색합니다.')}</p>
             )}
             {query.trim() &&
               !Object.values(map.nodes).some((candidate) =>
                 candidate.title.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()),
-              ) && <p className="muted">검색 결과가 없습니다.</p>}
+              ) && <p className="muted">{t('검색 결과가 없습니다.')}</p>}
           </div>
         </>
       )}

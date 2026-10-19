@@ -13,7 +13,7 @@ export default defineConfig({
     ['json', { outputFile: join(results, 'results.json') }],
     ['junit', { outputFile: join(results, 'junit.xml') }],
   ],
-  use: { baseURL: 'http://127.0.0.1:4173', trace: 'retain-on-failure' },
+  use: { baseURL: 'http://127.0.0.1:4173', trace: 'retain-on-failure', locale: 'ko-KR' },
   webServer: {
     command: 'npm run dev -- --port 4173 --strictPort',
     url: 'http://127.0.0.1:4173',

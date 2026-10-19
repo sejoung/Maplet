@@ -48,6 +48,8 @@ npm run dev
 
 기본 편집에는 환경 변수가 필요하지 않습니다. Drive를 연결하려면 [`.env.example`](.env.example)을 `.env.local`로 복사해 공개 Google 설정을 입력하고 [Drive 설정 가이드](docs/google-drive.md)를 따르세요. 브라우저 빌드에 client secret을 포함하면 안 됩니다.
 
+한국어·영어를 지원하며 처음에는 브라우저 언어를 따릅니다. 상단 오른쪽 **설정 → 언어**에서 변경하면 즉시 적용되고 다음 방문에도 유지됩니다. 하단 언어 선택에서도 바로 바꿀 수 있습니다. 언어를 바꿔도 문서 내용은 변하지 않습니다. 번역은 한국어 기준 문구를 키로 사용하는 [`src/i18n/locales/en.json`](src/i18n/locales/en.json)에서 관리합니다.
+
 ## 단축키
 
 | 단축키                       | 동작                       |

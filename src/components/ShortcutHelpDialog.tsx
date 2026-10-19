@@ -1,9 +1,11 @@
+import { useI18n } from '../i18n/react';
 import { Dialog } from './Dialog';
 
 export function ShortcutHelpDialog({ onClose }: { onClose(): void }) {
+  const { t } = useI18n();
   return (
-    <Dialog title="단축키" onClose={onClose}>
-      <p className="muted">캔버스에서 노드를 선택한 뒤 사용하세요.</p>
+    <Dialog title={t('단축키')} onClose={onClose}>
+      <p className="muted">{t('캔버스에서 노드를 선택한 뒤 사용하세요.')}</p>
       <dl className="shortcut-list">
         {[
           ['Tab', '하위 노드 추가'],
@@ -20,9 +22,9 @@ export function ShortcutHelpDialog({ onClose }: { onClose(): void }) {
         ].map(([key, action]) => (
           <div key={key}>
             <dt>
-              <kbd>{key}</kbd>
+              <kbd>{t(key)}</kbd>
             </dt>
-            <dd>{action}</dd>
+            <dd>{t(action)}</dd>
           </div>
         ))}
       </dl>

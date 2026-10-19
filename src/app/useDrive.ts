@@ -9,6 +9,7 @@ import {
   type DriveFile,
 } from '../adapters/drive/client';
 import { GoogleConnection, type GoogleConfig } from '../adapters/drive/google';
+import { useI18n } from '../i18n/react';
 
 interface DriveOptions {
   content: string;
@@ -28,6 +29,7 @@ const google =
 const drive = google ? new DriveClient(google.getToken) : null;
 
 export function useDrive({ content, filename, allowReplace, replace, setNotice }: DriveOptions) {
+  const { language, t } = useI18n();
   const [dialog, setDialog] = useState<'drive' | 'conflict' | null>(null);
   const [driveReady, setDriveReady] = useState(false);
   const [connected, setConnected] = useState(false);
@@ -70,7 +72,7 @@ export function useDrive({ content, filename, allowReplace, replace, setNotice }
     try {
       await authorize();
       setDialog(null);
-      const id = await google.pick();
+      const id = await google.pick('file', language);
       if (!id) {
         setDriveStatus('파일 선택을 취소했습니다.');
         setDialog('drive');
@@ -95,11 +97,11 @@ export function useDrive({ content, filename, allowReplace, replace, setNotice }
     setDriveError(null);
     try {
       await authorize();
-      const target = driveSaveTarget(filename, driveFile, mode === 'copy');
+      const target = driveSaveTarget(filename, driveFile, mode === 'copy', t('사본'));
       let folderId: string | null = null;
       if (target.create) {
         setDialog(null);
-        folderId = await google.pick('folder');
+        folderId = await google.pick('folder', language);
         if (!folderId) {
           setDriveStatus('저장 위치 선택을 취소했습니다.');
           setDialog('drive');

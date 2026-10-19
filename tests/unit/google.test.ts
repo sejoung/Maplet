@@ -73,6 +73,7 @@ describe('optional Google SDK bridge', () => {
       return view;
     });
     const builder = {
+      setLocale: vi.fn().mockReturnThis(),
       setTitle: vi.fn().mockReturnThis(),
       setDeveloperKey: vi.fn().mockReturnThis(),
       setAppId: vi.fn().mockReturnThis(),
@@ -108,10 +109,11 @@ describe('optional Google SDK bridge', () => {
     const cancelled = connection.pick();
     callback({ action: 'cancel' });
     await expect(cancelled).resolves.toBeNull();
-    const folder = connection.pick('folder');
+    const folder = connection.pick('folder', 'en');
     expect(docsView).toHaveBeenLastCalledWith('folders');
     expect(view.setSelectFolderEnabled).toHaveBeenLastCalledWith(true);
-    expect(builder.setTitle).toHaveBeenLastCalledWith('저장할 폴더 선택');
+    expect(builder.setTitle).toHaveBeenLastCalledWith('Choose a save folder');
+    expect(builder.setLocale).toHaveBeenLastCalledWith('en');
     callback({ action: 'picked', docs: [{ id: 'folder-id' }] });
     await expect(folder).resolves.toBe('folder-id');
   });

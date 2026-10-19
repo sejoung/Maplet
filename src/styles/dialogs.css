@@ -42,6 +42,9 @@
   gap: 8px;
   margin-top: 20px;
 }
+.settings-hint {
+  margin-top: 12px;
+}
 .tool-selection {
   color: #5d6864;
   overflow: hidden;
