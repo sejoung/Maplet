@@ -22,7 +22,7 @@ export class DriveAuthError extends Error {
 export class DriveClient {
   constructor(
     private readonly token: () => string | null,
-    private readonly fetcher: typeof fetch = fetch,
+    private readonly fetcher: typeof fetch = (...args) => globalThis.fetch(...args),
   ) {}
 
   private async request(url: string, init: RequestInit = {}): Promise<Response> {
@@ -86,9 +86,14 @@ export class DriveClient {
     };
   }
 
-  async create(name: string, content: string): Promise<DriveFile> {
+  async create(name: string, content: string, parentId?: string): Promise<DriveFile> {
     const boundary = `maplet-${crypto.randomUUID()}`;
-    const body = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify({ name, mimeType: 'application/json' })}\r\n--${boundary}\r\nContent-Type: application/json\r\n\r\n${content}\r\n--${boundary}--`;
+    const metadata = {
+      name,
+      mimeType: 'application/json',
+      ...(parentId && { parents: [parentId] }),
+    };
+    const body = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n--${boundary}\r\nContent-Type: application/json\r\n\r\n${content}\r\n--${boundary}--`;
     const response = await this.request(
       'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,version',
       {

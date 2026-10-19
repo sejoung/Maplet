@@ -4,6 +4,7 @@ import {
   ArrowLeft,
   ArrowRight,
   CaseSensitive,
+  Check,
   CircleHelp,
   Cloud,
   FilePlus2,
@@ -45,6 +46,8 @@ export interface EditorProps
   onBackup(): void;
   onHelp(): void;
   onDrive(): void;
+  driveConnected: boolean;
+  driveBusy: boolean;
   onDismissError(): void;
   onDismissNotice(): void;
 }
@@ -119,11 +122,6 @@ export function Editor(props: EditorProps) {
               원본 백업 다운로드
             </button>
           )}
-          <hr />
-          <button onClick={command(props.onDrive)}>
-            <Cloud size={17} />
-            Google Drive
-          </button>
         </ToolbarMenu>
         <div className="document-name" title={props.filename}>
           <span>{props.filename.replace(/\.(maplet|mup)$/i, '')}</span>
@@ -133,7 +131,21 @@ export function Editor(props: EditorProps) {
             </span>
           )}
         </div>
-        <button className="button primary save-button" onClick={props.onSave}>
+        <button
+          className={`button drive-button${props.driveConnected ? ' connected' : ''}`}
+          aria-haspopup="dialog"
+          disabled={props.driveBusy}
+          onClick={command(props.onDrive)}
+        >
+          {props.driveConnected ? <Check size={16} /> : <Cloud size={16} />}
+          <span>Google Drive {props.driveConnected ? '연결됨' : '연결'}</span>
+        </button>
+        <button
+          className="button primary save-button"
+          aria-label=".maplet 저장"
+          title=".maplet 저장"
+          onClick={props.onSave}
+        >
           <ArrowDownToLine size={16} />
           <span>.maplet 저장</span>
         </button>

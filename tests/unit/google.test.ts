@@ -64,7 +64,16 @@ describe('optional Google SDK bridge', () => {
     let callback: (value: { action: string; docs?: { id: string }[] }) => void = () => {};
     const dispose = vi.fn();
     const visible = vi.fn();
+    const view = {
+      setIncludeFolders: vi.fn().mockReturnThis(),
+      setSelectFolderEnabled: vi.fn().mockReturnThis(),
+      setMode: vi.fn().mockReturnThis(),
+    };
+    const docsView = vi.fn(function () {
+      return view;
+    });
     const builder = {
+      setTitle: vi.fn().mockReturnThis(),
       setDeveloperKey: vi.fn().mockReturnThis(),
       setAppId: vi.fn().mockReturnThis(),
       setOAuthToken: vi.fn().mockReturnThis(),
@@ -82,18 +91,29 @@ describe('optional Google SDK bridge', () => {
           return builder;
         }
       },
-      ViewId: { DOCS: 'docs' },
+      DocsView: docsView,
+      DocsViewMode: { LIST: 'list' },
+      ViewId: { DOCS: 'docs', FOLDERS: 'folders' },
     } as unknown as NonNullable<typeof window.google>['picker'];
     const selected = connection.pick();
     callback({ action: 'loaded' });
     callback({ action: 'picked', docs: [{ id: 'selected-id' }] });
     await expect(selected).resolves.toBe('selected-id');
     expect(builder.setAppId).toHaveBeenCalledWith(config.appId);
+    expect(docsView).toHaveBeenCalledWith('docs');
+    expect(view.setSelectFolderEnabled).toHaveBeenLastCalledWith(false);
+    expect(view.setMode).toHaveBeenCalledWith('list');
     expect(visible).toHaveBeenCalledWith(true);
     expect(dispose).toHaveBeenCalledOnce();
     const cancelled = connection.pick();
     callback({ action: 'cancel' });
     await expect(cancelled).resolves.toBeNull();
+    const folder = connection.pick('folder');
+    expect(docsView).toHaveBeenLastCalledWith('folders');
+    expect(view.setSelectFolderEnabled).toHaveBeenLastCalledWith(true);
+    expect(builder.setTitle).toHaveBeenLastCalledWith('저장할 폴더 선택');
+    callback({ action: 'picked', docs: [{ id: 'folder-id' }] });
+    await expect(folder).resolves.toBe('folder-id');
   });
   it('loads SDKs once on demand and handles Picker initialization', async () => {
     vi.resetModules();

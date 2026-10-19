@@ -259,7 +259,7 @@ export function App() {
     }
   };
 
-  const driveState = useDrive({ content, filename, allowReplace, replace, report, setNotice });
+  const driveState = useDrive({ content, filename, allowReplace, replace, setNotice });
   const closeDialog = useCallback(() => setDialog(null), []);
   const preventRecoveryClose = useCallback(() => {}, []);
 
@@ -319,6 +319,8 @@ export function App() {
         }}
         onHelp={() => setDialog('help')}
         onDrive={driveState.showDrive}
+        driveConnected={driveState.connected}
+        driveBusy={driveState.busy}
         onDismissError={() => setError(null)}
         onDismissNotice={() => setNotice(null)}
       />

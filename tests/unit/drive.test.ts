@@ -85,4 +85,21 @@ describe('Drive transport contracts', () => {
     );
     await expect(offline.open('x')).rejects.toThrow('offline');
   });
+  it('creates a file in the selected folder without changing its content', async () => {
+    const fetcher = vi
+      .fn()
+      .mockResolvedValue(response({ id: 'new', name: 'map.maplet', version: '1' }));
+    const client = new DriveClient(() => 'token', fetcher);
+    const content = '{"title":"keep this exactly"}';
+    await client.create('map.maplet', content, 'chosen-folder');
+    const request = fetcher.mock.calls[0][1];
+    const boundary = request.headers['Content-Type'].split('boundary=')[1];
+    const parts = request.body.split(`--${boundary}`);
+    expect(JSON.parse(parts[1].split('\r\n\r\n')[1])).toEqual({
+      name: 'map.maplet',
+      mimeType: 'application/json',
+      parents: ['chosen-folder'],
+    });
+    expect(parts[2].split('\r\n\r\n')[1]).toBe(content + '\r\n');
+  });
 });

@@ -1,4 +1,16 @@
 @media (max-width: 820px) {
+  .app-header {
+    gap: 12px;
+  }
+  .document-name {
+    flex: 1;
+  }
+  .save-button {
+    padding: 8px 10px;
+  }
+  .save-button > span {
+    display: none;
+  }
   .desktop-tool {
     display: none;
   }
@@ -30,7 +42,7 @@
 @media (max-width: 480px) {
   .app-header {
     padding: 0 12px;
-    gap: 12px;
+    gap: 8px;
     height: 50px;
     min-height: 50px;
   }
@@ -47,7 +59,8 @@
   .app-header .toolbar-menu summary {
     padding: 0 5px;
   }
-  .save-button {
+  .save-button,
+  .drive-button {
     padding: 7px 10px;
     font-size: 11px;
     min-height: 32px;
@@ -102,7 +115,7 @@
     display: none;
   }
   .document-name > span:first-child {
-    max-width: 72px;
+    display: none;
   }
 }
 

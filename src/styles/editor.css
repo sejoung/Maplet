@@ -41,8 +41,16 @@
 .unsaved-marker {
   color: #886523;
 }
-.save-button {
+.drive-button {
   margin-left: auto;
+  flex-shrink: 0;
+}
+.drive-button.connected {
+  color: var(--accent);
+  background: #eff7f3;
+  border-color: #a6c9b8;
+}
+.save-button {
   flex-shrink: 0;
 }
 .button {

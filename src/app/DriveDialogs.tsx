@@ -1,5 +1,6 @@
 import { Cloud, Download, FolderOpen } from 'lucide-react';
 import { Dialog } from '../components/Dialog';
+import { driveSaveTarget } from '../adapters/documents';
 import type { DriveController } from './useDrive';
 
 export function DriveDialogs({ controller, save }: { controller: DriveController; save(): void }) {
@@ -8,17 +9,20 @@ export function DriveDialogs({ controller, save }: { controller: DriveController
     closeDialog,
     configured,
     content,
+    filename,
     busy,
     driveReady,
     connected,
     driveFile,
     driveSavedContent,
     driveStatus,
-    connectDrive,
+    driveError,
+    showDrive,
     openDrive,
     saveDrive,
     disconnect,
   } = controller;
+  const target = driveSaveTarget(filename, driveFile, false);
   return (
     <>
       {dialog === 'drive' && (
@@ -26,7 +30,11 @@ export function DriveDialogs({ controller, save }: { controller: DriveController
           <div className="drive-intro">
             <Cloud size={28} />
             <p>
-              <span className="muted">선택한 파일에만 접근하는 drive.file 권한을 사용합니다.</span>
+              <span className="muted">
+                {connected
+                  ? '파일을 열거나 현재 맵을 Drive에 저장하세요.'
+                  : '열기 또는 저장을 선택하면 Google 로그인 후 선택 창이 열립니다.'}
+              </span>
             </p>
           </div>
           {!configured ? (
@@ -41,43 +49,56 @@ export function DriveDialogs({ controller, save }: { controller: DriveController
             </>
           ) : (
             <>
-              <p role="status" className="drive-status">
-                {driveFile &&
-                driveSavedContent !== content &&
-                !busy &&
-                driveStatus === 'Drive에 저장됨'
-                  ? 'Drive에 저장한 이후 편집한 변경이 있습니다'
-                  : driveStatus}
+              {driveError && (
+                <p className="form-error" role="alert">
+                  {driveError}
+                </p>
+              )}
+              <p className="drive-filename">
+                저장할 파일: <strong>{target.name}</strong>
               </p>
+              {(connected || busy) && (
+                <p role="status" className="drive-status">
+                  {!driveReady
+                    ? 'Drive 준비 중…'
+                    : busy
+                      ? 'Drive 작업을 진행하고 있습니다…'
+                      : driveFile &&
+                          driveSavedContent !== content &&
+                          driveStatus === 'Drive에 저장됨'
+                        ? 'Drive에 저장한 이후 편집한 변경이 있습니다'
+                        : driveStatus}
+                </p>
+              )}
               <div className="drive-actions">
                 <button
-                  className="button primary"
-                  disabled={busy || !driveReady}
-                  onClick={() => void connectDrive()}
-                >
-                  {connected ? '다시 연결' : driveReady ? 'Google에 연결' : '연결 준비 중…'}
-                </button>
-                <button
                   className="button"
-                  disabled={busy || !connected}
+                  disabled={busy || !driveReady}
                   onClick={() => void openDrive()}
                 >
                   <FolderOpen size={17} /> Drive에서 열기
                 </button>
                 <button
-                  className="button"
-                  disabled={busy || !connected}
+                  className="button primary"
+                  disabled={busy || !driveReady}
                   onClick={() => void saveDrive()}
                 >
-                  Drive에 저장
+                  {target.create ? '저장 위치 선택' : 'Drive에 저장'}
                 </button>
-                <button
-                  className="button"
-                  disabled={busy || !connected}
-                  onClick={() => void saveDrive('copy')}
-                >
-                  새 사본으로 저장
-                </button>
+                {driveFile && (
+                  <button
+                    className="button"
+                    disabled={busy || !driveReady}
+                    onClick={() => void saveDrive('copy')}
+                  >
+                    다른 위치에 새 사본 저장
+                  </button>
+                )}
+                {!driveReady && !busy && (
+                  <button className="button" onClick={showDrive}>
+                    다시 불러오기
+                  </button>
+                )}
                 {connected && (
                   <button
                     className="text-button"

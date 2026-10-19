@@ -18,6 +18,11 @@ export default defineConfig({
     command: 'npm run dev -- --port 4173 --strictPort',
     url: 'http://127.0.0.1:4173',
     reuseExistingServer: !process.env.CI,
+    env: {
+      VITE_GOOGLE_CLIENT_ID: 'public-test-client',
+      VITE_GOOGLE_API_KEY: 'public-test-key',
+      VITE_GOOGLE_APP_ID: 'public-test-project',
+    },
   },
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },

@@ -16,7 +16,13 @@ interface Picker {
   setVisible(visible: boolean): void;
   dispose(): void;
 }
+interface DocsView {
+  setIncludeFolders(enabled: boolean): DocsView;
+  setSelectFolderEnabled(enabled: boolean): DocsView;
+  setMode(mode: unknown): DocsView;
+}
 interface PickerBuilder {
+  setTitle(title: string): PickerBuilder;
   setDeveloperKey(key: string): PickerBuilder;
   setAppId(id: string): PickerBuilder;
   setOAuthToken(token: string): PickerBuilder;
@@ -37,7 +43,12 @@ interface GoogleApi {
       revoke(token: string, callback: () => void): void;
     };
   };
-  picker: { PickerBuilder: new () => PickerBuilder; ViewId: { DOCS: unknown } };
+  picker: {
+    PickerBuilder: new () => PickerBuilder;
+    DocsView: new (view: unknown) => DocsView;
+    DocsViewMode: { LIST: unknown };
+    ViewId: { DOCS: unknown; FOLDERS: unknown };
+  };
 }
 declare global {
   interface Window {
@@ -128,16 +139,22 @@ export class GoogleConnection {
     });
   }
 
-  async pick(): Promise<string | null> {
+  async pick(kind: 'file' | 'folder' = 'file'): Promise<string | null> {
     const token = this.getToken();
     if (!token) throw new Error('먼저 Google Drive에 연결해 주세요.');
     return new Promise((resolve) => {
+      const api = window.google!.picker;
+      const view = new api.DocsView(kind === 'folder' ? api.ViewId.FOLDERS : api.ViewId.DOCS)
+        .setIncludeFolders(true)
+        .setSelectFolderEnabled(kind === 'folder')
+        .setMode(api.DocsViewMode.LIST);
       const picker = new window.google!.picker.PickerBuilder()
+        .setTitle(kind === 'folder' ? '저장할 폴더 선택' : '열 파일 선택')
         .setDeveloperKey(this.config.apiKey)
         .setAppId(this.config.appId)
         .setOAuthToken(token)
         .setOrigin(window.location.origin)
-        .addView(window.google!.picker.ViewId.DOCS)
+        .addView(view)
         .setCallback((result) => {
           if (result.action === 'picked' || result.action === 'cancel') {
             picker.dispose();
