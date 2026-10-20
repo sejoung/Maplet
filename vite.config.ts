@@ -10,6 +10,7 @@ export default defineConfig({
   server: { strictPort: true },
   test: {
     environment: 'node',
+    maxWorkers: process.env.CI ? 2 : undefined,
     // Let jsdom provide browser storage instead of Node's experimental Web Storage.
     execArgv: ['--no-experimental-webstorage'],
     include: ['tests/**/*.test.{ts,tsx}'],

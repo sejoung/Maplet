@@ -2,6 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 import { join } from 'node:path';
 
 const results = process.env.MAPLET_TEST_RUN_DIR ?? 'test-results/unmanaged/e2e';
+const projectWorkers = process.env.CI ? 2 : '25%';
 const driveBehavior = [
   '**/drive-autosave.spec.ts',
   '**/drive-batching.spec.ts',
@@ -17,6 +18,7 @@ export default defineConfig({
   workers: process.env.CI ? 2 : '75%',
   outputDir: join(results, 'artifacts'),
   reporter: [
+    ['./scripts/e2e-timing-reporter.ts', { outputFile: join(results, 'timings.json') }],
     ['list'],
     ['html', { outputFolder: join(results, 'html'), open: 'never' }],
     ['json', { outputFile: join(results, 'results.json') }],
@@ -36,11 +38,13 @@ export default defineConfig({
   projects: [
     {
       name: 'drive-contract',
+      workers: projectWorkers,
       testMatch: '**/drive.spec.ts',
       use: { ...devices['Desktop Chrome'] },
     },
     {
       name: 'drive-behavior',
+      workers: projectWorkers,
       testMatch: driveBehavior,
       use: { ...devices['Desktop Chrome'] },
     },
@@ -49,6 +53,14 @@ export default defineConfig({
       { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
       { name: 'webkit', use: { ...devices['Desktop Safari'] } },
       { name: 'mobile', use: { ...devices['iPhone 13'] } },
-    ].map((project) => ({ ...project, testIgnore: ['**/drive.spec.ts', ...driveBehavior] })),
+    ].map((project) => ({
+      ...project,
+      workers: projectWorkers,
+      testIgnore: [
+        '**/drive.spec.ts',
+        ...driveBehavior,
+        ...(project.name === 'chromium' ? [] : ['**/accessibility-checker.spec.ts']),
+      ],
+    })),
   ],
 });

@@ -1,9 +1,9 @@
 import { test, expect } from '@playwright/test';
-import AxeBuilder from '@axe-core/playwright';
+import { auditAccessibility } from './support/accessibility';
 import { readFile } from 'node:fs/promises';
 
 test('starts with one neutral node and exposes tools only when requested', async ({ page }) => {
-  await page.goto('/');
+  await test.step('timing:load', () => page.goto('/'));
   await expect(page.getByRole('treeitem')).toHaveCount(1);
   await expect(page.getByRole('complementary')).toHaveCount(0);
   await expect(page.getByRole('textbox')).toHaveCount(0);
@@ -26,8 +26,9 @@ test('starts with one neutral node and exposes tools only when requested', async
 test('opens, edits inline, undoes, exports and reimports without losing metadata', async ({
   page,
 }) => {
-  await page.goto('/');
-  await page.locator('input[type=file]').setInputFiles('tests/fixtures/v2-rich.mup');
+  await test.step('timing:load', () => page.goto('/'));
+  await test.step('timing:import', () =>
+    page.locator('input[type=file]').setInputFiles('tests/fixtures/v2-rich.mup'));
   const node = page.getByRole('treeitem', { name: '발견하기', exact: true });
   await node.click();
   await node.press('Tab');
@@ -44,30 +45,45 @@ test('opens, edits inline, undoes, exports and reimports without losing metadata
   await page.getByRole('button', { name: '파일', exact: true }).click();
   await page.getByRole('button', { name: '.mup 내보내기', exact: true }).click();
   const path = await (await downloaded).path();
-  const raw = JSON.parse(await readFile(path!, 'utf8'));
+  const exported = await readFile(path!, 'utf8');
+  const raw = JSON.parse(exported);
   expect(raw.ideas['-2'].vendor).toEqual({ a: [1, 2] });
   expect(raw.resources).toEqual({ image: 'base64-original' });
-  await page.locator('input[type=file]').setInputFiles(path!);
+  await test.step('timing:import', async () => {
+    page.on('dialog', (dialog) => dialog.accept());
+    await page.locator('input[type=file]').setInputFiles({
+      name: 'reimported.mup',
+      mimeType: 'application/json',
+      buffer: Buffer.from(exported),
+    });
+    await expect(page.getByRole('button', { name: /^파일 이름 변경:/ })).toHaveText('reimported');
+  });
   await expect(page.getByRole('treeitem', { name: '회귀 방지', exact: true })).toBeVisible();
 });
 
 test('keeps the current map on import failure and offers draft recovery on reload', async ({
   page,
 }) => {
-  await page.goto('/');
-  await page.locator('input[type=file]').setInputFiles('tests/fixtures/v1.mup');
+  await page.clock.install();
+  await test.step('timing:load', () => page.goto('/'));
+  await test.step('timing:import', () =>
+    page.locator('input[type=file]').setInputFiles('tests/fixtures/v1.mup'));
   await page.getByRole('treeitem', { name: '왼쪽', exact: true }).press('F2');
   const input = page.getByRole('textbox', { name: '노드 제목' });
   await input.fill('복구할 생각');
   await input.press('Enter');
+  await test.step('timing:draft-flush', () => page.clock.fastForward(250));
   await expect(page.getByText('브라우저에 초안 저장됨', { exact: true })).toBeVisible();
   page.on('dialog', (dialog) => dialog.accept());
-  await page
-    .locator('input[type=file]')
-    .setInputFiles({ name: 'bad.mup', mimeType: 'application/json', buffer: Buffer.from('{bad') });
+  await test.step('timing:import', () =>
+    page.locator('input[type=file]').setInputFiles({
+      name: 'bad.mup',
+      mimeType: 'application/json',
+      buffer: Buffer.from('{bad'),
+    }));
   await expect(page.getByRole('alert')).toContainText('JSON');
   await expect(page.getByRole('treeitem', { name: '복구할 생각', exact: true })).toBeVisible();
-  await page.reload();
+  await test.step('timing:reload', () => page.reload());
   await page.getByRole('button', { name: '초안 복구' }).click();
   await expect(page.getByRole('treeitem', { name: '복구할 생각', exact: true })).toBeVisible();
 });
@@ -75,7 +91,7 @@ test('keeps the current map on import failure and offers draft recovery on reloa
 test('creates maps from the toolbar and supports keyboard expansion and collapse', async ({
   page,
 }) => {
-  await page.goto('/');
+  await test.step('timing:load', () => page.goto('/'));
   await page.getByRole('button', { name: '파일', exact: true }).click();
   await page.getByRole('button', { name: '새 맵', exact: true }).click();
   await page.getByRole('textbox', { name: '중심 주제' }).fill('내 프로젝트');
@@ -99,9 +115,9 @@ test('creates maps from the toolbar and supports keyboard expansion and collapse
 });
 
 test('has accessible controls and no horizontal page overflow', async ({ page }) => {
-  await page.goto('/');
+  await test.step('timing:load', () => page.goto('/'));
   await expect(page.getByRole('tree', { name: '마인드맵' })).toBeVisible();
-  const audit = await new AxeBuilder({ page }).analyze();
+  const audit = await test.step('timing:accessibility', () => auditAccessibility(page));
   expect(
     audit.violations.map((v) => ({
       id: v.id,

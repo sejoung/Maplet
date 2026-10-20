@@ -10,12 +10,13 @@ const source = JSON.stringify({
   },
 });
 async function openFixture(page: import('@playwright/test').Page) {
-  await page.goto('/');
-  await page.locator('input[type=file]').setInputFiles({
-    name: 'interaction.mup',
-    mimeType: 'application/json',
-    buffer: Buffer.from(source),
-  });
+  await test.step('timing:load', () => page.goto('/'));
+  await test.step('timing:import', () =>
+    page.locator('input[type=file]').setInputFiles({
+      name: 'interaction.mup',
+      mimeType: 'application/json',
+      buffer: Buffer.from(source),
+    }));
 }
 
 async function tool(page: import('@playwright/test').Page, name: string) {
@@ -61,7 +62,7 @@ test('reparents, edits notes and safe links, deletes and restores a subtree', as
 });
 
 test('treats imported HTML as text and backs up the exact original', async ({ page }) => {
-  await page.goto('/');
+  await test.step('timing:load', () => page.goto('/'));
   const hostile =
     '{"id":1,"title":"<img src=x onerror=alert(1)>","attr":{"attachment":{"contentType":"text/html","content":"<script>alert(1)</script>"}}}';
   let alertShown = false;
@@ -69,11 +70,12 @@ test('treats imported HTML as text and backs up the exact original', async ({ pa
     alertShown = true;
     await dialog.dismiss();
   });
-  await page.locator('input[type=file]').setInputFiles({
-    name: 'safe.mup',
-    mimeType: 'application/json',
-    buffer: Buffer.from(hostile),
-  });
+  await test.step('timing:import', () =>
+    page.locator('input[type=file]').setInputFiles({
+      name: 'safe.mup',
+      mimeType: 'application/json',
+      buffer: Buffer.from(hostile),
+    }));
   await expect(page.getByRole('treeitem')).toHaveAttribute(
     'aria-label',
     '<img src=x onerror=alert(1)>',
@@ -135,18 +137,18 @@ test('keeps the parent and separates nodes dropped on top of another node', asyn
   await expect(branch).toHaveAttribute('aria-level', '2');
   expect((await branch.boundingBox())!.y).toBeCloseTo(target.y, 0);
   await expect
-    .poll(async () => {
-      const box = (await branch.boundingBox())!;
-      const other = (await page
-        .getByRole('treeitem', { name: '첫 가지', exact: true })
-        .boundingBox())!;
-      return (
-        box.x + box.width <= other.x ||
-        other.x + other.width <= box.x ||
-        box.y + box.height <= other.y ||
-        other.y + other.height <= box.y
-      );
-    })
+    .poll(() =>
+      page.locator('[data-node-id=a], [data-node-id=b]').evaluateAll((elements) => {
+        if (elements.length !== 2) return false;
+        const [box, other] = elements.map((element) => element.getBoundingClientRect());
+        return (
+          box.right <= other.x ||
+          other.right <= box.x ||
+          box.bottom <= other.y ||
+          other.bottom <= box.y
+        );
+      }),
+    )
     .toBe(true);
 });
 
@@ -159,6 +161,10 @@ test('pans the canvas from an empty area', async ({ page }) => {
   await page.mouse.down();
   await page.mouse.move(canvas!.x + 65, canvas!.y + 195, { steps: 5 });
   await page.mouse.up();
-  await expect.poll(async () => Math.round((await root.boundingBox())!.x - before!.x)).toBe(40);
-  await expect.poll(async () => Math.round((await root.boundingBox())!.y - before!.y)).toBe(55);
+  await expect
+    .poll(async () => {
+      const box = (await root.boundingBox())!;
+      return [Math.round(box.x - before!.x), Math.round(box.y - before!.y)];
+    })
+    .toEqual([40, 55]);
 });
