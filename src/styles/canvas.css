@@ -9,7 +9,7 @@
   height: 100%;
   width: 100%;
   position: relative;
-  overflow: hidden;
+  overflow: clip;
   background: #f8fafb;
   touch-action: none;
 }
@@ -105,7 +105,8 @@
 }
 .collapse-node {
   position: absolute;
-  right: -9px;
+  z-index: 1;
+  right: -17px;
   top: calc(50% - 8px);
   width: 16px;
   height: 16px;
@@ -132,7 +133,7 @@
 }
 .collapse-node.left {
   right: auto;
-  left: -9px;
+  left: -17px;
 }
 .resize-node {
   position: absolute;

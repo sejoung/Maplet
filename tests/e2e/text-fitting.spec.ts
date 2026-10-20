@@ -70,7 +70,13 @@ test('fits actual font widths and consistent padding across sizes, fonts and roo
       if (automatic && Math.abs(node.offsetWidth - Math.max(56, longest + insetX + 1)) > 1.5)
         issues.push('excessive space to the right');
       return issues.length
-        ? [{ title: node.getAttribute('aria-label'), font: style.font, issues }]
+        ? [
+            {
+              title: node.getAttribute('aria-label'),
+              font: `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`,
+              issues,
+            },
+          ]
         : [];
     }),
   );

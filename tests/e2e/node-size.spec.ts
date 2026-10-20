@@ -26,9 +26,10 @@ test('resizes at the current zoom with live connectors, stable positions and one
   const edge = page.locator('[data-edge-to=child]');
   const path = await edge.getAttribute('d');
   await dragCorner(page, root, 95, 55);
+  // Whole map pixels can round the screen delta at fractional zoom levels.
   await expect
-    .poll(async () => Math.round((await root.boundingBox())!.width - before.width))
-    .toBe(95);
+    .poll(async () => Math.abs((await root.boundingBox())!.width - before.width - 95))
+    .toBeLessThanOrEqual(1);
   await expect(edge).not.toHaveAttribute('d', path!);
   await page.mouse.up();
   const after = (await root.boundingBox())!;
@@ -138,4 +139,35 @@ test('keeps long text visible when narrowing a node and cancels interrupted resi
   await handle.dispatchEvent('pointercancel', { pointerId: 1, pointerType: 'mouse' });
   await page.mouse.up();
   await expect(node).toHaveCSS('width', before);
+});
+
+test('keeps expand and resize controls usable on a short selected node at reduced zoom', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await page.locator('input[type=file]').setInputFiles({
+    name: 'short-parent.mup',
+    mimeType: 'application/json',
+    buffer: Buffer.from(
+      JSON.stringify({
+        id: 'root',
+        title: 'i',
+        attr: { style: { width: 56, fontSize: 12 } },
+        ideas: { 1: { id: 'child', title: 'Child' } },
+      }),
+    ),
+  });
+  const root = page.locator('[data-node-id=root]');
+  await root.focus();
+  await page.getByRole('button', { name: '축소', exact: true }).click();
+  await page.getByRole('button', { name: '축소', exact: true }).click();
+  await root.getByRole('button', { name: 'i 접기', exact: true }).click();
+  await expect(page.getByRole('treeitem')).toHaveCount(1);
+  await root.getByRole('button', { name: 'i 펼치기', exact: true }).click();
+  await expect(page.getByRole('treeitem')).toHaveCount(2);
+  const before = (await root.boundingBox())!;
+  await dragCorner(page, root, 45, 0);
+  await page.mouse.up();
+  await expect.poll(async () => (await root.boundingBox())!.width).toBeGreaterThan(before.width);
+  await expect(root).toHaveAttribute('aria-expanded', 'true');
 });
