@@ -139,10 +139,12 @@ test('moves the root itself and keeps connections attached', async ({ page }) =>
   await expect
     .poll(async () => Math.round((await child.boundingBox())!.y - childBefore.y))
     .toBe(65);
-  await page.getByRole('button', { name: '노드 작업', exact: true }).click();
-  await page.getByRole('button', { name: '맵 자동 정렬', exact: true }).click();
-  await expect.poll(async () => Math.round((await root.boundingBox())!.x - before.x)).toBe(0);
-  await expect.poll(async () => Math.round((await child.boundingBox())!.x - childBefore.x)).toBe(0);
+  await page.getByRole('button', { name: '전체 맵 자동 배치', exact: true }).click();
+  const automatic = await root.evaluate((element) => (element as HTMLElement).style.left);
+  await page.getByRole('button', { name: '실행 취소', exact: true }).click();
+  expect(await root.evaluate((element) => (element as HTMLElement).style.left)).not.toBe(automatic);
+  await page.getByRole('button', { name: '다시 실행', exact: true }).click();
+  expect(await root.evaluate((element) => (element as HTMLElement).style.left)).toBe(automatic);
 });
 
 test('moves collapsed descendants with their parent and persists the branch through recovery', async ({

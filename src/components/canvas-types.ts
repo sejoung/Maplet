@@ -2,10 +2,17 @@ import type { ResizeAction } from './useNodeResize';
 import type { Ref } from 'react';
 import type { MindMap, NodePosition } from '../domain/model';
 
+export interface CanvasView {
+  x: number;
+  y: number;
+  zoom: number;
+}
 export interface CanvasControls {
   zoomIn(): void;
   zoomOut(): void;
-  fit(): void;
+  fit(): CanvasView;
+  getView(): CanvasView;
+  restoreView(view: CanvasView): void;
 }
 
 export interface CanvasProps {

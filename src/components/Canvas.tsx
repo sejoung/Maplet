@@ -18,6 +18,7 @@ import type { MindMap, NodePosition } from '../domain/model';
 import { layoutWithPositions, type Layout } from '../engine/layout';
 import { proposeSubtreeMove, type PlacementProposal } from '../engine/subtree-placement';
 import { BranchRegions } from './BranchRegions';
+import { fitLayout } from '../engine/fit-layout';
 
 export function Canvas(props: CanvasProps) {
   const { t } = useI18n();
@@ -99,16 +100,9 @@ export function Canvas(props: CanvasProps) {
   }, []);
   const fit = useCallback(
     (initial = false) => {
-      const mapLayout = layoutRef.current;
-      const zoom = Math.max(
-        initial ? 0.85 : 0.15,
-        Math.min(1, (size.width - 60) / mapLayout.width, (size.height - 120) / mapLayout.height),
-      );
-      setView({
-        zoom,
-        x: (size.width - mapLayout.width * zoom) / 2 - mapLayout.minX * zoom,
-        y: (size.height - mapLayout.height * zoom) / 2 - mapLayout.minY * zoom,
-      });
+      const fitted = fitLayout(layoutRef.current, size, initial ? 0.85 : 0.15);
+      setView(fitted);
+      return fitted;
     },
     [size],
   );
@@ -145,7 +139,13 @@ export function Canvas(props: CanvasProps) {
   );
   useImperativeHandle(
     controlsRef,
-    () => ({ zoomIn: () => zoomAt(1.2), zoomOut: () => zoomAt(1 / 1.2), fit: () => fit() }),
+    () => ({
+      zoomIn: () => zoomAt(1.2),
+      zoomOut: () => zoomAt(1 / 1.2),
+      fit: () => fit(),
+      getView: () => viewRef.current,
+      restoreView: setView,
+    }),
     [zoomAt, fit],
   );
   useEffect(() => {

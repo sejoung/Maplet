@@ -19,12 +19,14 @@ import {
   Trash2,
   Undo2,
   X,
+  WandSparkles,
 } from 'lucide-react';
 import { EditorHeader } from './EditorHeader';
 import type { DriveSyncStatus } from '../application/drive-sync';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { SettingsDialog } from './SettingsDialog';
 import { ToolbarMenu } from './ToolbarMenu';
+import { useAutoArrange } from './useAutoArrange';
 import { Canvas, type CanvasProps, type CanvasControls } from './Canvas';
 import { NodeToolsDialog, type NodeTool, type NodeToolActions } from './NodeToolsDialog';
 
@@ -81,6 +83,8 @@ export function Editor(props: EditorProps) {
       document.querySelector<HTMLElement>(`[data-node-id="${CSS.escape(id)}"]`)?.focus(),
     );
   const openTool = (value: NodeTool) => command(() => setTool(value));
+  const arrangeMap = useAutoArrange(map, props.onAutoLayout, controls);
+  const arrange = command(arrangeMap);
   return (
     <div
       className="editor-shell"
@@ -186,10 +190,6 @@ export function Editor(props: EditorProps) {
               {t('오른쪽 배치')}
             </button>
             <hr />
-            <button onClick={command(props.onAutoLayout)}>
-              <Focus size={17} />
-              {t('맵 자동 정렬')}
-            </button>
             <button
               className="danger-quiet"
               disabled={node.parentId === null && map.roots.length === 1}
@@ -260,6 +260,15 @@ export function Editor(props: EditorProps) {
               {t('단축키 도움말')}
             </button>
           </ToolbarMenu>
+          <button
+            className="tool-button auto-layout-button"
+            aria-label={t('전체 맵 자동 배치')}
+            title={t('가지 크기에 맞춰 전체 맵을 균형 있게 자동 배치')}
+            onClick={arrange}
+          >
+            <WandSparkles size={17} />
+            <span>{t('자동 배치')}</span>
+          </button>
           <div className="zoom-tools">
             <button
               className="icon-button"

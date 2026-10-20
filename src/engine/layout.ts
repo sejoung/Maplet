@@ -1,6 +1,7 @@
 import type { MindMap, NodePosition, Side } from '../domain/model';
-import { measureNode, type TextMeasurer } from './node-measure';
+import type { TextMeasurer } from './node-measure';
 import { positionsForSubtreeMove } from '../domain/positions';
+import { BRANCH_GAP, LEVEL_GAP, NODE_GAP, measureTree } from './tree-measure';
 
 export interface LayoutNode {
   id: string;
@@ -29,17 +30,7 @@ export interface Layout {
 
 export function layoutMap(map: MindMap, measureText?: TextMeasurer): Layout {
   const nodes: LayoutNode[] = [];
-  const sizes = new Map<string, { width: number; height: number; lines: string[]; span: number }>();
-  const measure = (id: string): number => {
-    const node = map.nodes[id];
-    const { width, height, lines } = measureNode(node, measureText);
-    const children = node.collapsed ? [] : node.children;
-    const childrenSpan = children.reduce((span, child) => span + measure(child) + 24, -24);
-    const span = Math.max(height, childrenSpan);
-    sizes.set(id, { width, height, lines, span });
-    return span;
-  };
-  map.roots.forEach(measure);
+  const sizes = measureTree(map, measureText);
   let rootTop = 80;
   let branch = 0;
   const place = (id: string, x: number, cy: number, side: Side, branchId: number) => {
@@ -57,17 +48,18 @@ export function layoutMap(map: MindMap, measureText?: TextMeasurer): Layout {
     const node = map.nodes[id];
     if (node.collapsed) return;
     const children = node.children;
-    let top = cy - children.reduce((sum, child) => sum + sizes.get(child)!.span + 24, -24) / 2;
+    let top =
+      cy - children.reduce((sum, child) => sum + sizes.get(child)!.span + NODE_GAP, -NODE_GAP) / 2;
     for (const child of children) {
       const childSize = sizes.get(child)!;
       place(
         child,
-        side === 'right' ? x + size.width + 72 : x - childSize.width - 72,
+        side === 'right' ? x + size.width + LEVEL_GAP : x - childSize.width - LEVEL_GAP,
         top + childSize.span / 2,
         side,
         branchId,
       );
-      top += childSize.span + 24;
+      top += childSize.span + NODE_GAP;
     }
   };
   for (const rootId of map.roots) {
@@ -81,7 +73,7 @@ export function layoutMap(map: MindMap, measureText?: TextMeasurer): Layout {
     const span = Math.max(
       rootSize.height,
       ...Object.values(groups).map((ids) =>
-        ids.reduce((sum, id) => sum + sizes.get(id)!.span + 24, -24),
+        ids.reduce((sum, id) => sum + sizes.get(id)!.span + BRANCH_GAP, -BRANCH_GAP),
       ),
     );
     const cy = rootTop + span / 2;
@@ -96,17 +88,19 @@ export function layoutMap(map: MindMap, measureText?: TextMeasurer): Layout {
       side: 'right',
     });
     for (const side of ['left', 'right'] as const) {
-      let top = cy - groups[side].reduce((sum, id) => sum + sizes.get(id)!.span + 24, -24) / 2;
+      let top =
+        cy -
+        groups[side].reduce((sum, id) => sum + sizes.get(id)!.span + BRANCH_GAP, -BRANCH_GAP) / 2;
       for (const child of groups[side]) {
         const size = sizes.get(child)!;
         place(
           child,
-          side === 'right' ? rootSize.width + 72 : -size.width - 72,
+          side === 'right' ? rootSize.width + LEVEL_GAP : -size.width - LEVEL_GAP,
           top + size.span / 2,
           side,
           branch++,
         );
-        top += size.span + 24;
+        top += size.span + BRANCH_GAP;
       }
     }
     rootTop += span + 120;
@@ -133,7 +127,10 @@ export function layoutMap(map: MindMap, measureText?: TextMeasurer): Layout {
     const parentId = map.nodes[node.id].parentId;
     if (manual && parentId !== null) {
       const parent = byId.get(parentId)!;
-      node.x = node.side === 'right' ? parent.x + parent.width + 72 : parent.x - node.width - 72;
+      node.x =
+        node.side === 'right'
+          ? parent.x + parent.width + LEVEL_GAP
+          : parent.x - node.width - LEVEL_GAP;
       node.y = parent.y + (parent.height - node.height) / 2;
       let collision: LayoutNode | undefined;
       while (
@@ -154,10 +151,15 @@ export function layoutMap(map: MindMap, measureText?: TextMeasurer): Layout {
     nodes
       .filter((node) => map.nodes[node.id].parentId !== null)
       .map((node) => ({ from: map.nodes[node.id].parentId!, to: node.id, branch: node.branch })),
+    !manual,
   );
 }
 
-function finishLayout(nodes: LayoutNode[], relations: Omit<LayoutEdge, 'path'>[]): Layout {
+function finishLayout(
+  nodes: LayoutNode[],
+  relations: Omit<LayoutEdge, 'path'>[],
+  horizontalTree = false,
+): Layout {
   const byId = new Map(nodes.map((node) => [node.id, node]));
   const edges = relations.map((edge) => {
     const parent = byId.get(edge.from)!;
@@ -165,8 +167,9 @@ function finishLayout(nodes: LayoutNode[], relations: Omit<LayoutEdge, 'path'>[]
     const dx = child.x + child.width / 2 - parent.x - parent.width / 2;
     const dy = child.y + child.height / 2 - parent.y - parent.height / 2;
     const horizontal =
+      horizontalTree ||
       Math.abs(dx) / ((parent.width + child.width) / 2) >=
-      Math.abs(dy) / ((parent.height + child.height) / 2);
+        Math.abs(dy) / ((parent.height + child.height) / 2);
     child.side = dx < 0 ? 'left' : 'right';
     let path: string;
     if (horizontal) {

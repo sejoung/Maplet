@@ -292,5 +292,8 @@
   "이 기기의 연결은 해제했지만 Google 권한 철회를 확인하지 못했습니다. Google 계정에서 앱 권한을 해제해 주세요.": "Disconnected on this device, but Google permission revocation could not be confirmed. Remove the app’s access in your Google account.",
   "Google 권한 철회를 확인하지 못했습니다.": "Google permission revocation could not be confirmed.",
   "Google Drive 연결 요청이 취소되었습니다.": "The Google Drive connection request was cancelled.",
-  "이 파일 또는 폴더에 접근할 수 없거나 Drive 요청이 제한되었습니다. 공유 권한과 저장 위치를 확인해 주세요. 현재 편집은 유지됩니다.": "This file or folder is inaccessible, or Drive requests are restricted. Check sharing permissions and the save location. Your current edits are kept."
+  "이 파일 또는 폴더에 접근할 수 없거나 Drive 요청이 제한되었습니다. 공유 권한과 저장 위치를 확인해 주세요. 현재 편집은 유지됩니다.": "This file or folder is inaccessible, or Drive requests are restricted. Check sharing permissions and the save location. Your current edits are kept.",
+  "자동 배치": "Auto arrange",
+  "가지 크기에 맞춰 전체 맵을 균형 있게 자동 배치": "Balance and arrange the whole map by branch size",
+  "전체 맵 자동 배치": "Auto arrange entire map"
 }

@@ -9,7 +9,9 @@ import {
 } from '../domain/commands';
 import type { MindMap, MindNode } from '../domain/model';
 import { resizeNode } from '../domain/node-size';
-import { setNodePositions, resetNodePositions } from '../domain/positions';
+import { setNodePositions } from '../domain/positions';
+import { autoArrange } from '../engine/auto-arrange';
+import { measureNodeText } from '../components/text-measure';
 import { commit, createHistory, undo, redo } from '../application/history';
 import { filenameFromTitle } from '../application/document-name';
 import { serializeMup } from '../adapters/mup/codec';
@@ -313,7 +315,7 @@ export function App() {
           edit((current) => resizeNode(current, id, width, positions))
         }
         onReposition={(positions) => edit((current) => setNodePositions(current, positions))}
-        onAutoLayout={() => edit((current) => resetNodePositions(current))}
+        onAutoLayout={() => edit((current) => autoArrange(current, measureNodeText))}
         onUndo={() => setHistory(undo)}
         onRedo={() => setHistory(redo)}
         canUndo={history.past.length > 0}
