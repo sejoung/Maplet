@@ -80,7 +80,10 @@ async function rename(page: Page, title: string) {
 
 async function chooseNativeDestination(page: Page) {
   await page.getByRole('button', { name: 'Google Drive 연결됨', exact: true }).click();
-  await page.getByRole('button', { name: 'Drive에 저장', exact: true }).click();
+  await page
+    .getByRole('dialog', { name: 'Google Drive', exact: true })
+    .getByRole('button', { name: 'Drive에 저장', exact: true })
+    .click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
 }
 
@@ -174,7 +177,10 @@ test('pauses automatic saving on conflict and resumes after an explicit successf
   await expect(page.getByLabel('저장하지 않은 변경', { exact: true })).toBeVisible();
   state.conflict = false;
   await page.getByRole('button', { name: 'Google Drive 연결됨', exact: true }).click();
-  await page.getByRole('button', { name: 'Drive에 저장', exact: true }).click();
+  await page
+    .getByRole('dialog', { name: 'Google Drive', exact: true })
+    .getByRole('button', { name: 'Drive에 저장', exact: true })
+    .click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await rename(page, '자동 저장 재개');
   await page.clock.runFor(1600);

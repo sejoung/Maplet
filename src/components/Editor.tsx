@@ -21,6 +21,7 @@ import {
   X,
 } from 'lucide-react';
 import { EditorHeader } from './EditorHeader';
+import type { DriveSyncStatus } from '../application/drive-sync';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { SettingsDialog } from './SettingsDialog';
 import { ToolbarMenu } from './ToolbarMenu';
@@ -43,6 +44,9 @@ export interface EditorProps
   onNew(): void;
   onOpen(file: File): void;
   onSave(): void;
+  onDownload(): void;
+  saveToDrive: boolean;
+  driveSync: DriveSyncStatus | null;
   onExportMup(): void;
   onBackup(): void;
   onHelp(): void;
@@ -62,6 +66,7 @@ export function Editor(props: EditorProps) {
   const [tool, setTool] = useState<NodeTool | null>(null);
   const [dragging, setDragging] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [editingText, setEditingText] = useState(false);
   const closeSettings = useCallback(() => setSettingsOpen(false), []);
   const closeTool = useCallback(() => setTool(null), []);
   const command = (action: () => void) => () => {
@@ -78,6 +83,13 @@ export function Editor(props: EditorProps) {
   return (
     <div
       className="editor-shell"
+      onFocusCapture={(event) =>
+        setEditingText(event.target.matches('[data-inline-editor],[data-filename-editor]'))
+      }
+      onBlurCapture={(event) => {
+        if (event.target.matches('[data-inline-editor],[data-filename-editor]'))
+          setEditingText(false);
+      }}
       onDragOver={(event) => {
         if (event.dataTransfer.types.includes('Files')) {
           event.preventDefault();
@@ -100,6 +112,7 @@ export function Editor(props: EditorProps) {
       </a>
       <EditorHeader
         {...props}
+        editingText={editingText || Boolean(props.editingId)}
         original={map.original}
         command={command}
         onSettings={() => setSettingsOpen(true)}
@@ -311,7 +324,11 @@ export function Editor(props: EditorProps) {
         <Canvas {...props} controlsRef={controls} onZoomChange={setZoom} />
       </main>
       <footer className="status-bar">
-        <div className="save-status" role="status">
+        <div
+          className="save-status"
+          role="status"
+          aria-live={props.driveSaveStatus ? 'off' : 'polite'}
+        >
           <span className={`status-dot ${props.dirty ? 'pending' : ''}`} />
           <span>{props.dirty ? t('저장하지 않은 변경') : t('파일 변경 없음')}</span>
           <span className="status-separator">·</span>

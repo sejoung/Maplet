@@ -246,16 +246,11 @@ export function useDrive({
     }
   };
   const saveDrive = async (mode: 'normal' | 'copy' | 'overwrite' = 'normal', automatic = false) => {
-    if (
-      !google ||
-      !drive ||
-      !saveFolder ||
-      pending ||
-      busy ||
-      inFlight.current ||
-      (!automatic && !driveReady)
-    )
+    if (!google || !drive || !saveFolder || pending || busy || inFlight.current) return;
+    if (!automatic && !driveReady && (mode === 'copy' || !google.getToken())) {
+      showDrive();
       return;
+    }
     const target = driveSaveTarget(filename, driveFile, mode === 'copy', t('사본'));
     if (automatic && (autoPaused || !driveDirty)) return;
     const operation = generation.current;

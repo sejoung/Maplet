@@ -1,0 +1,41 @@
+.drive-control {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  flex-shrink: 0;
+  gap: 2px;
+}
+.drive-control.has-status .drive-button {
+  min-height: 27px;
+  padding: 3px 10px;
+}
+.drive-sync-state {
+  text-align: center;
+  font-size: 10px;
+  line-height: 12px;
+  color: #5d6864;
+  white-space: nowrap;
+}
+.drive-sync-state.synced {
+  color: #236b58;
+}
+.drive-sync-state.pending {
+  color: #886523;
+}
+.drive-sync-state.error,
+.drive-sync-state.reconnect {
+  color: #97333b;
+}
+.sync-spinner {
+  animation: drive-spin 1s linear infinite;
+}
+@keyframes drive-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sync-spinner {
+    animation: none;
+  }
+}

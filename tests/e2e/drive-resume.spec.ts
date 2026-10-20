@@ -216,7 +216,11 @@ test('keeps autosave paused if the remembered folder is unavailable', async ({ p
   await expect(page.locator('.save-status')).toContainText('Drive 다시 연결 필요');
   await page.getByRole('button', { name: 'Google Drive 연결됨', exact: true }).click();
   await expect(page.getByRole('alert')).toContainText('404');
-  await expect(page.getByRole('button', { name: 'Drive에 저장', exact: true })).toBeDisabled();
+  await expect(
+    page
+      .getByRole('dialog', { name: 'Google Drive', exact: true })
+      .getByRole('button', { name: 'Drive에 저장', exact: true }),
+  ).toBeDisabled();
   await page.clock.runFor(4000);
   expect(state.updates).toHaveLength(0);
   expect(state.creates).toHaveLength(0);

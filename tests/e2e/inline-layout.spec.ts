@@ -51,6 +51,13 @@ test('keeps the same node and text area before, during and after editing across 
         const node = page.locator(`[data-node-id="${i % 2 ? 'child' : 'root'}"]`);
         await node.focus();
         await expect(node).toHaveAttribute('aria-selected', 'true');
+        // Let the imported document's initial viewport fit finish before measuring editing changes.
+        await page.evaluate(
+          () =>
+            new Promise<void>((resolve) =>
+              requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+            ),
+        );
         const before = await geometry(node);
         await node.press('F2');
         const input = page.getByRole('textbox', { name: '노드 제목' });

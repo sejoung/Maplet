@@ -48,6 +48,8 @@ npm run dev
 
 Open [http://127.0.0.1:5173](http://127.0.0.1:5173). Start from the central topic or open a file through **파일 → 열기** (File → Open). Double-click a node to edit it, drag it to move its branch, and use **.maplet 저장** to download the document. Use **파일 → .mup 내보내기** for a MindMup-compatible copy.
 
+When Drive is connected, the primary Save button and Ctrl/Cmd+S save to Drive. Use **File → Download .maplet** for a local copy. The header shows editing, pending, saving, synced, error and reconnect states beneath the Drive button.
+
 Click the filename in the header to rename it. Press Enter or click outside to apply; Escape cancels. Downloads and Drive saves use the new name while node titles stay unchanged. Filename-only edits can also be recovered from the browser draft.
 
 If you start writing before choosing a filename, the first committed root title supplies it. Later root edits keep that filename. Explicitly chosen names and opened filenames are preserved.
@@ -67,7 +69,7 @@ The interface supports Korean and English, initially following your browser lang
 | `Delete` / `Backspace`       | Delete a node and its descendants |
 | `Ctrl` / `⌘` + `Z`           | Undo                              |
 | `Ctrl` / `⌘` + `Shift` + `Z` | Redo                              |
-| `Ctrl` / `⌘` + `S`           | Download the map                  |
+| `Ctrl` / `⌘` + `S`           | Save to Drive / download locally  |
 | `Space` + drag               | Pan the canvas                    |
 | `Ctrl` + wheel / pinch       | Zoom                              |
 

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   createMap,
   addNode,
@@ -26,6 +26,8 @@ import { useI18n } from '../i18n/react';
 import { NewMapDialog } from '../components/NewMapDialog';
 import { DriveDialogs } from './DriveDialogs';
 import { useDraftPersistence } from './useDraftPersistence';
+import { usePrimarySave } from './usePrimarySave';
+import { useEditorShortcuts } from './useEditorShortcuts';
 
 const drafts = new DraftStore();
 
@@ -92,43 +94,6 @@ export function App() {
       report(reason);
     }
   }, [content, filename]);
-
-  const latestSave = useRef(save);
-  useLayoutEffect(() => {
-    latestSave.current = save;
-  }, [save]);
-
-  useEffect(() => {
-    const shortcut = (event: KeyboardEvent) => {
-      if (event.isComposing) return;
-      const input = (event.target as HTMLElement).closest(
-        'input,textarea,select,[contenteditable=true]',
-      );
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
-        event.preventDefault();
-        if ((event.target as HTMLElement).matches('[data-inline-editor],[data-filename-editor]')) {
-          (event.target as HTMLElement).blur();
-          requestAnimationFrame(() => {
-            if (!document.querySelector('[data-inline-editor],[data-filename-editor]'))
-              latestSave.current();
-          });
-        } else save();
-      }
-      if (!input && (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
-        event.preventDefault();
-        setHistory((current) => (event.shiftKey ? redo(current) : undo(current)));
-        hasWork.current = true;
-      }
-      if (!input && (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'y') {
-        event.preventDefault();
-        setHistory(redo);
-        hasWork.current = true;
-      }
-      if (!input && event.key === '?') setDialog('help');
-    };
-    window.addEventListener('keydown', shortcut);
-    return () => window.removeEventListener('keydown', shortcut);
-  }, [save]);
 
   const edit = (action: (current: MindMap) => MindMap) => {
     try {
@@ -255,6 +220,19 @@ export function App() {
     replace,
     setNotice,
   });
+  const primary = usePrimarySave(driveState, save, documentKey);
+  const saveCurrent = useEditorShortcuts({
+    save: primary.save,
+    undo: () => {
+      setHistory(undo);
+      hasWork.current = true;
+    },
+    redo: () => {
+      setHistory(redo);
+      hasWork.current = true;
+    },
+    help: () => setDialog('help'),
+  });
   useDraftPersistence(
     drafts,
     {
@@ -328,7 +306,10 @@ export function App() {
           setDialog('new');
         }}
         onOpen={(file) => void open(file)}
-        onSave={save}
+        onSave={saveCurrent}
+        onDownload={save}
+        saveToDrive={primary.saveToDrive}
+        driveSync={primary.sync}
         onExportMup={() => {
           try {
             downloadFile(serializeMup(map), mupFilename(filename));
@@ -383,7 +364,9 @@ export function App() {
           }}
         />
       )}
-      {dialog === 'help' && <ShortcutHelpDialog onClose={closeDialog} />}
+      {dialog === 'help' && (
+        <ShortcutHelpDialog onClose={closeDialog} saveToDrive={primary.saveToDrive} />
+      )}
       <DriveDialogs controller={driveState} save={save} />
     </>
   );

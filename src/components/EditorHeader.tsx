@@ -1,8 +1,10 @@
 import { useI18n } from '../i18n/react';
 import { useRef } from 'react';
-import { ArrowDownToLine, Check, Cloud, FilePlus2, FolderOpen, Settings } from 'lucide-react';
+import { ArrowDownToLine, CloudUpload, FilePlus2, FolderOpen, Settings } from 'lucide-react';
 import { ToolbarMenu } from './ToolbarMenu';
 import { DocumentName } from './DocumentName';
+import { DriveConnectionButton } from './DriveConnectionButton';
+import type { DriveSyncStatus } from '../application/drive-sync';
 
 interface HeaderProps {
   filename: string;
@@ -12,9 +14,13 @@ interface HeaderProps {
   original: string | null;
   driveConnected: boolean;
   driveBusy: boolean;
+  driveSync: DriveSyncStatus | null;
+  saveToDrive: boolean;
+  editingText: boolean;
   onNew(): void;
   onOpen(file: File): void;
   onSave(): void;
+  onDownload(): void;
   onExportMup(): void;
   onBackup(): void;
   onDrive(): void;
@@ -25,7 +31,7 @@ export function EditorHeader(props: HeaderProps) {
   const { t } = useI18n();
   const input = useRef<HTMLInputElement>(null);
   const { command } = props;
-  const driveLabel = t(props.driveConnected ? 'Google Drive 연결됨' : 'Google Drive 연결');
+  const saveLabel = t(props.saveToDrive ? 'Drive에 저장' : '.maplet 저장');
   return (
     <header className="app-header">
       <h1 className="visually-hidden">{t('Maplet 마인드맵 편집기')}</h1>
@@ -42,9 +48,9 @@ export function EditorHeader(props: HeaderProps) {
           <FolderOpen size={17} />
           {t('열기')}
         </button>
-        <button onClick={command(props.onSave)}>
+        <button onClick={command(props.onDownload)}>
           <ArrowDownToLine size={17} />
-          {t('.maplet 저장')}
+          {t('.maplet 다운로드')}
         </button>
         <button onClick={command(props.onExportMup)}>
           <ArrowDownToLine size={17} />
@@ -70,28 +76,22 @@ export function EditorHeader(props: HeaderProps) {
         )}
       </div>
       <div className="header-actions">
-        <button
-          className={`button drive-button${props.driveConnected ? ' connected' : ''}`}
-          aria-haspopup="dialog"
-          aria-label={driveLabel}
-          title={driveLabel}
-          disabled={props.driveBusy}
+        <DriveConnectionButton
+          connected={props.driveConnected}
+          busy={props.driveBusy}
+          sync={props.driveSync}
+          editing={props.editingText}
           onClick={command(props.onDrive)}
-        >
-          {props.driveConnected ? <Check size={16} /> : <Cloud size={16} />}
-          <span className="drive-label-full">{driveLabel}</span>
-          <span className="drive-label-short" aria-hidden="true">
-            Google Drive
-          </span>
-        </button>
+        />
         <button
           className="button primary save-button"
-          aria-label={t('.maplet 저장')}
-          title={t('.maplet 저장')}
+          aria-label={saveLabel}
+          title={`${saveLabel} (Ctrl/Cmd+S)`}
+          disabled={props.saveToDrive && props.driveBusy}
           onClick={props.onSave}
         >
-          <ArrowDownToLine size={16} />
-          <span>{t('.maplet 저장')}</span>
+          {props.saveToDrive ? <CloudUpload size={16} /> : <ArrowDownToLine size={16} />}
+          <span>{saveLabel}</span>
         </button>
         <button
           className="button settings-button"

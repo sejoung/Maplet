@@ -74,12 +74,18 @@ test('selects a destination folder before saving and does not write when selecti
   await page.getByRole('button', { name: '저장 위치 선택', exact: true }).click();
   await page.getByRole('button', { name: '테스트 폴더 선택' }).click();
   expect(created).toHaveLength(0);
-  await page.getByRole('button', { name: 'Drive에 저장', exact: true }).click();
+  await page
+    .getByRole('dialog', { name: 'Google Drive', exact: true })
+    .getByRole('button', { name: 'Drive에 저장', exact: true })
+    .click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   expect(created).toMatchObject([{ name: '제목 없음.maplet', parents: ['chosen-folder'] }]);
   await expect(page.getByRole('treeitem', { name: '중심 주제', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Google Drive 연결됨', exact: true }).click();
-  await page.getByRole('button', { name: 'Drive에 저장', exact: true }).click();
+  await page
+    .getByRole('dialog', { name: 'Google Drive', exact: true })
+    .getByRole('button', { name: 'Drive에 저장', exact: true })
+    .click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   expect(updates).toHaveLength(1);
   expect(created).toHaveLength(1);

@@ -1,7 +1,13 @@
 import { useI18n } from '../i18n/react';
 import { Dialog } from './Dialog';
 
-export function ShortcutHelpDialog({ onClose }: { onClose(): void }) {
+export function ShortcutHelpDialog({
+  onClose,
+  saveToDrive = false,
+}: {
+  onClose(): void;
+  saveToDrive?: boolean;
+}) {
   const { t } = useI18n();
   return (
     <Dialog title={t('단축키')} onClose={onClose}>
@@ -15,7 +21,7 @@ export function ShortcutHelpDialog({ onClose }: { onClose(): void }) {
           ['Delete / ⌫', '노드와 하위 노드 삭제'],
           ['⌘ / Ctrl + Z', '실행 취소'],
           ['⌘ / Ctrl + Shift + Z', '다시 실행'],
-          ['⌘ / Ctrl + S', '.maplet 파일 다운로드'],
+          ['⌘ / Ctrl + S', saveToDrive ? 'Drive에 저장' : '.maplet 파일 다운로드'],
           ['Space + 드래그', '캔버스 이동'],
           ['Ctrl + 휠 / 핀치', '확대·축소'],
           ['모서리 드래그', '노드 크기 조절'],
