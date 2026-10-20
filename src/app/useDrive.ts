@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import type { MindMap } from '../domain/model';
 import { parseDocument, nativeFilename, driveSaveTarget } from '../adapters/documents';
 import { serializeMaplet } from '../adapters/maplet/codec';
@@ -8,11 +8,15 @@ import { useI18n } from '../i18n/react';
 import { useDriveWorkspace } from './useDriveWorkspace';
 import { restoreDriveWorkspace } from './restoreDriveWorkspace';
 import { saveDriveDocument } from './saveDriveDocument';
+import { useDriveAutosave } from './useDriveAutosave';
+import { useDriveStartup } from './useDriveStartup';
 
 interface DriveOptions {
   content: string;
   filename: string;
   documentKey: number;
+  restorationReady?: boolean;
+  hasLocalWork?: boolean;
   markSaved(content: string, filename?: string): void;
   allowReplace(): boolean;
   replace(next: MindMap, name: string): void;
@@ -32,6 +36,8 @@ export function useDrive({
   content,
   filename,
   documentKey,
+  restorationReady = false,
+  hasLocalWork = false,
   markSaved,
   allowReplace,
   replace,
@@ -40,7 +46,7 @@ export function useDrive({
   const { language, t } = useI18n();
   const [dialog, setDialog] = useState<'drive' | 'conflict' | null>(null);
   const [driveReady, setDriveReady] = useState(false);
-  const [connected, setConnected] = useState(false);
+  const [connected, setConnected] = useState(() => Boolean(google?.getToken()));
   const {
     saveFolder,
     setSaveFolder,
@@ -62,15 +68,16 @@ export function useDrive({
   const generation = useRef(0);
   const inFlight = useRef(false);
   const latestDocument = useRef(documentKey);
+  const latestWork = useRef({ content, filename, hasLocalWork });
   useLayoutEffect(() => {
     latestDocument.current = documentKey;
-  }, [documentKey]);
+    latestWork.current = { content, filename, hasLocalWork };
+  }, [documentKey, content, filename, hasLocalWork]);
   const showDrive = () => {
     if (busy) return;
     setDialog('drive');
     if (google && !driveReady) {
       setBusy(true);
-      setDriveError(null);
       google
         .prepare()
         .then(() => setDriveReady(true))
@@ -88,24 +95,33 @@ export function useDrive({
     setConnected(true);
   };
   const fail = (reason: unknown, showDialog = true) => {
+    if (reason instanceof DriveAuthError) google?.clearToken();
     if (reason instanceof DriveAuthError || !google?.getToken()) setConnected(false);
     setDriveError(reason instanceof Error ? reason.message : 'Drive 작업을 완료하지 못했습니다.');
     if (showDialog) setDialog('drive');
   };
-  const resumeDrive = async () => {
+  const resumeDrive = async (automatic = false) => {
     const workspace = pending?.workspace ?? draftWorkspace;
-    if (!google || !drive || !workspace || busy || inFlight.current || !driveReady) return;
+    if (!google || !drive || !workspace || busy || inFlight.current || (!automatic && !driveReady))
+      return;
     const keepLocal = pending?.keepLocal ?? true;
-    if (!keepLocal && (workspace.file || workspace.source) && !allowReplace()) return;
+    if (automatic && (!google.getToken() || (!keepLocal && hasLocalWork))) return;
+    if (!automatic && !keepLocal && (workspace.file || workspace.source) && !allowReplace()) return;
     const operation = generation.current,
       savedDocument = documentKey;
     const current = () =>
-      operation === generation.current && savedDocument === latestDocument.current;
+      operation === generation.current &&
+      savedDocument === latestDocument.current &&
+      (!automatic ||
+        keepLocal ||
+        (!latestWork.current.hasLocalWork &&
+          latestWork.current.content === content &&
+          latestWork.current.filename === filename));
     inFlight.current = true;
     setBusy(true);
     setDriveError(null);
     try {
-      await authorize();
+      if (!automatic) await authorize();
       if (!current()) return;
       const restored = await restoreDriveWorkspace(drive, workspace, keepLocal, content);
       if (!current()) return;
@@ -137,12 +153,18 @@ export function useDrive({
         setPending(null);
         setDialog('conflict');
         setDriveStatus('충돌 · 로컬 초안 유지');
-      } else fail(reason);
+      } else fail(reason, !automatic);
     } finally {
       inFlight.current = false;
       setBusy(false);
     }
   };
+  useDriveStartup(
+    Boolean(
+      restorationReady && pending && connected && !busy && (pending.keepLocal || !hasLocalWork),
+    ),
+    () => resumeDrive(true),
+  );
   const chooseSaveFolder = async () => {
     if (!google || busy || inFlight.current || !driveReady) return;
     const operation = generation.current;
@@ -224,7 +246,15 @@ export function useDrive({
     }
   };
   const saveDrive = async (mode: 'normal' | 'copy' | 'overwrite' = 'normal', automatic = false) => {
-    if (!google || !drive || !saveFolder || pending || busy || inFlight.current || !driveReady)
+    if (
+      !google ||
+      !drive ||
+      !saveFolder ||
+      pending ||
+      busy ||
+      inFlight.current ||
+      (!automatic && !driveReady)
+    )
       return;
     const target = driveSaveTarget(filename, driveFile, mode === 'copy', t('사본'));
     if (automatic && (autoPaused || !driveDirty)) return;
@@ -293,45 +323,21 @@ export function useDrive({
       setBusy(false);
     }
   };
-  const autoSave = useRef(() => {});
-  useLayoutEffect(() => {
-    autoSave.current = () => {
+  useDriveAutosave(
+    Boolean(connected && !pending && !busy && !dialog && !autoPaused && saveFolder && driveDirty),
+    () => {
       void saveDrive('normal', true);
-    };
-  });
-  useEffect(() => {
-    if (
-      !connected ||
-      pending ||
-      !driveReady ||
-      busy ||
-      dialog ||
-      autoPaused ||
-      !saveFolder ||
-      !driveDirty
-    )
-      return;
-    const timer = window.setTimeout(() => autoSave.current(), 1500);
-    return () => window.clearTimeout(timer);
-  }, [
-    connected,
-    pending,
-    driveReady,
-    busy,
-    dialog,
-    autoPaused,
-    driveFile,
-    saveFolder,
+    },
     content,
     filename,
-    driveDirty,
-    driveSavedContent,
     documentKey,
-  ]);
+  );
   const autoSaveStatus = !saveFolder
     ? null
     : pending
-      ? 'Drive 다시 연결 필요'
+      ? busy
+        ? 'Drive 연결 복원 중…'
+        : 'Drive 다시 연결 필요'
       : autoPaused || !connected
         ? 'Drive 자동 저장 중지'
         : busy
@@ -364,7 +370,6 @@ export function useDrive({
     dialog,
     closeDialog,
     configured: Boolean(google),
-    content,
     filename,
     busy,
     driveReady,
@@ -376,7 +381,6 @@ export function useDrive({
     awaitingRestore: Boolean(pending),
     draftWorkspace,
     restoreDraftWorkspace,
-    driveSavedContent,
     driveDirty,
     driveStatus,
     autoSaveStatus,

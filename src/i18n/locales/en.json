@@ -2,6 +2,7 @@
   "언어": "Language",
   "다시 연결": "Reconnect",
   "Drive 다시 연결 필요": "Reconnect to Drive",
+  "Drive 연결 복원 중…": "Restoring Drive connection…",
   "이전 저장 위치를 기억하고 있습니다. 다시 연결하면 이어서 작업할 수 있습니다.": "Your previous save location is remembered. Reconnect to continue working.",
   "저장 위치와 파일을 다시 연결했습니다.": "Reconnected to your save location and file.",
   "저장 폴더를 사용할 수 없습니다. 다른 폴더를 선택해 주세요.": "The save folder is unavailable. Please choose another folder.",

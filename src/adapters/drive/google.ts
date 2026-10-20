@@ -1,4 +1,5 @@
 import { translate, type Language } from '../../i18n/core';
+import { clearDriveSession, readDriveSession, writeDriveSession } from './session';
 
 export interface GoogleConfig {
   clientId: string;
@@ -109,8 +110,21 @@ function script(src: string): Promise<void> {
 export class GoogleConnection {
   private token: string | null = null;
   private expiresAt = 0;
-  constructor(readonly config: GoogleConfig) {}
-  getToken = (): string | null => (Date.now() < this.expiresAt ? this.token : null);
+  constructor(readonly config: GoogleConfig) {
+    const session = readDriveSession(config.clientId);
+    this.token = session?.token ?? null;
+    this.expiresAt = session?.expiresAt ?? 0;
+  }
+  getToken = (): string | null => {
+    if (Date.now() < this.expiresAt) return this.token;
+    clearDriveSession(this.config.clientId);
+    return null;
+  };
+  clearToken(): void {
+    this.token = null;
+    this.expiresAt = 0;
+    clearDriveSession(this.config.clientId);
+  }
 
   async prepare(): Promise<void> {
     await Promise.all([
@@ -140,6 +154,7 @@ export class GoogleConnection {
           }
           this.token = result.access_token;
           this.expiresAt = Date.now() + Math.max(0, (result.expires_in ?? 3600) - 30) * 1000;
+          writeDriveSession(this.config.clientId, { token: this.token, expiresAt: this.expiresAt });
           resolve();
         },
         error_callback: () => reject(new Error('Google 로그인 창이 닫혔거나 차단되었습니다.')),
@@ -183,7 +198,6 @@ export class GoogleConnection {
 
   disconnect(): void {
     if (this.token) window.google?.accounts.oauth2.revoke(this.token, () => {});
-    this.token = null;
-    this.expiresAt = 0;
+    this.clearToken();
   }
 }

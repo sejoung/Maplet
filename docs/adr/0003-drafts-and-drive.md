@@ -53,3 +53,11 @@ ETag가 없으면 자동 갱신을 거절하던 결정을 대체한다. Drive v3
 
 - [Drive v2/v3 비교: Files.etag 제거](https://developers.google.com/workspace/drive/api/guides/v2-to-v3-reference)
 - [Drive v3 File.version](https://developers.google.com/workspace/drive/api/reference/rest/v3/files)
+
+## 후속 결정: 같은 탭 새로고침 시 유효한 인증 자동 복원 (2026-10-20)
+
+토큰을 메모리에만 유지하여 매번 수동 재연결하던 결정을 대체한다. Google 클라이언트별 sessionStorage에 짧은 수명의 액세스 토큰과 절대 만료 시각만 보관한다. localStorage·IndexedDB에는 토큰을 넣지 않으며 만료 시각을 연장하거나 refresh token·클라이언트 비밀키를 저장하지 않는다. 저장소가 차단되면 현재 메모리 연결과 수동 재연결을 유지한다. 만료·인증 거절 시 임시 인증을 삭제하고, 연결 해제는 인증과 저장 위치를 모두 지운다.
+
+유효한 인증과 기억한 작업 위치가 있으면 SDK·OAuth 창 없이 REST로 폴더·파일을 한 번 자동 복원한다. 미저장 초안의 복구·삭제 선택을 먼저 기다리고 복원 중 시작한 로컬 편집은 유지한다. 복원 후 확정 편집은 기존 대상으로 자동 저장하며, 폴더만 기억한 경우 복원 자체는 파일을 생성하지 않는다. 실패를 자동 재시도하거나 Google 인증 창을 자동으로 열지 않는다. 만료된 인증은 Google token model에 따라 사용자 클릭으로 재발급한다.
+
+- [Google token model과 만료 처리](https://developers.google.com/identity/oauth2/web/guides/use-token-model)

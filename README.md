@@ -31,7 +31,7 @@ Create `.maplet` documents or import `.mup` files, arrange your ideas, and downl
 - **Move whole branches:** drag a parent and all its descendants together, preserving their relative positions. Connections follow as you move. Group regions are highlighted while dragging; branches move aside in real time when these regions overlap, including their empty interiors, keeping a 24px gap between groups' nodes. Your branch follows the pointer. Release to keep the visible arrangement, or press Escape to restore the original positions.
 - **Navigate your map:** search, collapse branches, zoom, pan, fit to screen, or restore automatic layout.
 - **Undo and recovery:** undo or redo a whole drag in one step; recover browser drafts from IndexedDB and keep manual positions when reopening files.
-- **Optional Google Drive:** choose a save folder first to autosave later changes. The folder and file are remembered across reloads; use Reconnect to continue. Files opened from other folders are saved as copies in the selected folder. Imported .mup originals are preserved; version conflicts pause autosave for explicit resolution.
+- **Optional Google Drive:** choose a save folder first to autosave later changes. Valid authentication, the folder and the file are restored automatically on same-tab reloads; use Reconnect when authorization expires. Files opened from other folders are saved as copies in the selected folder. Imported .mup originals are preserved; version conflicts pause autosave for explicit resolution.
 
 The current app interface is in Korean. Both README versions describe the same features and commands.
 

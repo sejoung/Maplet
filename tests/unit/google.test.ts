@@ -18,6 +18,7 @@ function sdk(
   return { initTokenClient, revoke };
 }
 afterEach(() => {
+  sessionStorage.clear();
   delete window.google;
   delete window.gapi;
   document.querySelectorAll('script[src^="https://"]').forEach((script) => script.remove());
@@ -26,10 +27,9 @@ afterEach(() => {
 });
 
 describe('optional Google SDK bridge', () => {
-  it('requests only drive.file, expires tokens in memory, and disconnects', async () => {
+  it('requests only drive.file, keeps the token in the tab session, expires it, and disconnects', async () => {
     vi.useFakeTimers();
     const { initTokenClient, revoke } = sdk();
-    const writeStorage = vi.spyOn(Storage.prototype, 'setItem');
     const connection = new GoogleConnection(config);
     expect(connection.getToken()).toBeNull();
     await connection.connect();
@@ -48,7 +48,8 @@ describe('optional Google SDK bridge', () => {
     expect(connection.getToken()).toBeNull();
     connection.disconnect();
     expect(revoke).toHaveBeenCalledOnce();
-    expect(writeStorage).not.toHaveBeenCalled();
+    expect(JSON.stringify(localStorage)).not.toContain('memory-only');
+    expect(sessionStorage.getItem('maplet:drive-session:public-client')).toBeNull();
   });
   it('reports not-ready SDK, consent denial, missing token and popup cancellation', async () => {
     await expect(new GoogleConnection(config).connect()).rejects.toThrow(/준비/);

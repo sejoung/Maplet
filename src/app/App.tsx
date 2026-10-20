@@ -244,6 +244,8 @@ export function App() {
     content,
     filename,
     documentKey,
+    restorationReady: recoveryReady && !recovery,
+    hasLocalWork: hasWork.current,
     markSaved: (saved, name = filename) => {
       setSavedContent(saved);
       setSavedFilename(name);

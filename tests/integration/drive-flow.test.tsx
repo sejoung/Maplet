@@ -10,6 +10,7 @@ const bridge = vi.hoisted(() => ({
   pick: vi.fn(),
   getToken: vi.fn(),
   disconnect: vi.fn(),
+  clearToken: vi.fn(),
 }));
 const api = vi.hoisted(() => ({ open: vi.fn(), save: vi.fn(), create: vi.fn() }));
 vi.mock('../../src/adapters/drive/google', () => ({
@@ -19,6 +20,7 @@ vi.mock('../../src/adapters/drive/google', () => ({
     pick = bridge.pick;
     getToken = bridge.getToken;
     disconnect = bridge.disconnect;
+    clearToken = bridge.clearToken;
   },
 }));
 vi.mock('../../src/adapters/drive/client', async (importOriginal) => ({
