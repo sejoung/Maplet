@@ -33,13 +33,14 @@ const source = JSON.stringify({
   ),
 });
 async function open(page: Page) {
-  await page.goto('/');
   await page.locator('input[type=file]').setInputFiles({
     name: 'untidy.mup',
     mimeType: 'application/json',
     buffer: Buffer.from(source),
   });
   await expect(page.getByRole('treeitem')).toHaveCount(13);
+  await expect(page.locator('[data-node-id=root]')).toHaveCSS('left', '800px');
+  await expect(page.locator('[data-node-id=root]')).toHaveCSS('top', '-200px');
 }
 async function boxes(page: Page) {
   return page.getByRole('treeitem').evaluateAll((elements) =>
@@ -68,9 +69,11 @@ function expectClear(nodes: Awaited<ReturnType<typeof boxes>>) {
     }
 }
 
-test('arranges the whole map by branch size, fits it on screen, and restores the entire arrangement with one undo', async ({
+test('arranges, restores history and drafts, reopens native files and keeps the toolbar usable across sizes and languages', async ({
   page,
 }) => {
+  await page.clock.install();
+  await page.goto('/');
   await open(page);
   const before = await boxes(page);
   const rootElement = page.getByRole('treeitem', { name: '읽기 좋은 전체 배치', exact: true });
@@ -78,110 +81,118 @@ test('arranges the whole map by branch size, fits it on screen, and restores the
   const beforeView = (await rootElement.boundingBox())!;
   const arrange = page.getByRole('button', { name: '전체 맵 자동 배치', exact: true });
   await expect(arrange).toBeVisible();
-  await arrange.click();
+  await test.step('arrange and fit all branches', async () => {
+    await arrange.click();
+    await expect
+      .poll(() =>
+        page.getByRole('application').evaluate((canvas) => {
+          const bounds = canvas.getBoundingClientRect();
+          return [...canvas.querySelectorAll('[role=treeitem]')].every((element) => {
+            const node = element.getBoundingClientRect();
+            return (
+              node.x >= bounds.x &&
+              node.y >= bounds.y &&
+              node.right <= bounds.right &&
+              node.bottom <= bounds.bottom
+            );
+          });
+        }),
+      )
+      .toBe(true);
+  });
   const after = await boxes(page);
   expectClear(after);
   const root = after.find((node) => node.id === 'root')!;
   expect(after.find((node) => node.id === 'branch-0')!.x).toBeGreaterThan(root.x + root.width);
   for (let i = 1; i < 6; i++)
     expect(after.find((node) => node.id === `branch-${i}`)!.x).toBeLessThan(root.x);
-  await expect
-    .poll(async () => {
-      const bounds = (await page.getByRole('application').boundingBox())!;
-      const nodes = await page.getByRole('treeitem').evaluateAll((elements) =>
-        elements.map((el) => {
-          const r = el.getBoundingClientRect();
-          return { x: r.x, y: r.y, right: r.right, bottom: r.bottom };
-        }),
-      );
-      return nodes.every(
-        (node) =>
-          node.x >= bounds.x &&
-          node.y >= bounds.y &&
-          node.right <= bounds.x + bounds.width &&
-          node.bottom <= bounds.y + bounds.height,
-      );
-    })
-    .toBe(true);
   await page.screenshot({ path: test.info().outputPath('balanced-layout.png') });
   const arrangedView = (await rootElement.boundingBox())!;
-  await page.getByRole('button', { name: '실행 취소', exact: true }).click();
-  expect(await boxes(page)).toEqual(before);
-  await expect
-    .poll(async () => Math.round((await rootElement.boundingBox())!.x - beforeView.x))
-    .toBe(0);
-  await expect
-    .poll(async () => Math.round((await rootElement.boundingBox())!.y - beforeView.y))
-    .toBe(0);
-  await expect(page.getByRole('button', { name: '실행 취소', exact: true })).toBeDisabled();
-  await page.getByRole('button', { name: '다시 실행', exact: true }).click();
-  expect(await boxes(page)).toEqual(after);
-  await expect
-    .poll(async () => Math.round((await rootElement.boundingBox())!.x - arrangedView.x))
-    .toBe(0);
-  await expect
-    .poll(async () => Math.round((await rootElement.boundingBox())!.y - arrangedView.y))
-    .toBe(0);
-  await arrange.click();
-  await page.getByRole('button', { name: '실행 취소', exact: true }).click();
-  expect(await boxes(page)).toEqual(before);
-});
-
-test('keeps automatic placement and branch directions in downloaded files and browser recovery', async ({
-  page,
-}) => {
-  await open(page);
-  await page.getByRole('button', { name: '전체 맵 자동 배치', exact: true }).click();
-  const arranged = await boxes(page);
-  await expect(page.getByText('브라우저에 초안 저장됨', { exact: true })).toBeVisible();
-  page.on('dialog', (dialog) => dialog.accept());
-  await page.reload();
-  await page.getByRole('button', { name: '초안 복구', exact: true }).click();
-  expect(await boxes(page)).toEqual(arranged);
-  const pending = page.waitForEvent('download');
-  await page.getByRole('button', { name: '.maplet 저장', exact: true }).click();
-  const path = (await (await pending).path())!;
-  const saved = JSON.parse(await readFile(path, 'utf8'));
-  expect(saved.nodes.root.notes).toBe('원래 메모');
-  expect(
-    Object.values(saved.nodes).every((node) => (node as { position: unknown }).position === null),
-  ).toBe(true);
-  await page.locator('input[type=file]').setInputFiles(path);
-  expect(await boxes(page)).toEqual(arranged);
-});
-
-test('commits an in-progress title before arranging and keeps the toolbar usable across screen sizes and languages', async ({
-  page,
-}) => {
-  await page.setViewportSize({ width: 320, height: 700 });
-  await open(page);
-  await page.getByRole('treeitem', { name: '읽기 좋은 전체 배치', exact: true }).press('F2');
-  await page.getByRole('textbox', { name: '노드 제목', exact: true }).fill('편집 중인 제목도 보존');
-  await page.getByRole('button', { name: '전체 맵 자동 배치', exact: true }).click();
-  await expect(
-    page.getByRole('treeitem', { name: '편집 중인 제목도 보존', exact: true }),
-  ).toBeVisible();
-  await expect(page.getByRole('textbox', { name: '노드 제목', exact: true })).toHaveCount(0);
-  expectClear(await boxes(page));
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
-    true,
-  );
-  for (const language of ['ko', 'en']) {
-    await page.getByRole('combobox', { name: /^(언어|Language)$/ }).selectOption(language);
-    for (const width of [320, 360, 390, 768, 901, 1024, 1280]) {
-      await page.setViewportSize({ width, height: 700 });
-      const clipped = await page
-        .getByRole('toolbar')
-        .getByRole('button')
-        .evaluateAll((elements) =>
-          elements
-            .filter((element) => {
-              const rect = element.getBoundingClientRect();
-              return rect.width && (rect.x < 0 || rect.right > window.innerWidth);
-            })
-            .map((element) => element.getAttribute('aria-label') ?? element.textContent),
-        );
-      expect(clipped, `${language}, ${width}px`).toEqual([]);
-    }
-  }
+  const undo = page.getByRole('button', { name: '실행 취소', exact: true });
+  const redo = page.getByRole('button', { name: '다시 실행', exact: true });
+  await test.step('restore document and viewport with one undo and redo', async () => {
+    await undo.click();
+    expect(await boxes(page)).toEqual(before);
+    await expect
+      .poll(async () => {
+        const rect = (await rootElement.boundingBox())!;
+        return [Math.round(rect.x - beforeView.x), Math.round(rect.y - beforeView.y)];
+      })
+      .toEqual([0, 0]);
+    await expect(undo).toBeDisabled();
+    await redo.click();
+    expect(await boxes(page)).toEqual(after);
+    await expect
+      .poll(async () => {
+        const rect = (await rootElement.boundingBox())!;
+        return [Math.round(rect.x - arrangedView.x), Math.round(rect.y - arrangedView.y)];
+      })
+      .toEqual([0, 0]);
+    await arrange.click();
+    await undo.click();
+    expect(await boxes(page)).toEqual(before);
+    await expect(undo).toBeDisabled();
+    await redo.click();
+    expect(await boxes(page)).toEqual(after);
+  });
+  await test.step('recover the arrangement from IndexedDB and reopen the native download', async () => {
+    await page.clock.fastForward(250);
+    await expect(page.getByText('브라우저에 초안 저장됨', { exact: true })).toBeVisible();
+    page.on('dialog', (dialog) => dialog.accept());
+    await page.reload();
+    await page.getByRole('button', { name: '초안 복구', exact: true }).click();
+    expect(await boxes(page)).toEqual(after);
+    const pending = page.waitForEvent('download');
+    await page.getByRole('button', { name: '.maplet 저장', exact: true }).click();
+    const path = (await (await pending).path())!;
+    const content = await readFile(path);
+    const saved = JSON.parse(content.toString('utf8'));
+    expect(saved.nodes.root.notes).toBe('원래 메모');
+    expect(
+      Object.values(saved.nodes).every((node) => (node as { position: unknown }).position === null),
+    ).toBe(true);
+    await page.locator('input[type=file]').setInputFiles({
+      name: 'arranged.maplet',
+      mimeType: 'application/json',
+      buffer: content,
+    });
+    await expect(page.getByRole('button', { name: /^파일 이름 변경:/ })).toHaveText('arranged');
+    expect(await boxes(page)).toEqual(after);
+  });
+  await test.step('commit an in-progress title and arrange an overlapping map at 320px', async () => {
+    await page.setViewportSize({ width: 320, height: 700 });
+    await open(page);
+    await rootElement.press('F2');
+    await page
+      .getByRole('textbox', { name: '노드 제목', exact: true })
+      .fill('편집 중인 제목도 보존');
+    await arrange.click();
+    await expect(
+      page.getByRole('treeitem', { name: '편집 중인 제목도 보존', exact: true }),
+    ).toBeVisible();
+    await expect(page.getByRole('textbox', { name: '노드 제목', exact: true })).toHaveCount(0);
+    expectClear(await boxes(page));
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+    ).toBe(true);
+  });
+  for (const language of ['ko', 'en'])
+    for (const width of [320, 360, 390, 768, 901, 1024, 1280])
+      await test.step(`toolbar: ${language}, ${width}px`, async () => {
+        if (width === 320)
+          await page.getByRole('combobox', { name: /^(언어|Language)$/ }).selectOption(language);
+        await page.setViewportSize({ width, height: 700 });
+        const clipped = await page
+          .getByRole('toolbar')
+          .getByRole('button')
+          .evaluateAll((elements) =>
+            elements
+              .filter((element) => {
+                const rect = element.getBoundingClientRect();
+                return rect.width && (rect.x < 0 || rect.right > window.innerWidth);
+              })
+              .map((element) => element.getAttribute('aria-label') ?? element.textContent),
+          );
+        expect(clipped).toEqual([]);
+      });
 });
