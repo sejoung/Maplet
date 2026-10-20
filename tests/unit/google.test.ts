@@ -34,6 +34,9 @@ describe('optional Google SDK bridge', () => {
     expect(connection.getToken()).toBeNull();
     await connection.connect();
     expect(connection.getToken()).toBe('memory-only');
+    expect(initTokenClient.mock.results[0].value.requestAccessToken).toHaveBeenCalledWith({
+      prompt: '',
+    });
     expect(initTokenClient.mock.calls[0][0].scope).toBe(
       'https://www.googleapis.com/auth/drive.file',
     );

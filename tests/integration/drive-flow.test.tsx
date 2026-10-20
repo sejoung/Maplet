@@ -154,6 +154,7 @@ describe('Drive autosave after choosing a native destination', () => {
 afterAll(() => vi.unstubAllEnvs());
 afterEach(() => vi.useRealTimers());
 beforeEach(() => {
+  localStorage.clear();
   vi.resetAllMocks();
   bridge.prepare.mockResolvedValue(undefined);
   bridge.getToken.mockReturnValue(null);

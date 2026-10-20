@@ -2,9 +2,12 @@ import { useI18n } from '../i18n/react';
 import { useRef } from 'react';
 import { ArrowDownToLine, Check, Cloud, FilePlus2, FolderOpen, Settings } from 'lucide-react';
 import { ToolbarMenu } from './ToolbarMenu';
+import { DocumentName } from './DocumentName';
 
 interface HeaderProps {
   filename: string;
+  documentKey: number;
+  onFilenameChange(name: string): void;
   dirty: boolean;
   original: string | null;
   driveConnected: boolean;
@@ -55,7 +58,11 @@ export function EditorHeader(props: HeaderProps) {
         )}
       </ToolbarMenu>
       <div className="document-name" title={props.filename}>
-        <span>{props.filename.replace(/\.(maplet|mup)$/i, '')}</span>
+        <DocumentName
+          key={props.documentKey}
+          filename={props.filename}
+          onChange={props.onFilenameChange}
+        />
         {props.dirty && (
           <span className="unsaved-marker" aria-label={t('저장하지 않은 변경')}>
             •

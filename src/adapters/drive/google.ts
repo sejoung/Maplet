@@ -144,7 +144,7 @@ export class GoogleConnection {
         },
         error_callback: () => reject(new Error('Google 로그인 창이 닫혔거나 차단되었습니다.')),
       });
-      client.requestAccessToken({ prompt: this.token ? '' : 'consent' });
+      client.requestAccessToken({ prompt: '' });
     });
   }
 

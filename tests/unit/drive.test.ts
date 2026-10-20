@@ -7,6 +7,50 @@ const response = (body: unknown, etag = '"v1"', status = 200) =>
     headers: { ETag: etag },
   });
 describe('Drive transport contracts', () => {
+  it('renames and updates the same file atomically with its version and ETag checks', async () => {
+    const fetcher = vi
+      .fn()
+      .mockResolvedValueOnce(response({ version: '1' }))
+      .mockResolvedValueOnce(response({ id: 'f', name: 'renamed.maplet', version: '2' }, '"v2"'));
+    const client = new DriveClient(() => 'token', fetcher);
+    const content = '{"same":"document"}';
+    expect(
+      await client.save(
+        { id: 'f', name: 'old.maplet', version: '1', etag: '"v1"', parents: ['maps'] },
+        content,
+        false,
+        'renamed.maplet',
+      ),
+    ).toMatchObject({ id: 'f', name: 'renamed.maplet', version: '2', parents: ['maps'] });
+    const [url, request] = fetcher.mock.calls[1];
+    expect(url).toContain('/files/f?uploadType=multipart');
+    expect(request.method).toBe('PATCH');
+    expect(request.headers['If-Match']).toBe('"v1"');
+    const boundary = request.headers['Content-Type'].split('boundary=')[1];
+    const parts = request.body.split(`--${boundary}`);
+    expect(JSON.parse(parts[1].split('\r\n\r\n')[1])).toEqual({ name: 'renamed.maplet' });
+    expect(parts[2].split('\r\n\r\n')[1]).toBe(content + '\r\n');
+  });
+  it('validates a remembered folder and rejects deleted or read-only destinations', async () => {
+    const folder = {
+      id: 'folder',
+      name: 'Renamed maps',
+      mimeType: 'application/vnd.google-apps.folder',
+      capabilities: { canAddChildren: true },
+    };
+    const fetcher = vi.fn().mockResolvedValue(response(folder));
+    const client = new DriveClient(() => 'token', fetcher);
+    expect(await client.folder('folder')).toEqual({ id: 'folder', name: 'Renamed maps' });
+    for (const invalid of [
+      { ...folder, trashed: true },
+      { ...folder, mimeType: 'application/json' },
+      { ...folder, capabilities: { canAddChildren: false } },
+      { ...folder, id: 'other' },
+    ]) {
+      fetcher.mockResolvedValueOnce(response(invalid));
+      await expect(client.folder('folder')).rejects.toThrow(/폴더/);
+    }
+  });
   it('loads metadata and content and retains a conditional-write validator', async () => {
     const fetcher = vi
       .fn()

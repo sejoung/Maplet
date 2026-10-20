@@ -32,11 +32,48 @@
   color: #4f5c56;
   font-size: 13px;
 }
-.document-name > span:first-child {
+.filename-button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  max-width: 380px;
+  min-height: 32px;
+  padding: 4px 6px;
+  border-radius: 5px;
+  color: inherit;
+  font: inherit;
+}
+.filename-button:hover {
+  background: #eff5f1;
+}
+.filename-button > span {
+  min-width: 0;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  max-width: 380px;
+}
+.filename-button > svg {
+  flex-shrink: 0;
+  color: #708078;
+}
+.filename-editor {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 260px;
+  max-width: 100%;
+  min-width: 0;
+}
+.filename-editor input {
+  width: 100%;
+  min-width: 0;
+  padding: 5px 6px;
+  font: inherit;
+}
+.filename-extension {
+  color: #5d6864;
+  font-size: 11px;
 }
 .unsaved-marker {
   color: #886523;

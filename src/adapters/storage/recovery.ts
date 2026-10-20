@@ -2,6 +2,14 @@ import type { Draft } from './drafts';
 import { parseDocument, nativeFilename } from '../documents';
 import { serializeMaplet } from '../maplet/codec';
 
+export function draftHasChanges(draft: Draft): boolean {
+  return (
+    draft.content !== draft.savedContent ||
+    (draft.savedFilename !== undefined &&
+      nativeFilename(draft.filename) !== nativeFilename(draft.savedFilename))
+  );
+}
+
 export function restoreDraft(draft: Draft) {
   const map = parseDocument(draft.content);
   map.original = draft.original ?? map.original;
@@ -11,5 +19,6 @@ export function restoreDraft(draft: Draft) {
     map,
     filename: nativeFilename(draft.filename),
     savedContent: baseline ? serializeMaplet(baseline) : '',
+    savedFilename: nativeFilename(draft.savedFilename ?? draft.filename),
   };
 }

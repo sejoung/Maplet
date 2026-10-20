@@ -11,10 +11,11 @@ import type { MindMap, MindNode } from '../domain/model';
 import { resizeNode } from '../domain/node-size';
 import { setNodePositions, resetNodePositions } from '../domain/positions';
 import { commit, createHistory, undo, redo } from '../application/history';
+import { filenameFromTitle } from '../application/document-name';
 import { serializeMup } from '../adapters/mup/codec';
 import { serializeMaplet } from '../adapters/maplet/codec';
 import { parseDocument, nativeFilename, mupFilename } from '../adapters/documents';
-import { restoreDraft } from '../adapters/storage/recovery';
+import { restoreDraft, draftHasChanges } from '../adapters/storage/recovery';
 import { DraftStore, type Draft } from '../adapters/storage/drafts';
 import { downloadFile, readMapFile } from '../adapters/storage/files';
 import { Editor } from '../components/Editor';
@@ -24,6 +25,7 @@ import { useDrive } from './useDrive';
 import { useI18n } from '../i18n/react';
 import { NewMapDialog } from '../components/NewMapDialog';
 import { DriveDialogs } from './DriveDialogs';
+import { useDraftPersistence } from './useDraftPersistence';
 
 const drafts = new DraftStore();
 
@@ -34,6 +36,8 @@ export function App() {
   const content = useMemo(() => serializeMaplet(map), [map]);
   const [savedContent, setSavedContent] = useState(content);
   const [filename, setFilename] = useState(() => `${t('제목 없음')}.maplet`);
+  const [filenamePending, setFilenamePending] = useState(true);
+  const [savedFilename, setSavedFilename] = useState(filename);
   const [selected, setSelected] = useState(map.roots[0]);
   const [documentKey, setDocumentKey] = useState(0);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -44,9 +48,8 @@ export function App() {
   const [recovery, setRecovery] = useState<Draft | null>(null);
   const [dialog, setDialog] = useState<'new' | 'help' | null>(null);
   const hasWork = useRef(false);
-  const saveQueue = useRef(Promise.resolve());
   const importGeneration = useRef(0);
-  const dirty = content !== savedContent;
+  const dirty = content !== savedContent || filename !== savedFilename;
   const selectedId = map.nodes[selected] ? selected : map.roots[0];
   const report = (reason: unknown) =>
     setError(reason instanceof Error ? reason.message : '작업을 완료하지 못했습니다.');
@@ -56,7 +59,7 @@ export function App() {
     drafts
       .load()
       .then((draft) => {
-        if (active && draft && draft.content !== draft.savedContent) setRecovery(draft);
+        if (active && draft && draftHasChanges(draft)) setRecovery(draft);
       })
       .catch((reason) => {
         if (active) report(reason);
@@ -68,36 +71,6 @@ export function App() {
       active = false;
     };
   }, []);
-
-  useEffect(() => {
-    if (!recoveryReady || recovery || !hasWork.current) return;
-    let active = true;
-    setDraftStatus('초안 저장 중…');
-    const timer = window.setTimeout(() => {
-      const draft = {
-        content,
-        original: map.original,
-        filename,
-        savedContent,
-        updatedAt: Date.now(),
-      };
-      saveQueue.current = saveQueue.current.catch(() => {}).then(() => drafts.save(draft));
-      saveQueue.current
-        .then(() => {
-          if (active) setDraftStatus('브라우저에 초안 저장됨');
-        })
-        .catch(() => {
-          if (active) {
-            setDraftStatus('초안 저장 실패');
-            setError('브라우저에 초안을 저장하지 못했습니다. 파일을 다운로드해 주세요.');
-          }
-        });
-    }, 250);
-    return () => {
-      active = false;
-      clearTimeout(timer);
-    };
-  }, [content, filename, savedContent, map.original, recovery, recoveryReady]);
 
   useEffect(() => {
     if (!dirty) return;
@@ -113,6 +86,7 @@ export function App() {
     try {
       downloadFile(content, filename);
       setSavedContent(content);
+      setSavedFilename(filename);
       setNotice('파일 다운로드를 요청했습니다. 다운로드 폴더에서 .maplet 파일을 확인해 주세요.');
     } catch (reason) {
       report(reason);
@@ -132,10 +106,11 @@ export function App() {
       );
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
         event.preventDefault();
-        if ((event.target as HTMLElement).matches('[data-inline-editor]')) {
+        if ((event.target as HTMLElement).matches('[data-inline-editor],[data-filename-editor]')) {
           (event.target as HTMLElement).blur();
           requestAnimationFrame(() => {
-            if (!document.querySelector('[data-inline-editor]')) latestSave.current();
+            if (!document.querySelector('[data-inline-editor],[data-filename-editor]'))
+              latestSave.current();
           });
         } else save();
       }
@@ -168,12 +143,14 @@ export function App() {
     }
   };
 
-  const replace = (next: MindMap, name: string, lastSaved?: string) => {
+  const replace = (next: MindMap, name: string, lastSaved?: string, lastSavedName?: string) => {
     hasWork.current = true;
     setEditingId(null);
     setHistory(createHistory(next));
     setSelected(next.roots[0]);
     setFilename(nativeFilename(name));
+    setFilenamePending(false);
+    setSavedFilename(lastSavedName ?? nativeFilename(name));
     setSavedContent(lastSaved ?? serializeMaplet(next));
     setDocumentKey((key) => key + 1);
     setError(null);
@@ -190,7 +167,7 @@ export function App() {
       const next = parseDocument(await readMapFile(file));
       if (generation !== importGeneration.current || !allowReplace()) return;
       replace(next, file.name);
-      driveState.clearFile(serializeMaplet(next));
+      driveState.clearFile(serializeMaplet(next), nativeFilename(file.name));
     } catch (reason) {
       if (generation === importGeneration.current) report(reason);
     }
@@ -245,7 +222,9 @@ export function App() {
     if (!recovery) return;
     try {
       const restored = restoreDraft(recovery);
-      replace(restored.map, restored.filename, restored.savedContent);
+      replace(restored.map, restored.filename, restored.savedContent, restored.savedFilename);
+      setFilenamePending(recovery.filenamePending ?? false);
+      driveState.restoreDraftWorkspace(recovery.drive);
       setRecovery(null);
       setNotice('이 기기의 초안을 복구했습니다. 파일로 다운로드해 보관하세요.');
     } catch (reason) {
@@ -265,11 +244,30 @@ export function App() {
     content,
     filename,
     documentKey,
-    markSaved: setSavedContent,
+    markSaved: (saved, name = filename) => {
+      setSavedContent(saved);
+      setSavedFilename(name);
+      setFilename((current) => (current === filename ? name : current));
+    },
     allowReplace,
     replace,
     setNotice,
   });
+  useDraftPersistence(
+    drafts,
+    {
+      content,
+      original: map.original,
+      filename,
+      filenamePending,
+      savedContent,
+      savedFilename,
+      drive: driveState.draftWorkspace,
+    },
+    recoveryReady && !recovery && hasWork.current,
+    setDraftStatus,
+    setError,
+  );
   const closeDialog = useCallback(() => setDialog(null), []);
   const preventRecoveryClose = useCallback(() => {}, []);
 
@@ -279,6 +277,11 @@ export function App() {
         map={map}
         selected={selectedId}
         filename={filename}
+        onFilenameChange={(name) => {
+          hasWork.current = true;
+          setFilename(name);
+          setFilenamePending(false);
+        }}
         dirty={dirty}
         draftStatus={draftStatus}
         error={error}
@@ -295,6 +298,13 @@ export function App() {
         }
         onRename={(id, title) => {
           const saved = edit((current) => renameNode(current, id, title));
+          if (saved && filenamePending && id === map.roots[0] && title !== map.nodes[id].title) {
+            const name = filenameFromTitle(title);
+            if (name) {
+              setFilename(name);
+              setFilenamePending(false);
+            }
+          }
           if (saved) setEditingId(null);
           return saved;
         }}
@@ -363,8 +373,9 @@ export function App() {
           onCreate={(title) => {
             if (allowReplace()) {
               const next = createMap(title);
-              replace(next, `${title.slice(0, 80)}.maplet`, '');
-              driveState.clearFile(serializeMaplet(next));
+              const name = `${title.slice(0, 80)}.maplet`;
+              replace(next, name, '');
+              driveState.clearFile(serializeMaplet(next), name);
               setDialog(null);
             }
           }}

@@ -30,6 +30,7 @@ import { NodeToolsDialog, type NodeTool, type NodeToolActions } from './NodeTool
 export interface EditorProps
   extends Omit<CanvasProps, 'controlsRef' | 'onZoomChange'>, NodeToolActions {
   filename: string;
+  onFilenameChange(name: string): void;
   dirty: boolean;
   draftStatus: string;
   error: string | null;

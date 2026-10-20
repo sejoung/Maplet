@@ -65,7 +65,9 @@ async function setup(page: Page, native = false, inDestination = true) {
   await page.getByRole('button', { name: '테스트 폴더 선택', exact: true }).click();
   await page.getByRole('button', { name: 'Drive에서 열기', exact: true }).click();
   await page.getByRole('button', { name: '테스트 파일 선택', exact: true }).click();
-  await expect(page.getByRole('treeitem').first()).toBeVisible();
+  await expect(
+    page.getByRole('treeitem', { name: native ? 'Maplet document' : 'MUP source', exact: true }),
+  ).toBeVisible();
   return { creates, updates, state };
 }
 

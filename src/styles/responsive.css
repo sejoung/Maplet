@@ -61,8 +61,11 @@
     flex: 1;
     font-size: 12px;
   }
-  .document-name > span:first-child {
+  .filename-button {
     max-width: 110px;
+  }
+  .filename-extension {
+    display: none;
   }
   .app-header .toolbar-menu summary {
     padding: 0 5px;
@@ -128,8 +131,8 @@
   .editor-toolbar .help-button {
     display: none;
   }
-  .document-name > span:first-child {
-    display: none;
+  .filename-button {
+    max-width: 74px;
   }
 }
 

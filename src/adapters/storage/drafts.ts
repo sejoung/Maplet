@@ -1,9 +1,14 @@
+import type { DriveWorkspace } from './drive-workspace';
+
 export interface Draft {
   content: string;
   original: string | null;
   filename: string;
+  filenamePending?: boolean;
   savedContent: string;
+  savedFilename?: string;
   updatedAt: number;
+  drive?: DriveWorkspace | null;
 }
 
 export class DraftStore {

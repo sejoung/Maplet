@@ -10,14 +10,16 @@ export function DriveDialogs({ controller, save }: { controller: DriveController
     dialog,
     closeDialog,
     configured,
-    content,
     filename,
     busy,
     driveReady,
     connected,
     saveFolder,
     driveFile,
-    driveSavedContent,
+    rememberedFile,
+    needsReconnect,
+    awaitingRestore,
+    driveDirty,
     driveStatus,
     driveError,
     showDrive,
@@ -25,6 +27,7 @@ export function DriveDialogs({ controller, save }: { controller: DriveController
     chooseSaveFolder,
     saveDrive,
     disconnect,
+    resumeDrive,
   } = controller;
   const target = driveSaveTarget(filename, driveFile, false);
   return (
@@ -35,7 +38,13 @@ export function DriveDialogs({ controller, save }: { controller: DriveController
             <Cloud size={28} />
             <p>
               <span className="muted">
-                {t('먼저 자동 저장할 폴더를 선택한 뒤 파일을 열거나 현재 맵을 저장하세요.')}
+                {t(
+                  needsReconnect
+                    ? '이전 저장 위치를 기억하고 있습니다. 다시 연결하면 이어서 작업할 수 있습니다.'
+                    : saveFolder
+                      ? '저장 폴더를 선택했습니다. 파일을 열거나 현재 맵을 저장하세요.'
+                      : '먼저 자동 저장할 폴더를 선택한 뒤 파일을 열거나 현재 맵을 저장하세요.',
+                )}
               </span>
             </p>
           </div>
@@ -64,9 +73,7 @@ export function DriveDialogs({ controller, save }: { controller: DriveController
                     ? t('Drive 준비 중…')
                     : busy
                       ? t('Drive 작업을 진행하고 있습니다…')
-                      : driveFile &&
-                          driveSavedContent !== content &&
-                          driveStatus === 'Drive에 저장됨'
+                      : driveFile && driveDirty && driveStatus === 'Drive에 저장됨'
                         ? t('Drive에 저장한 이후 편집한 변경이 있습니다')
                         : t(driveStatus)}
                 </p>
@@ -79,13 +86,25 @@ export function DriveDialogs({ controller, save }: { controller: DriveController
                   <FolderOpen size={17} aria-hidden="true" />{' '}
                   {saveFolder ? saveFolder.name : t('선택하지 않음')}
                 </p>
-                <button
-                  className={`button ${saveFolder ? '' : 'primary'}`}
-                  disabled={busy || !driveReady}
-                  onClick={() => void chooseSaveFolder()}
-                >
-                  {saveFolder ? t('저장 폴더 변경') : t('저장 위치 선택')}
-                </button>
+                {rememberedFile && <p className="drive-filename">{rememberedFile.name}</p>}
+                <div className="drive-actions">
+                  {needsReconnect && (
+                    <button
+                      className="button primary"
+                      disabled={busy || !driveReady}
+                      onClick={() => void resumeDrive()}
+                    >
+                      {t('다시 연결')}
+                    </button>
+                  )}
+                  <button
+                    className={`button ${saveFolder ? '' : 'primary'}`}
+                    disabled={busy || !driveReady}
+                    onClick={() => void chooseSaveFolder()}
+                  >
+                    {saveFolder ? t('저장 폴더 변경') : t('저장 위치 선택')}
+                  </button>
+                </div>
                 <p className="muted">
                   {t(
                     '내 드라이브에서 폴더를 찾아 선택하세요. 폴더 선택만으로 파일을 만들지 않습니다.',
@@ -113,7 +132,7 @@ export function DriveDialogs({ controller, save }: { controller: DriveController
                 <div className="drive-actions">
                   <button
                     className="button"
-                    disabled={busy || !driveReady || !saveFolder}
+                    disabled={busy || !driveReady || !saveFolder || awaitingRestore}
                     onClick={() => void openDrive()}
                   >
                     <FolderOpen size={17} />
@@ -121,7 +140,7 @@ export function DriveDialogs({ controller, save }: { controller: DriveController
                   </button>
                   <button
                     className="button primary"
-                    disabled={busy || !driveReady || !saveFolder}
+                    disabled={busy || !driveReady || !saveFolder || awaitingRestore}
                     onClick={() => void saveDrive()}
                   >
                     {t('Drive에 저장')}
@@ -143,7 +162,7 @@ export function DriveDialogs({ controller, save }: { controller: DriveController
                     {t('다시 불러오기')}
                   </button>
                 )}
-                {connected && (
+                {(connected || saveFolder) && (
                   <button
                     className="text-button"
                     disabled={busy}

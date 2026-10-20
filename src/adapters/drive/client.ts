@@ -1,4 +1,5 @@
 import { MAX_MAPLET_BYTES } from '../maplet/codec';
+import { multipartUpload } from './upload';
 
 export interface DriveFile {
   id: string;
@@ -61,7 +62,34 @@ export class DriveClient {
     };
   }
 
-  async save(file: DriveFile, content: string, overwrite = false): Promise<DriveFile> {
+  async folder(id: string): Promise<{ id: string; name: string }> {
+    const response = await this.request(
+      `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(id)}?fields=id,name,mimeType,trashed,capabilities`,
+    );
+    const meta = (await response.json()) as {
+      id: string;
+      name: string;
+      mimeType: string;
+      trashed?: boolean;
+      capabilities?: { canAddChildren?: boolean };
+    };
+    if (
+      meta.id !== id ||
+      !meta.name ||
+      meta.mimeType !== 'application/vnd.google-apps.folder' ||
+      meta.trashed ||
+      meta.capabilities?.canAddChildren === false
+    )
+      throw new Error('저장 폴더를 사용할 수 없습니다. 다른 폴더를 선택해 주세요.');
+    return { id: meta.id, name: meta.name };
+  }
+
+  async save(
+    file: DriveFile,
+    content: string,
+    overwrite = false,
+    name = file.name,
+  ): Promise<DriveFile> {
     const endpoint = `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(file.id)}`;
     const meta = (await (await this.request(`${endpoint}?fields=version`)).json()) as {
       version: string;
@@ -71,37 +99,38 @@ export class DriveClient {
       throw new Error(
         'Drive 버전 검증 정보가 없습니다. 새 사본 저장 또는 명시적 덮어쓰기를 선택해 주세요.',
       );
+    const upload = name === file.name ? null : multipartUpload({ name }, content);
     const response = await this.request(
-      `https://www.googleapis.com/upload/drive/v3/files/${encodeURIComponent(file.id)}?uploadType=media&fields=id,name,version`,
+      `https://www.googleapis.com/upload/drive/v3/files/${encodeURIComponent(file.id)}?uploadType=${upload ? 'multipart' : 'media'}&fields=id,name,version`,
       {
         method: 'PATCH',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': upload?.contentType ?? 'application/json',
           ...(!overwrite && file.etag ? { 'If-Match': file.etag } : {}),
         },
-        body: content,
+        body: upload?.body ?? content,
       },
     );
     return {
+      ...file,
       ...((await response.json()) as Omit<DriveFile, 'etag'>),
       etag: response.headers.get('ETag'),
     };
   }
 
   async create(name: string, content: string, parentId?: string): Promise<DriveFile> {
-    const boundary = `maplet-${crypto.randomUUID()}`;
     const metadata = {
       name,
       mimeType: 'application/json',
       ...(parentId && { parents: [parentId] }),
     };
-    const body = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n--${boundary}\r\nContent-Type: application/json\r\n\r\n${content}\r\n--${boundary}--`;
+    const upload = multipartUpload(metadata, content);
     const response = await this.request(
       'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,version',
       {
         method: 'POST',
-        headers: { 'Content-Type': `multipart/related; boundary=${boundary}` },
-        body,
+        headers: { 'Content-Type': upload.contentType },
+        body: upload.body,
       },
     );
     return {
