@@ -10,7 +10,9 @@ describe('Drive transport contracts', () => {
   it('loads metadata and content and retains a conditional-write validator', async () => {
     const fetcher = vi
       .fn()
-      .mockResolvedValueOnce(response({ id: 'f', name: 'map.mup', version: '1', size: '32' }))
+      .mockResolvedValueOnce(
+        response({ id: 'f', name: 'map.mup', version: '1', size: '32', parents: ['maps'] }),
+      )
       .mockResolvedValueOnce(response('{"id":1,"title":"x"}'));
     const client = new DriveClient(() => 'token', fetcher);
     expect(await client.open('f')).toMatchObject({
@@ -18,6 +20,7 @@ describe('Drive transport contracts', () => {
       etag: '"v1"',
       name: 'map.mup',
       content: '{"id":1,"title":"x"}',
+      parents: ['maps'],
     });
     expect(fetcher.mock.calls[0][1].headers.Authorization).toBe('Bearer token');
   });

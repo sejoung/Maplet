@@ -24,6 +24,8 @@ export async function mockGoogle(page: Page) {
         setIncludeFolders() { return this; }
         setSelectFolderEnabled(enabled) { this.folders = enabled; return this; }
         setMode() { return this; }
+        setParent(parent) { this.parent = parent; return this; }
+        setMimeTypes(mimeTypes) { this.mimeTypes = mimeTypes; return this; }
       }
       class PickerBuilder {
         setLocale(locale) { this.locale = locale; return this; }
@@ -39,10 +41,12 @@ export async function mockGoogle(page: Page) {
           dialog.setAttribute('role', 'dialog');
           dialog.setAttribute('aria-label', this.title);
           dialog.setAttribute('data-picker-locale', this.locale);
+          dialog.setAttribute('data-picker-view', this.view.id);
+          if (this.view.parent) dialog.setAttribute('data-picker-parent', this.view.parent);
           dialog.style.cssText = 'position:fixed;inset:20px;z-index:1000;background:white;padding:24px';
           const choose = document.createElement('button');
           choose.textContent = this.view.folders ? '테스트 폴더 선택' : '테스트 파일 선택';
-          choose.onclick = () => this.callback({ action: 'picked', docs: [{ id: this.view.folders ? 'chosen-folder' : 'chosen-file' }] });
+          choose.onclick = () => this.callback({ action: 'picked', docs: [{ id: this.view.folders ? 'chosen-folder' : 'chosen-file', name: this.view.folders ? 'Maplet 작업 폴더' : 'source.maplet' }] });
           const cancel = document.createElement('button');
           cancel.textContent = '선택 취소';
           cancel.onclick = () => this.callback({ action: 'cancel' });

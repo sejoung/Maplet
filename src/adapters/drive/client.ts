@@ -5,6 +5,7 @@ export interface DriveFile {
   name: string;
   version: string;
   etag: string | null;
+  parents?: string[];
 }
 export class DriveConflict extends Error {
   constructor() {
@@ -41,12 +42,13 @@ export class DriveClient {
 
   async open(id: string): Promise<DriveFile & { content: string }> {
     const endpoint = `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(id)}`;
-    const metaResponse = await this.request(`${endpoint}?fields=id,name,version,size`);
+    const metaResponse = await this.request(`${endpoint}?fields=id,name,version,size,parents`);
     const meta = (await metaResponse.json()) as {
       id: string;
       name: string;
       version: string;
       size: string;
+      parents?: string[];
     };
     const limit = /\.mup$/i.test(meta.name ?? '') ? 10 * 1024 * 1024 : MAX_MAPLET_BYTES;
     if (Number(meta.size) > limit)

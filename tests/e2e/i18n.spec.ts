@@ -86,6 +86,10 @@ test('translates node dialogs and sends the selected language to the Drive picke
   await page.getByRole('button', { name: 'Cancel', exact: true }).click();
   await page.getByRole('button', { name: 'Connect Google Drive', exact: true }).click();
   await page.getByRole('button', { name: 'Choose save folder', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'Choose a save folder' })).toHaveAttribute(
+    'data-picker-parent',
+    'root',
+  );
   await expect(
     page.getByRole('dialog', { name: 'Choose a save folder', exact: true }),
   ).toHaveAttribute('data-picker-locale', 'en');

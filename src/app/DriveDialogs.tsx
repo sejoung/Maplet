@@ -15,12 +15,14 @@ export function DriveDialogs({ controller, save }: { controller: DriveController
     busy,
     driveReady,
     connected,
+    saveFolder,
     driveFile,
     driveSavedContent,
     driveStatus,
     driveError,
     showDrive,
     openDrive,
+    chooseSaveFolder,
     saveDrive,
     disconnect,
   } = controller;
@@ -33,9 +35,7 @@ export function DriveDialogs({ controller, save }: { controller: DriveController
             <Cloud size={28} />
             <p>
               <span className="muted">
-                {connected
-                  ? t('파일을 열거나 현재 맵을 Drive에 저장하세요.')
-                  : t('열기 또는 저장을 선택하면 Google 로그인 후 선택 창이 열립니다.')}
+                {t('먼저 자동 저장할 폴더를 선택한 뒤 파일을 열거나 현재 맵을 저장하세요.')}
               </span>
             </p>
           </div>
@@ -58,9 +58,6 @@ export function DriveDialogs({ controller, save }: { controller: DriveController
                   {t(driveError)}
                 </p>
               )}
-              <p className="drive-filename">
-                {t('저장할 파일:')} <strong>{target.name}</strong>
-              </p>
               {(connected || busy) && (
                 <p role="status" className="drive-status">
                   {!driveReady
@@ -74,36 +71,73 @@ export function DriveDialogs({ controller, save }: { controller: DriveController
                         : t(driveStatus)}
                 </p>
               )}
-              <p className="muted">
-                {target.create
-                  ? t('처음 .maplet 파일을 저장하면 이후 변경 사항이 자동 저장됩니다.')
-                  : t('편집을 마치면 변경 사항을 Drive에 자동 저장합니다.')}
-              </p>
-              <div className="drive-actions">
+              <div className="drive-setup-step">
+                <p>
+                  <strong>{t('1. 저장 폴더')}</strong>
+                </p>
+                <p className="drive-filename">
+                  <FolderOpen size={17} aria-hidden="true" />{' '}
+                  {saveFolder ? saveFolder.name : t('선택하지 않음')}
+                </p>
                 <button
-                  className="button"
+                  className={`button ${saveFolder ? '' : 'primary'}`}
                   disabled={busy || !driveReady}
-                  onClick={() => void openDrive()}
+                  onClick={() => void chooseSaveFolder()}
                 >
-                  <FolderOpen size={17} />
-                  {t('Drive에서 열기')}
+                  {saveFolder ? t('저장 폴더 변경') : t('저장 위치 선택')}
                 </button>
-                <button
-                  className="button primary"
-                  disabled={busy || !driveReady}
-                  onClick={() => void saveDrive()}
-                >
-                  {target.create ? t('저장 위치 선택') : t('Drive에 저장')}
-                </button>
-                {driveFile && (
+                <p className="muted">
+                  {t(
+                    '내 드라이브에서 폴더를 찾아 선택하세요. 폴더 선택만으로 파일을 만들지 않습니다.',
+                  )}
+                </p>
+              </div>
+              <div className="drive-setup-step">
+                <p>
+                  <strong>{t('2. 파일 열기 또는 저장')}</strong>
+                </p>
+                {!saveFolder && <p className="muted">{t('저장 폴더를 먼저 선택해 주세요.')}</p>}
+                <p className="drive-filename">
+                  {t('저장할 파일:')} <strong>{target.name}</strong>
+                </p>
+                {driveFile && !target.create && (
+                  <p className="muted">
+                    {t('자동 저장 파일: {filename}', { filename: driveFile.name })}
+                  </p>
+                )}
+                <p className="muted">
+                  {t(
+                    '다른 위치에서 연 파일은 선택한 폴더에 사본으로 저장합니다. 이 폴더의 .maplet 파일은 이어서 저장합니다.',
+                  )}
+                </p>
+                <div className="drive-actions">
                   <button
                     className="button"
-                    disabled={busy || !driveReady}
-                    onClick={() => void saveDrive('copy')}
+                    disabled={busy || !driveReady || !saveFolder}
+                    onClick={() => void openDrive()}
                   >
-                    {t('다른 위치에 새 사본 저장')}
+                    <FolderOpen size={17} />
+                    {t('Drive에서 열기')}
                   </button>
-                )}
+                  <button
+                    className="button primary"
+                    disabled={busy || !driveReady || !saveFolder}
+                    onClick={() => void saveDrive()}
+                  >
+                    {t('Drive에 저장')}
+                  </button>
+                  {driveFile && (
+                    <button
+                      className="button"
+                      disabled={busy || !driveReady}
+                      onClick={() => void saveDrive('copy')}
+                    >
+                      {t('다른 위치에 새 사본 저장')}
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div className="drive-actions">
                 {!driveReady && !busy && (
                   <button className="button" onClick={showDrive}>
                     {t('다시 불러오기')}

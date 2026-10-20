@@ -2,9 +2,7 @@ import { test, expect } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import { mockGoogle } from './support/google';
 
-test('continues sign-in directly into file selection and opens the selected map', async ({
-  page,
-}) => {
+test('chooses a save folder from My Drive before opening a file', async ({ page }) => {
   await mockGoogle(page);
   const content = await readFile('tests/fixtures/native-v1.maplet', 'utf8');
   await page.route('https://www.googleapis.com/drive/v3/files/**', (route) => {
@@ -19,12 +17,22 @@ test('continues sign-in directly into file selection and opens the selected map'
             name: 'opened.maplet',
             version: '1',
             size: String(content.length),
+            parents: ['chosen-folder'],
           }),
     });
   });
   await page.goto('/');
   await page.getByRole('button', { name: 'Google Drive 연결', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Google에 연결', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Drive에서 열기', exact: true })).toBeDisabled();
+  await page.getByRole('button', { name: '저장 위치 선택', exact: true }).click();
+  const folderPicker = page.getByRole('dialog', { name: '저장할 폴더 선택', exact: true });
+  await expect(folderPicker).toHaveAttribute('data-picker-view', 'docs');
+  await expect(folderPicker).toHaveAttribute('data-picker-parent', 'root');
+  await page.getByRole('button', { name: '테스트 폴더 선택', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'Google Drive', exact: true })).toContainText(
+    'Maplet 작업 폴더',
+  );
   await page.getByRole('button', { name: 'Drive에서 열기', exact: true }).click();
   await expect(page.getByRole('dialog', { name: '열 파일 선택', exact: true })).toBeVisible();
   await expect(page.getByRole('dialog', { name: 'Google Drive', exact: true })).toHaveCount(0);
@@ -65,6 +73,8 @@ test('selects a destination folder before saving and does not write when selecti
   expect(created).toHaveLength(0);
   await page.getByRole('button', { name: '저장 위치 선택', exact: true }).click();
   await page.getByRole('button', { name: '테스트 폴더 선택' }).click();
+  expect(created).toHaveLength(0);
+  await page.getByRole('button', { name: 'Drive에 저장', exact: true }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   expect(created).toMatchObject([{ name: '제목 없음.maplet', parents: ['chosen-folder'] }]);
   await expect(page.getByRole('treeitem', { name: '중심 주제', exact: true })).toBeVisible();
@@ -126,7 +136,7 @@ test('opens, updates and creates Drive files with the native browser fetch', asy
   expect(requests).toEqual([
     {
       method: 'GET',
-      path: '/drive/v3/files/file?fields=id,name,version,size',
+      path: '/drive/v3/files/file?fields=id,name,version,size,parents',
       authorization: 'Bearer test-token',
     },
     {

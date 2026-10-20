@@ -41,7 +41,7 @@ beforeAll(async () => {
 describe('Drive autosave after choosing a native destination', () => {
   async function ready() {
     const result = await setup();
-    await result.user.click(screen.getByRole('button', { name: '저장 위치 선택' }));
+    await result.user.click(screen.getByRole('button', { name: 'Drive에 저장' }));
     await waitFor(() => expect(api.create).toHaveBeenCalledOnce());
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     vi.useFakeTimers();
@@ -160,10 +160,11 @@ beforeEach(() => {
   bridge.connect.mockImplementation(async () => {
     bridge.getToken.mockReturnValue('token');
   });
-  bridge.pick.mockResolvedValue('selected-id');
+  bridge.pick.mockResolvedValue({ id: 'selected-id', name: '작업 폴더' });
   api.open.mockResolvedValue({
     id: 'selected-id',
     name: 'opened.maplet',
+    parents: ['selected-id'],
     version: '1',
     etag: '"v1"',
     content: '{"id":1,"title":"From Drive"}',
@@ -172,7 +173,7 @@ beforeEach(() => {
   api.save.mockResolvedValue({ id: 'created', name: 'local.maplet', version: '2', etag: '"v2"' });
 });
 
-async function setup(allowReplace = true) {
+async function setup(allowReplace = true, chooseFolder = true) {
   const options = {
     content: 'local content',
     filename: 'local.maplet',
@@ -187,7 +188,7 @@ async function setup(allowReplace = true) {
     return (
       <>
         <button onClick={controller.showDrive}>Drive</button>
-        <button onClick={controller.clearFile}>Clear file</button>
+        <button onClick={() => controller.clearFile()}>Clear file</button>
         <span>{controller.autoSaveStatus}</span>
         <DriveDialogs controller={controller} save={() => {}} />
       </>
@@ -196,13 +197,14 @@ async function setup(allowReplace = true) {
   const view = render(<Harness />);
   const user = userEvent.setup();
   await user.click(screen.getByRole('button', { name: 'Drive' }));
-  await waitFor(() => expect(screen.getByRole('button', { name: 'Drive에서 열기' })).toBeEnabled());
+  await waitFor(() => expect(screen.getByRole('button', { name: '저장 위치 선택' })).toBeEnabled());
+  if (chooseFolder) await user.click(screen.getByRole('button', { name: '저장 위치 선택' }));
   return { user, options, refresh: () => view.rerender(<Harness />) };
 }
 
 describe('Drive actions continue through sign-in and selection', () => {
-  it('opens the file picker immediately after authorization without another click', async () => {
-    const { user, options } = await setup();
+  it('requires a save folder and continues sign-in directly into folder selection without writing', async () => {
+    const { user, options } = await setup(true, false);
     let resolveConsent = () => {};
     const consent = new Promise<void>((resolve) => {
       resolveConsent = resolve;
@@ -213,19 +215,29 @@ describe('Drive actions continue through sign-in and selection', () => {
       }),
     );
     expect(screen.queryByRole('button', { name: 'Google에 연결' })).not.toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Drive에서 열기' }));
+    expect(screen.getByRole('button', { name: 'Drive에서 열기' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Drive에 저장' })).toBeDisabled();
+    await user.click(screen.getByRole('button', { name: '저장 위치 선택' }));
     expect(bridge.connect).toHaveBeenCalledOnce();
     expect(bridge.pick).not.toHaveBeenCalled();
     resolveConsent();
-    await waitFor(() => expect(options.replace).toHaveBeenCalledOnce());
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Drive에서 열기' })).toBeEnabled(),
+    );
     expect(bridge.pick).toHaveBeenCalledOnce();
+    expect(bridge.pick).toHaveBeenCalledWith('folder', 'ko');
+    expect(api.create).not.toHaveBeenCalled();
+    expect(api.save).not.toHaveBeenCalled();
+    expect(screen.getByText('작업 폴더')).toBeVisible();
+    await user.click(screen.getByRole('button', { name: 'Drive에서 열기' }));
+    await waitFor(() => expect(options.replace).toHaveBeenCalledOnce());
     expect(api.open).toHaveBeenCalledWith('selected-id');
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   it('authorizes then saves in the selected folder, and updates that file next time', async () => {
     const { user } = await setup();
-    await user.click(screen.getByRole('button', { name: '저장 위치 선택' }));
+    await user.click(screen.getByRole('button', { name: 'Drive에 저장' }));
     await waitFor(() =>
       expect(api.create).toHaveBeenCalledWith('local.maplet', 'local content', 'selected-id'),
     );
@@ -246,7 +258,7 @@ describe('Drive actions continue through sign-in and selection', () => {
       bridge.pick.mockResolvedValueOnce(null);
       await user.click(
         screen.getByRole('button', {
-          name: kind === 'file' ? 'Drive에서 열기' : '저장 위치 선택',
+          name: kind === 'file' ? 'Drive에서 열기' : '저장 폴더 변경',
         }),
       );
       await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('취소'));
@@ -259,13 +271,15 @@ describe('Drive actions continue through sign-in and selection', () => {
   );
 
   it('displays authorization errors and can retry the same action', async () => {
-    const { user, options } = await setup();
+    const { user } = await setup(true, false);
     bridge.connect.mockRejectedValueOnce(new Error('로그인 창이 닫혔습니다.'));
-    await user.click(screen.getByRole('button', { name: 'Drive에서 열기' }));
+    await user.click(screen.getByRole('button', { name: '저장 위치 선택' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('로그인 창이 닫혔습니다.');
     expect(bridge.pick).not.toHaveBeenCalled();
-    await user.click(screen.getByRole('button', { name: 'Drive에서 열기' }));
-    await waitFor(() => expect(options.replace).toHaveBeenCalledOnce());
+    await user.click(screen.getByRole('button', { name: '저장 위치 선택' }));
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Drive에서 열기' })).toBeEnabled(),
+    );
   });
 
   it('reconnects an expired token and continues the requested action', async () => {
@@ -281,7 +295,7 @@ describe('Drive actions continue through sign-in and selection', () => {
 
   it('keeps conflict handling and chooses a new folder for a separate copy', async () => {
     const { user } = await setup();
-    await user.click(screen.getByRole('button', { name: '저장 위치 선택' }));
+    await user.click(screen.getByRole('button', { name: 'Drive에 저장' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     await user.click(screen.getByRole('button', { name: 'Drive' }));
     api.save.mockRejectedValueOnce(new DriveConflict());
@@ -304,8 +318,8 @@ describe('Drive actions continue through sign-in and selection', () => {
     const { user, options } = await setup(false);
     await user.click(screen.getByRole('button', { name: 'Drive에서 열기' }));
     expect(options.allowReplace).toHaveBeenCalledOnce();
-    expect(bridge.connect).not.toHaveBeenCalled();
-    expect(bridge.pick).not.toHaveBeenCalled();
+    expect(bridge.connect).toHaveBeenCalledOnce();
+    expect(bridge.pick).toHaveBeenCalledExactlyOnceWith('folder', 'ko');
     expect(options.replace).not.toHaveBeenCalled();
   });
 
@@ -335,7 +349,7 @@ describe('Drive actions continue through sign-in and selection', () => {
       etag: '"native-v1"',
     });
     await user.click(screen.getByRole('button', { name: 'Drive' }));
-    await user.click(screen.getByRole('button', { name: '저장 위치 선택' }));
+    await user.click(screen.getByRole('button', { name: 'Drive에 저장' }));
     await waitFor(() =>
       expect(api.create).toHaveBeenCalledWith(name, options.content, 'selected-id'),
     );

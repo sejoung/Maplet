@@ -190,7 +190,7 @@ export function App() {
       const next = parseDocument(await readMapFile(file));
       if (generation !== importGeneration.current || !allowReplace()) return;
       replace(next, file.name);
-      driveState.clearFile();
+      driveState.clearFile(serializeMaplet(next));
     } catch (reason) {
       if (generation === importGeneration.current) report(reason);
     }
@@ -364,7 +364,7 @@ export function App() {
             if (allowReplace()) {
               const next = createMap(title);
               replace(next, `${title.slice(0, 80)}.maplet`, '');
-              driveState.clearFile();
+              driveState.clearFile(serializeMaplet(next));
               setDialog(null);
             }
           }}

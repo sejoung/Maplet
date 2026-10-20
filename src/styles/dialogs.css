@@ -168,6 +168,18 @@
 .drive-filename {
   overflow-wrap: anywhere;
 }
+.drive-setup-step {
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+  margin-top: 16px;
+}
+.drive-setup-step .drive-filename > svg {
+  vertical-align: middle;
+}
+.drive-setup-step > .muted {
+  margin-top: 12px;
+  line-height: 1.6;
+}
 .drive-actions {
   display: flex;
   flex-direction: column;

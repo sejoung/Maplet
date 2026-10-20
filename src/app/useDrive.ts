@@ -8,7 +8,11 @@ import {
   DriveAuthError,
   type DriveFile,
 } from '../adapters/drive/client';
-import { GoogleConnection, type GoogleConfig } from '../adapters/drive/google';
+import {
+  GoogleConnection,
+  type GoogleConfig,
+  type GoogleSelection,
+} from '../adapters/drive/google';
 import { useI18n } from '../i18n/react';
 
 interface DriveOptions {
@@ -43,6 +47,7 @@ export function useDrive({
   const [dialog, setDialog] = useState<'drive' | 'conflict' | null>(null);
   const [driveReady, setDriveReady] = useState(false);
   const [connected, setConnected] = useState(false);
+  const [saveFolder, setSaveFolder] = useState<GoogleSelection | null>(null);
   const [driveFile, setDriveFile] = useState<DriveFile | null>(null);
   const [driveSavedContent, setDriveSavedContent] = useState<string | null>(null);
   const [driveStatus, setDriveStatus] = useState('연결하지 않음');
@@ -82,8 +87,8 @@ export function useDrive({
     setDriveError(reason instanceof Error ? reason.message : 'Drive 작업을 완료하지 못했습니다.');
     if (showDialog) setDialog('drive');
   };
-  const openDrive = async () => {
-    if (!google || !drive || busy || inFlight.current || !driveReady || !allowReplace()) return;
+  const chooseSaveFolder = async () => {
+    if (!google || busy || inFlight.current || !driveReady) return;
     const operation = generation.current;
     inFlight.current = true;
     setBusy(true);
@@ -92,18 +97,58 @@ export function useDrive({
       await authorize();
       if (operation !== generation.current) return;
       setDialog(null);
-      const id = await google.pick('file', language);
+      const folder = await google.pick('folder', language);
       if (operation !== generation.current) return;
-      if (!id) {
+      if (folder) {
+        if (folder.id !== saveFolder?.id) {
+          setDriveFile(null);
+          setDriveSavedContent(content);
+          setAutoPaused(false);
+        }
+        setSaveFolder(folder);
+        setDriveStatus('저장 폴더를 선택했습니다. 파일을 열거나 현재 맵을 저장하세요.');
+      } else setDriveStatus('저장 위치 선택을 취소했습니다.');
+      setDialog('drive');
+    } catch (reason) {
+      if (operation === generation.current) fail(reason);
+    } finally {
+      inFlight.current = false;
+      setBusy(false);
+    }
+  };
+  const openDrive = async () => {
+    if (
+      !google ||
+      !drive ||
+      !saveFolder ||
+      busy ||
+      inFlight.current ||
+      !driveReady ||
+      !allowReplace()
+    )
+      return;
+    const operation = generation.current;
+    inFlight.current = true;
+    setBusy(true);
+    setDriveError(null);
+    try {
+      await authorize();
+      if (operation !== generation.current) return;
+      setDialog(null);
+      const selected = await google.pick('file', language);
+      if (operation !== generation.current) return;
+      if (!selected) {
         setDriveStatus('파일 선택을 취소했습니다.');
         setDialog('drive');
         return;
       }
-      const file = await drive.open(id);
+      const file = await drive.open(selected.id);
       if (operation !== generation.current) return;
       const next = parseDocument(file.content);
       replace(next, nativeFilename(file.name));
-      setDriveFile(file);
+      setDriveFile(
+        /\.maplet$/i.test(file.name) && file.parents?.includes(saveFolder.id) ? file : null,
+      );
       setDriveSavedContent(serializeMaplet(next));
       setDriveStatus('Drive 파일을 열었습니다');
       setAutoPaused(false);
@@ -117,9 +162,9 @@ export function useDrive({
     }
   };
   const saveDrive = async (mode: 'normal' | 'copy' | 'overwrite' = 'normal', automatic = false) => {
-    if (!google || !drive || busy || inFlight.current || !driveReady) return;
+    if (!google || !drive || !saveFolder || busy || inFlight.current || !driveReady) return;
     const target = driveSaveTarget(filename, driveFile, mode === 'copy', t('사본'));
-    if (automatic && (target.create || autoPaused || content === driveSavedContent)) return;
+    if (automatic && (autoPaused || content === driveSavedContent)) return;
     const operation = generation.current;
     const savedDocument = documentKey;
     const current = () =>
@@ -132,24 +177,26 @@ export function useDrive({
         if (!google.getToken()) throw new DriveAuthError();
       } else await authorize();
       if (!current()) return;
-      let folderId: string | null = null;
-      if (target.create) {
+      let folder = saveFolder;
+      if (mode === 'copy') {
         setDialog(null);
-        folderId = await google.pick('folder', language);
+        const selected = await google.pick('folder', language);
         if (!current()) return;
-        if (!folderId) {
+        if (!selected) {
           setDriveStatus('저장 위치 선택을 취소했습니다.');
           setDialog('drive');
           return;
         }
+        folder = selected;
       }
       if (!current()) return;
       setDriveStatus('Drive 저장 중…');
       const file = target.create
-        ? await drive.create(target.name, content, folderId!)
+        ? await drive.create(target.name, content, folder.id)
         : await drive.save(driveFile!, content, mode === 'overwrite');
       if (!current()) return;
       setDriveFile(file);
+      setSaveFolder(folder);
       setDriveSavedContent(content);
       markSaved(content);
       setAutoPaused(false);
@@ -191,8 +238,7 @@ export function useDrive({
       busy ||
       dialog ||
       autoPaused ||
-      !driveFile ||
-      !/\.maplet$/i.test(driveFile.name) ||
+      !saveFolder ||
       content === driveSavedContent
     )
       return;
@@ -205,32 +251,34 @@ export function useDrive({
     dialog,
     autoPaused,
     driveFile,
+    saveFolder,
     content,
     driveSavedContent,
     documentKey,
   ]);
-  const autoSaveStatus = !driveFile
+  const autoSaveStatus = !saveFolder
     ? null
-    : !/\.maplet$/i.test(driveFile.name)
-      ? '.maplet 저장 후 자동 저장됩니다'
-      : autoPaused || !connected
-        ? 'Drive 자동 저장 중지'
-        : busy
-          ? 'Drive 저장 중…'
-          : content !== driveSavedContent
-            ? 'Drive 저장 대기 중…'
+    : autoPaused || !connected
+      ? 'Drive 자동 저장 중지'
+      : busy
+        ? 'Drive 저장 중…'
+        : content !== driveSavedContent
+          ? 'Drive 저장 대기 중…'
+          : !driveFile
+            ? '편집하면 선택한 폴더에 자동 저장됩니다'
             : 'Drive에 저장됨';
   const closeDialog = useCallback(() => setDialog(null), []);
-  const clearFile = () => {
+  const clearFile = (nextContent = content) => {
     generation.current++;
     setDriveFile(null);
-    setDriveSavedContent(null);
+    setDriveSavedContent(nextContent);
     setAutoPaused(false);
     setDriveError(null);
   };
   const disconnect = () => {
     google?.disconnect();
     setConnected(false);
+    setSaveFolder(null);
     clearFile();
     setDriveStatus('연결 해제됨');
     setDriveError(null);
@@ -244,6 +292,7 @@ export function useDrive({
     busy,
     driveReady,
     connected,
+    saveFolder,
     driveFile,
     driveSavedContent,
     driveStatus,
@@ -251,6 +300,7 @@ export function useDrive({
     driveError,
     showDrive,
     openDrive,
+    chooseSaveFolder,
     saveDrive,
     disconnect,
     clearFile,

@@ -12,7 +12,11 @@ interface TokenResponse {
 }
 interface PickerResult {
   action: string;
-  docs?: { id: string }[];
+  docs?: { id: string; name: string }[];
+}
+export interface GoogleSelection {
+  id: string;
+  name: string;
 }
 interface Picker {
   setVisible(visible: boolean): void;
@@ -22,6 +26,8 @@ interface DocsView {
   setIncludeFolders(enabled: boolean): DocsView;
   setSelectFolderEnabled(enabled: boolean): DocsView;
   setMode(mode: unknown): DocsView;
+  setParent(parentId: string): DocsView;
+  setMimeTypes(mimeTypes: string): DocsView;
 }
 interface PickerBuilder {
   setLocale(locale: string): PickerBuilder;
@@ -142,15 +148,20 @@ export class GoogleConnection {
     });
   }
 
-  async pick(kind: 'file' | 'folder' = 'file', language: Language = 'ko'): Promise<string | null> {
+  async pick(
+    kind: 'file' | 'folder' = 'file',
+    language: Language = 'ko',
+  ): Promise<GoogleSelection | null> {
     const token = this.getToken();
     if (!token) throw new Error('먼저 Google Drive에 연결해 주세요.');
     return new Promise((resolve) => {
       const api = window.google!.picker;
-      const view = new api.DocsView(kind === 'folder' ? api.ViewId.FOLDERS : api.ViewId.DOCS)
+      const view = new api.DocsView(api.ViewId.DOCS)
         .setIncludeFolders(true)
         .setSelectFolderEnabled(kind === 'folder')
         .setMode(api.DocsViewMode.LIST);
+      if (kind === 'folder')
+        view.setParent('root').setMimeTypes('application/vnd.google-apps.folder');
       const picker = new window.google!.picker.PickerBuilder()
         .setLocale(language)
         .setTitle(translate(kind === 'folder' ? '저장할 폴더 선택' : '열 파일 선택', language))
@@ -162,7 +173,7 @@ export class GoogleConnection {
         .setCallback((result) => {
           if (result.action === 'picked' || result.action === 'cancel') {
             picker.dispose();
-            resolve(result.docs?.[0]?.id ?? null);
+            resolve(result.action === 'picked' ? (result.docs?.[0] ?? null) : null);
           }
         })
         .build();

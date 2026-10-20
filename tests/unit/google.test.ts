@@ -61,13 +61,18 @@ describe('optional Google SDK bridge', () => {
     await expect(connection.pick()).rejects.toThrow(/먼저/);
     sdk();
     await connection.connect();
-    let callback: (value: { action: string; docs?: { id: string }[] }) => void = () => {};
+    let callback: (value: {
+      action: string;
+      docs?: { id: string; name: string }[];
+    }) => void = () => {};
     const dispose = vi.fn();
     const visible = vi.fn();
     const view = {
       setIncludeFolders: vi.fn().mockReturnThis(),
       setSelectFolderEnabled: vi.fn().mockReturnThis(),
       setMode: vi.fn().mockReturnThis(),
+      setParent: vi.fn().mockReturnThis(),
+      setMimeTypes: vi.fn().mockReturnThis(),
     };
     const docsView = vi.fn(function () {
       return view;
@@ -98,8 +103,8 @@ describe('optional Google SDK bridge', () => {
     } as unknown as NonNullable<typeof window.google>['picker'];
     const selected = connection.pick();
     callback({ action: 'loaded' });
-    callback({ action: 'picked', docs: [{ id: 'selected-id' }] });
-    await expect(selected).resolves.toBe('selected-id');
+    callback({ action: 'picked', docs: [{ id: 'selected-id', name: 'Map.maplet' }] });
+    await expect(selected).resolves.toEqual({ id: 'selected-id', name: 'Map.maplet' });
     expect(builder.setAppId).toHaveBeenCalledWith(config.appId);
     expect(docsView).toHaveBeenCalledWith('docs');
     expect(view.setSelectFolderEnabled).toHaveBeenLastCalledWith(false);
@@ -110,12 +115,14 @@ describe('optional Google SDK bridge', () => {
     callback({ action: 'cancel' });
     await expect(cancelled).resolves.toBeNull();
     const folder = connection.pick('folder', 'en');
-    expect(docsView).toHaveBeenLastCalledWith('folders');
+    expect(docsView).toHaveBeenLastCalledWith('docs');
+    expect(view.setParent).toHaveBeenLastCalledWith('root');
+    expect(view.setMimeTypes).toHaveBeenLastCalledWith('application/vnd.google-apps.folder');
     expect(view.setSelectFolderEnabled).toHaveBeenLastCalledWith(true);
     expect(builder.setTitle).toHaveBeenLastCalledWith('Choose a save folder');
     expect(builder.setLocale).toHaveBeenLastCalledWith('en');
-    callback({ action: 'picked', docs: [{ id: 'folder-id' }] });
-    await expect(folder).resolves.toBe('folder-id');
+    callback({ action: 'picked', docs: [{ id: 'folder-id', name: 'Maps' }] });
+    await expect(folder).resolves.toEqual({ id: 'folder-id', name: 'Maps' });
   });
   it('loads SDKs once on demand and handles Picker initialization', async () => {
     vi.resetModules();
