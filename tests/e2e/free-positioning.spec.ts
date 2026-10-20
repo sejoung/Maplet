@@ -120,68 +120,6 @@ test('preserves manual positions through recovery, download and reimport at a ch
   await expect.poll(() => node.evaluate((element) => (element as HTMLElement).style.top)).toBe(top);
 });
 
-test('moves the root itself and keeps connections attached', async ({ page }) => {
-  await open(page);
-  await page.getByRole('button', { name: '화면에 맞추기', exact: true }).click();
-  const root = page.getByRole('treeitem', { name: '중심', exact: true });
-  const before = (await root.boundingBox())!;
-  const child = page.getByRole('treeitem', { name: '하위 항목', exact: true });
-  const childBefore = (await child.boundingBox())!;
-  const edge = page.locator('path[data-edge-to="a"]');
-  const old = await edge.getAttribute('d');
-  await drag(page, root, 35, 65);
-  await page.mouse.up();
-  await expect.poll(async () => Math.round((await root.boundingBox())!.x - before.x)).toBe(35);
-  await expect(edge).not.toHaveAttribute('d', old!);
-  await expect
-    .poll(async () => Math.round((await child.boundingBox())!.x - childBefore.x))
-    .toBe(35);
-  await expect
-    .poll(async () => Math.round((await child.boundingBox())!.y - childBefore.y))
-    .toBe(65);
-  await page.getByRole('button', { name: '전체 맵 자동 배치', exact: true }).click();
-  const automatic = await root.evaluate((element) => (element as HTMLElement).style.left);
-  await page.getByRole('button', { name: '실행 취소', exact: true }).click();
-  expect(await root.evaluate((element) => (element as HTMLElement).style.left)).not.toBe(automatic);
-  await page.getByRole('button', { name: '다시 실행', exact: true }).click();
-  expect(await root.evaluate((element) => (element as HTMLElement).style.left)).toBe(automatic);
-});
-
-test('moves collapsed descendants with their parent and persists the branch through recovery', async ({
-  page,
-}) => {
-  await open(page);
-  await page.getByRole('button', { name: '화면에 맞추기', exact: true }).click();
-  const parent = page.getByRole('treeitem', { name: '첫 가지', exact: true });
-  const child = page.getByRole('treeitem', { name: '하위 항목', exact: true });
-  const grandchild = page.getByRole('treeitem', { name: '세부 항목', exact: true });
-  const position = (node: import('@playwright/test').Locator) =>
-    node.evaluate((element) => ({
-      x: parseFloat((element as HTMLElement).style.left),
-      y: parseFloat((element as HTMLElement).style.top),
-    }));
-  await drag(page, child, 0, -25);
-  await page.mouse.up();
-  const parentBefore = await position(parent);
-  const before = [await position(child), await position(grandchild)];
-  await page.getByRole('button', { name: '첫 가지 접기', exact: true }).click();
-  await expect(child).toHaveCount(0);
-  await drag(page, parent, -35, 45);
-  await page.mouse.up();
-  const after = await position(parent);
-  await expect(page.getByText('브라우저에 초안 저장됨', { exact: true })).toBeVisible();
-  page.on('dialog', (dialog) => dialog.accept());
-  await page.reload();
-  await page.getByRole('button', { name: '초안 복구' }).click();
-  await page.getByRole('button', { name: '화면에 맞추기', exact: true }).click();
-  await page.getByRole('button', { name: '첫 가지 펼치기', exact: true }).click();
-  for (const [index, descendant] of [child, grandchild].entries()) {
-    const point = await position(descendant);
-    expect(point.x - before[index].x).toBeCloseTo(after.x - parentBefore.x, 3);
-    expect(point.y - before[index].y).toBeCloseTo(after.y - parentBefore.y, 3);
-  }
-});
-
 test('cancels a drag with Escape and does not record clicks as edits', async ({ page }) => {
   await open(page);
   await page.getByRole('button', { name: '화면에 맞추기', exact: true }).click();

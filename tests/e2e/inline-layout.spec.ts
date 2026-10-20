@@ -1,4 +1,5 @@
 import { test, expect, type Locator } from '@playwright/test';
+import { inspectInlineLayoutMatrix, type InlineLayoutCase } from './support/inline-layout';
 
 async function geometry(node: Locator) {
   return node.evaluate((element) => {
@@ -30,72 +31,32 @@ test('keeps the same node and text area before, during and after editing across 
   await page.setViewportSize({ width: 1280, height: 1100 });
   await page.goto('/');
   const title = '한글과 English (AVATAR), 👨‍👩‍👧‍👦 é  두 칸 공백\n다음 줄\t끝';
-  const failures: unknown[] = [];
+  const ideas: Record<string, unknown> = {};
+  const cases: InlineLayoutCase[] = [];
   for (const fontFamily of ['sans', 'serif', 'mono'])
     for (const fontSize of [12, 15, 20])
       for (const [i, textAlign] of ['left', 'center', 'right'].entries()) {
         const style = { fontFamily, fontSize, textAlign, ...(i % 2 ? {} : { width: 150 }) };
-        await page.locator('input[type=file]').setInputFiles({
-          name: 'inline.mup',
-          mimeType: 'application/json',
-          buffer: Buffer.from(
-            JSON.stringify({
-              formatVersion: 2,
-              id: 'root',
-              title,
-              attr: { style },
-              ideas: { 1: { id: 'child', title, attr: { style } } },
-            }),
-          ),
-        });
-        const node = page.locator(`[data-node-id="${i % 2 ? 'child' : 'root'}"]`);
-        // Imports are asynchronous and reuse node IDs; wait for the new document before focus.
-        await expect(node).toHaveCSS('text-align', textAlign);
-        await expect(node).toHaveCSS('font-size', `${fontSize}px`);
-        await node.focus();
-        await expect(node).toHaveAttribute('aria-selected', 'true');
-        // Let the imported document's initial viewport fit finish before measuring editing changes.
-        await page.evaluate(
-          () =>
-            new Promise<void>((resolve) =>
-              requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
-            ),
-        );
-        const before = await geometry(node);
-        await node.press('F2');
-        const input = page.getByRole('textbox', { name: '노드 제목' });
-        await expect(input).toBeFocused();
-        await expect(input).toHaveValue(title);
-        const during = await geometry(node);
-        if (JSON.stringify(before) !== JSON.stringify(during))
-          failures.push({ style, before, during });
-        const nativeHeight = await input.evaluate((element) => {
-          const input = element as HTMLTextAreaElement;
-          const probe = input.cloneNode() as HTMLTextAreaElement;
-          probe.value = input.value;
-          probe.rows = 1;
-          Object.assign(probe.style, {
-            position: 'absolute',
-            visibility: 'hidden',
-            width: `${input.clientWidth}px`,
-            height: '0px',
-          });
-          input.parentElement!.append(probe);
-          const result = {
-            actual: probe.scrollHeight,
-            expected: input.clientHeight,
-            horizontalOverflow: input.scrollWidth > input.clientWidth,
-          };
-          probe.remove();
-          return result;
-        });
-        if (nativeHeight.actual !== nativeHeight.expected || nativeHeight.horizontalOverflow)
-          failures.push({ style, nativeHeight });
-        await input.press('Escape');
-        const after = await geometry(node);
-        if (JSON.stringify(before) !== JSON.stringify(after))
-          failures.push({ style, before, after });
+        const index = cases.length + 1;
+        const root = `root-${index}`,
+          child = `child-${index}`;
+        ideas[String(index)] = {
+          id: root,
+          title,
+          attr: { style },
+          ideas: { 1: { id: child, title, attr: { style } } },
+        };
+        cases.push({ id: i % 2 ? child : root, style });
       }
+  expect(cases).toHaveLength(27);
+  await page.locator('input[type=file]').setInputFiles({
+    name: 'inline-matrix.mup',
+    mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify({ formatVersion: 3, ideas })),
+  });
+  await expect(page.getByRole('treeitem')).toHaveCount(cases.length * 2);
+  await page.evaluate(() => document.fonts.ready);
+  const failures = await page.evaluate(inspectInlineLayoutMatrix, { cases, title });
   expect(failures).toEqual([]);
 });
 
