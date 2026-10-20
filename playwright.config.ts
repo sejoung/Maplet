@@ -2,6 +2,13 @@ import { defineConfig, devices } from '@playwright/test';
 import { join } from 'node:path';
 
 const results = process.env.MAPLET_TEST_RUN_DIR ?? 'test-results/unmanaged/e2e';
+const driveBehavior = [
+  '**/drive-autosave.spec.ts',
+  '**/drive-batching.spec.ts',
+  '**/drive-merge.spec.ts',
+  '**/drive-resume.spec.ts',
+  '**/drive-session.spec.ts',
+];
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -26,9 +33,21 @@ export default defineConfig({
     },
   },
   projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
-    { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
-    { name: 'webkit', use: { ...devices['Desktop Safari'] } },
-    { name: 'mobile', use: { ...devices['iPhone 13'] } },
+    {
+      name: 'drive-contract',
+      testMatch: '**/drive.spec.ts',
+      use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'drive-behavior',
+      testMatch: driveBehavior,
+      use: { ...devices['Desktop Chrome'] },
+    },
+    ...[
+      { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+      { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
+      { name: 'webkit', use: { ...devices['Desktop Safari'] } },
+      { name: 'mobile', use: { ...devices['iPhone 13'] } },
+    ].map((project) => ({ ...project, testIgnore: ['**/drive.spec.ts', ...driveBehavior] })),
   ],
 });

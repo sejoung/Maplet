@@ -1,6 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import { mockGoogle } from './support/google';
+import { seedDriveWorkspace } from './support/drive-seed';
 
 async function setup(page: Page, native = false, inDestination = true) {
   await mockGoogle(page);
@@ -17,6 +18,16 @@ async function setup(page: Page, native = false, inDestination = true) {
     const request = route.request(),
       url = new URL(request.url());
     const headers = { ETag: `"v${version}"`, 'Access-Control-Expose-Headers': 'ETag' };
+    if (url.pathname.endsWith('/chosen-folder'))
+      return route.fulfill({
+        contentType: 'application/json',
+        body: JSON.stringify({
+          id: 'chosen-folder',
+          name: 'Maplet 작업 폴더',
+          mimeType: 'application/vnd.google-apps.folder',
+          capabilities: { canAddChildren: true },
+        }),
+      });
     if (url.pathname.endsWith('/generateIds'))
       return route.fulfill({
         contentType: 'application/json',
@@ -67,12 +78,19 @@ async function setup(page: Page, native = false, inDestination = true) {
           }),
     });
   });
+  const file = {
+    id: 'chosen-file',
+    name: native ? 'source.maplet' : 'source.mup',
+    version: '1',
+    etag: '"v1"',
+    parents: [inDestination ? 'chosen-folder' : 'another-folder'],
+  };
+  await seedDriveWorkspace(page, {
+    folder: { id: 'chosen-folder', name: 'Maplet 작업 폴더' },
+    file: native && inDestination ? file : null,
+    source: native && inDestination ? null : file,
+  });
   await page.goto('/');
-  await page.getByRole('button', { name: 'Google Drive 연결', exact: true }).click();
-  await page.getByRole('button', { name: '저장 위치 선택', exact: true }).click();
-  await page.getByRole('button', { name: '테스트 폴더 선택', exact: true }).click();
-  await page.getByRole('button', { name: 'Drive에서 열기', exact: true }).click();
-  await page.getByRole('button', { name: '테스트 파일 선택', exact: true }).click();
   await expect(
     page.getByRole('treeitem', { name: native ? 'Maplet document' : 'MUP source', exact: true }),
   ).toBeVisible();

@@ -1,6 +1,7 @@
 import { expect, type Page } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import { mockGoogle } from './google';
+import { seedDriveWorkspace } from './drive-seed';
 
 export async function setupDriveWorkspace(
   page: Page,
@@ -114,15 +115,26 @@ export async function setupDriveWorkspace(
           }),
     });
   });
+  await seedDriveWorkspace(page, {
+    folder: { id: 'chosen-folder', name: 'Maplet 작업 폴더' },
+    file: openFile
+      ? {
+          id: 'chosen-file',
+          name: state.name,
+          version: '1',
+          etag: validators === 'all' || validators === 'upload-missing' ? '"v1"' : null,
+          parents: ['chosen-folder'],
+        }
+      : null,
+    source: null,
+  });
   await page.goto('/');
-  await page.getByRole('button', { name: 'Google Drive 연결', exact: true }).click();
-  await page.getByRole('button', { name: '저장 위치 선택', exact: true }).click();
-  await page.getByRole('button', { name: '테스트 폴더 선택', exact: true }).click();
+  await expect(
+    page.getByRole('button', { name: 'Google Drive 연결됨', exact: true }),
+  ).toBeEnabled();
   if (openFile) {
-    await page.getByRole('button', { name: 'Drive에서 열기', exact: true }).click();
-    await page.getByRole('button', { name: '테스트 파일 선택', exact: true }).click();
     await expect(page.getByRole('treeitem', { name: 'Drive original', exact: true })).toBeVisible();
-  } else await page.getByRole('button', { name: '대화상자 닫기', exact: true }).click();
+  }
   page.on('dialog', (dialog) => dialog.accept());
   return { state, root };
 }

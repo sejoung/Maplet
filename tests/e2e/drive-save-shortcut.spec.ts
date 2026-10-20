@@ -136,6 +136,9 @@ test('requires explicit reconnection after refresh before saving with the shortc
   const { state } = await setupDriveWorkspace(page);
   await page.clock.runFor(300);
   await page.reload();
+  await expect(page.getByRole('status', { name: 'Drive 동기화 상태', exact: true })).toHaveText(
+    '다시 연결 필요',
+  );
   await page.keyboard.press(shortcut);
   await expect(page.getByRole('dialog', { name: 'Google Drive', exact: true })).toBeVisible();
   await page.getByRole('button', { name: '다시 연결', exact: true }).click();

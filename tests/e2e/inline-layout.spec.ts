@@ -49,6 +49,9 @@ test('keeps the same node and text area before, during and after editing across 
           ),
         });
         const node = page.locator(`[data-node-id="${i % 2 ? 'child' : 'root'}"]`);
+        // Imports are asynchronous and reuse node IDs; wait for the new document before focus.
+        await expect(node).toHaveCSS('text-align', textAlign);
+        await expect(node).toHaveCSS('font-size', `${fontSize}px`);
         await node.focus();
         await expect(node).toHaveAttribute('aria-selected', 'true');
         // Let the imported document's initial viewport fit finish before measuring editing changes.

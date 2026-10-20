@@ -24,6 +24,16 @@ Vitest는 기본적으로 Node 환경에서 실행한다. DOM·브라우저 저�
 
 E2E는 실행마다 `scripts/serve-e2e.mjs`로 앱을 한 번 빌드한 뒤 Vite preview로 제공한다. 페이지마다 개발 서버의 소스 모듈을 다시 읽는 비용을 줄이고 배포용 번들을 검증한다. 빌드는 해당 실행의 `site/`에 저장해 기존 `dist/`와 분리하며, 4173 포트의 기존 서버를 재사용하지 않으므로 테스트 시작 전 이 포트를 비워 둔다. 네 브라우저 환경·실패 trace·결과 reporter는 유지한다. 기본 worker 수는 로컬 CPU의 75%, CI에서는 2개이며 `npm run test:e2e -- --workers=4`처럼 덮어쓸 수 있다.
 
+Drive 연결·Picker·브라우저 HTTP 계약은 `drive-contract` 프로젝트에서 Chromium으로 한 번 실행한다. 자동 저장·버퍼링·병합·재시도·세션·복구의 상태 조합은 `drive-behavior` 프로젝트에서 Chromium으로 한 번 검증한다. 이 시나리오들은 `seedDriveWorkspace` 픽스처로 폴더·파일 메타데이터를 준비하고, 테스트 전용 초기화 모듈에서 모킹된 Google SDK로 메모리 인증을 완료한 뒤 앱을 시작한다. 각 테스트의 Drive HTTP 더블과 브라우저 저장소는 독립적이며, 새로고침 때는 픽스처 인증을 반복하지 않아 재연결·초안 복구 검사를 유지한다.
+
+저장 버튼·단축키·동기화 상태·충돌 선택 UI는 같은 픽스처를 사용해 네 브라우저에서 검증한다. Drive 상태 조합 전체의 교차 브라우저 반복을 줄이면서 UI 호환성 검사를 남기는 구성이다. 테스트 전용 초기화 모듈은 E2E 빌드에만 포함되고 `npm run build`의 `dist/`에는 들어가지 않는다.
+
+```sh
+npm run test:e2e -- --project=drive-contract
+npm run test:e2e -- --project=drive-behavior
+npm run test:e2e -- --project=chromium
+```
+
 ## 테스트 결과
 
 위 npm 명령은 매번 `test-results/2026-10-17T14-41-40-254Z-unit-고유값/`처럼 UTC 시각·테스트 종류·고유값으로 별도 폴더를 만든다. 같은 시각에 병렬 실행해도 겹치지 않고 이전 결과는 보존한다. `npm run verify`의 테스트 결과 종류는 coverage다.
