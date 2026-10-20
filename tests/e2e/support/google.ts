@@ -11,7 +11,7 @@ export async function mockGoogle(page: Page) {
         root.dataset.authorizations = String(Number(root.dataset.authorizations || 0) + 1);
         config.callback({ access_token: 'browser-test-token', expires_in: 3600 });
       } }),
-      revoke: (_token, callback) => callback()
+      revoke: (_token, callback) => callback({ successful: true })
     } } };`,
     }),
   );

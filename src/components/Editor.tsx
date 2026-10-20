@@ -56,6 +56,7 @@ export interface EditorProps
   driveSaveStatus: string | null;
   onDismissError(): void;
   onDismissNotice(): void;
+  draftPrivacy?: { enabled: boolean; busy: boolean; change(enabled: boolean): void };
 }
 export function Editor(props: EditorProps) {
   const { t } = useI18n();
@@ -341,7 +342,7 @@ export function Editor(props: EditorProps) {
           <LanguageSwitcher />
         </div>
       </footer>
-      {settingsOpen && <SettingsDialog onClose={closeSettings} />}
+      {settingsOpen && <SettingsDialog onClose={closeSettings} draftPrivacy={props.draftPrivacy} />}
       {tool && (
         <NodeToolsDialog
           key={`${tool}:${selected}`}

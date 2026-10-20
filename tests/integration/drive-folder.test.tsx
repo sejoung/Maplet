@@ -121,7 +121,7 @@ it('retains the chosen folder across local document changes and waits for an edi
 it('does not resume an old file target after disconnecting', async () => {
   const { result, options, rerender } = await setup();
   await act(async () => result.current.saveDrive());
-  act(() => result.current.disconnect());
+  await act(async () => result.current.disconnect());
   expect(result.current.saveFolder).toBeNull();
   expect(result.current.driveFile).toBeNull();
   expect(result.current.connected).toBe(false);

@@ -3,16 +3,16 @@ import { setupDriveWorkspace, renameRoot, waitForDriveResume } from './support/d
 
 const sessionKey = 'maplet:drive-session:public-test-client';
 
-test('asks for reconnection only after the remembered authentication expires', async ({ page }) => {
+test('never stores credentials and asks for reconnection after every refresh', async ({ page }) => {
   const { state } = await setupDriveWorkspace(page);
-  await page.evaluate((key) => {
-    const session = JSON.parse(sessionStorage.getItem(key)!);
-    session.expiresAt = Date.now() - 1;
-    sessionStorage.setItem(key, JSON.stringify(session));
-  }, sessionKey);
+  const reads = state.reads.length;
+  expect(
+    await page.evaluate(() => JSON.stringify({ ...localStorage, ...sessionStorage })),
+  ).not.toContain('browser-test-token');
   await page.reload();
   await expect(page.locator('.save-status')).toContainText('Drive 다시 연결 필요');
   await expect(page.locator('html')).not.toHaveAttribute('data-authorizations');
+  expect(state.reads).toHaveLength(reads);
   expect(await page.evaluate((key) => sessionStorage.getItem(key), sessionKey)).toBeNull();
   await page.getByRole('button', { name: 'Google Drive 연결', exact: true }).click();
   await expect(page.getByRole('dialog')).toContainText('Maplet 작업 폴더');
@@ -30,19 +30,22 @@ test('clears a revoked session without opening a login popup or retrying automat
 }) => {
   const { state } = await setupDriveWorkspace(page);
   state.authStatus = 401;
-  await page.reload();
+  await renameRoot(page, 'Unauthorized local edit');
+  await page.clock.runFor(1600);
   await expect(page.getByRole('button', { name: 'Google Drive 연결', exact: true })).toBeEnabled();
-  await expect(page.locator('.save-status')).toContainText('Drive 다시 연결 필요');
+  await expect(page.locator('.save-status')).toContainText('Drive 자동 저장 중지');
   expect(await page.evaluate((key) => sessionStorage.getItem(key), sessionKey)).toBeNull();
   await page.clock.runFor(6000);
-  await expect(page.locator('html')).not.toHaveAttribute('data-authorizations');
+  await expect(page.locator('html')).toHaveAttribute('data-authorizations', '1');
   await expect(page.getByRole('dialog')).toHaveCount(0);
   expect(state.updates).toHaveLength(0);
   state.authStatus = 200;
   await page.getByRole('button', { name: 'Google Drive 연결', exact: true }).click();
   await page.getByRole('button', { name: '다시 연결', exact: true }).click();
   await waitForDriveResume(page);
-  await expect(page.getByRole('treeitem', { name: 'Drive original', exact: true })).toBeVisible();
+  await expect(
+    page.getByRole('treeitem', { name: 'Unauthorized local edit', exact: true }),
+  ).toBeVisible();
 });
 
 test('waits for the recovery decision before accessing or restoring a remembered Drive document', async ({
@@ -65,10 +68,10 @@ test('waits for the recovery decision before accessing or restoring a remembered
   ).toBeVisible();
   await page.clock.runFor(1600);
   await expect.poll(() => state.updates.length).toBe(1);
-  await expect(page.locator('html')).not.toHaveAttribute('data-authorizations');
+  await expect(page.locator('html')).toHaveAttribute('data-authorizations', '1');
 });
 
-test('keeps edits made while automatic restoration is waiting for Drive', async ({ page }) => {
+test('keeps edits made while explicit restoration is waiting for Drive', async ({ page }) => {
   const { state } = await setupDriveWorkspace(page);
   await page.clock.runFor(300);
   let release!: () => void;
@@ -89,7 +92,10 @@ test('keeps edits made while automatic restoration is waiting for Drive', async 
     { times: 1 },
   );
   await page.reload();
+  await page.getByRole('button', { name: 'Google Drive 연결', exact: true }).click();
+  await page.getByRole('button', { name: '다시 연결', exact: true }).click();
   await requested;
+  await page.getByRole('button', { name: '대화상자 닫기', exact: true }).click();
   await renameRoot(page, 'Typing while connecting');
   release();
   await expect(
@@ -114,4 +120,40 @@ test('does not restore an explicitly disconnected session after another refresh'
   await expect(page.getByRole('button', { name: 'Google Drive 연결', exact: true })).toBeEnabled();
   await expect(page.locator('html')).not.toHaveAttribute('data-authorizations');
   await expect(page.locator('.save-status')).not.toContainText('Drive');
+});
+
+test('keeps authentication on a file permission error and allows retry without another login', async ({
+  page,
+}) => {
+  const { state } = await setupDriveWorkspace(page);
+  state.authStatus = 403;
+  await renameRoot(page, 'Permission denied work');
+  await page.clock.runFor(1600);
+  await expect(
+    page.getByRole('button', { name: 'Google Drive 연결됨', exact: true }),
+  ).toBeEnabled();
+  await page.getByRole('button', { name: 'Google Drive 연결됨', exact: true }).click();
+  await expect(page.getByRole('alert')).toContainText('공유 권한과 저장 위치');
+  state.authStatus = 200;
+  await page.getByRole('dialog').getByRole('button', { name: 'Drive에 저장', exact: true }).click();
+  await expect.poll(() => state.updates.length).toBe(1);
+  await expect(page.locator('html')).toHaveAttribute('data-authorizations', '1');
+});
+
+test('clears local authentication even if Google refuses revocation and provides account permissions', async ({
+  page,
+}) => {
+  await setupDriveWorkspace(page);
+  await page.evaluate(() => {
+    window.google!.accounts.oauth2.revoke = (_token, callback) => callback({ successful: false });
+  });
+  await page.getByRole('button', { name: 'Google Drive 연결됨', exact: true }).click();
+  await page.getByRole('button', { name: '연결 해제', exact: true }).click();
+  await expect(page.getByRole('alert')).toContainText('Google 권한 철회를 확인하지 못했습니다');
+  await expect(page.getByRole('link', { name: 'Google 계정 앱 권한 관리' })).toHaveAttribute(
+    'href',
+    'https://myaccount.google.com/permissions',
+  );
+  await expect(page.getByRole('button', { name: 'Google Drive 연결', exact: true })).toBeEnabled();
+  await expect(page.getByRole('button', { name: '다시 연결', exact: true })).toHaveCount(0);
 });

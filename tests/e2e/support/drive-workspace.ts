@@ -133,6 +133,12 @@ export async function renameRoot(page: Page, title: string) {
   await editor.press('Enter');
 }
 export async function waitForDriveResume(page: Page) {
+  await expect(page.getByRole('button', { name: /^Google Drive 연결(됨)?$/ })).toBeEnabled();
+  const disconnected = page.getByRole('button', { name: 'Google Drive 연결', exact: true });
+  if (await disconnected.count()) {
+    await disconnected.click();
+    await page.getByRole('button', { name: '다시 연결', exact: true }).click();
+  }
   await expect(page.locator('.save-status')).not.toContainText('Drive 다시 연결 필요');
   await expect(
     page.getByRole('button', { name: 'Google Drive 연결됨', exact: true }),

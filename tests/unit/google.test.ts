@@ -6,7 +6,7 @@ function sdk(
   result: object = { access_token: 'memory-only', expires_in: 3600 },
   popupError = false,
 ) {
-  const revoke = vi.fn();
+  const revoke = vi.fn((_token, callback) => callback({ successful: true }));
   const initTokenClient = vi.fn((options) => ({
     requestAccessToken: vi.fn(() =>
       popupError ? options.error_callback() : options.callback(result),
@@ -27,7 +27,7 @@ afterEach(() => {
 });
 
 describe('optional Google SDK bridge', () => {
-  it('requests only drive.file, keeps the token in the tab session, expires it, and disconnects', async () => {
+  it('requests only drive.file, keeps the token only in memory, expires it, and disconnects', async () => {
     vi.useFakeTimers();
     const { initTokenClient, revoke } = sdk();
     const connection = new GoogleConnection(config);
@@ -43,10 +43,11 @@ describe('optional Google SDK bridge', () => {
     await connection.connect();
     vi.advanceTimersByTime(3600_000);
     expect(connection.getToken()).toBeNull();
-    connection.disconnect();
+    await connection.connect();
+    await connection.disconnect();
     expect(revoke).toHaveBeenCalledWith('memory-only', expect.any(Function));
     expect(connection.getToken()).toBeNull();
-    connection.disconnect();
+    await connection.disconnect();
     expect(revoke).toHaveBeenCalledOnce();
     expect(JSON.stringify(localStorage)).not.toContain('memory-only');
     expect(sessionStorage.getItem('maplet:drive-session:public-client')).toBeNull();

@@ -1,5 +1,8 @@
 import { DriveClient } from '../adapters/drive/client';
 import { GoogleConnection, type GoogleConfig } from '../adapters/drive/google';
+import { clearDriveSession } from '../adapters/drive/session';
+
+clearDriveSession();
 
 export const config: GoogleConfig = {
   clientId: import.meta.env.VITE_GOOGLE_CLIENT_ID ?? '',

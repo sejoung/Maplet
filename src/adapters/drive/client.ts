@@ -16,7 +16,7 @@ export class DriveConflict extends Error {
 export class DriveAuthError extends Error {
   constructor() {
     super(
-      'Google Drive 연결이 만료되었거나 취소되었습니다. 다시 연결해 주세요. 로컬 초안은 유지됩니다.',
+      'Google Drive 연결이 만료되었거나 취소되었습니다. 다시 연결해 주세요. 현재 편집은 유지됩니다.',
     );
   }
 }
@@ -24,6 +24,14 @@ export class DriveAuthError extends Error {
 export class DriveRequestError extends Error {
   constructor(readonly status: number) {
     super(`Drive 요청이 실패했습니다 (${status}). 로컬 사본은 유지됩니다.`);
+  }
+}
+
+export class DrivePermissionError extends Error {
+  constructor() {
+    super(
+      '이 파일 또는 폴더에 접근할 수 없거나 Drive 요청이 제한되었습니다. 공유 권한과 저장 위치를 확인해 주세요. 현재 편집은 유지됩니다.',
+    );
   }
 }
 
@@ -56,7 +64,8 @@ export class DriveClient {
     } finally {
       clearTimeout(timeout);
     }
-    if (response.status === 401 || response.status === 403) throw new DriveAuthError();
+    if (response.status === 401) throw new DriveAuthError();
+    if (response.status === 403) throw new DrivePermissionError();
     if (response.status === 412) throw new DriveConflict();
     if (!response.ok) throw new DriveRequestError(response.status);
     return response;

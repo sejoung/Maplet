@@ -11,10 +11,9 @@ import { type DriveBaseline } from './driveMerge';
 import { useDriveAutosave } from './useDriveAutosave';
 import { useDriveStartup } from './useDriveStartup';
 import { parseDriveBaseline } from '../adapters/storage/drive-baseline';
-
+import { driveDisconnect } from './driveDisconnect';
 import { config, google, drive } from './driveConnection';
 import type { DriveOptions } from './DriveOptions';
-
 export function useDrive({
   content,
   filename,
@@ -97,9 +96,8 @@ export function useDrive({
     const current = () =>
       operation === generation.current &&
       savedDocument === latestDocument.current &&
-      (!automatic ||
-        keepLocal ||
-        (!latestWork.current.hasLocalWork &&
+      (keepLocal ||
+        (latestWork.current.hasLocalWork === hasLocalWork &&
           latestWork.current.content === content &&
           latestWork.current.filename === filename));
     inFlight.current = true;
@@ -156,7 +154,7 @@ export function useDrive({
         setSourceFile(workspace.source);
         setPending(null);
         setDialog('conflict');
-        setDriveStatus('충돌 · 로컬 초안 유지');
+        setDriveStatus('충돌 · 현재 편집 유지');
       } else fail(reason, !automatic);
     } finally {
       inFlight.current = false;
@@ -351,14 +349,18 @@ export function useDrive({
     setAutoPaused(false);
     setDriveError(null);
   };
-  const disconnect = () => {
-    google?.disconnect();
-    setConnected(false);
-    setSaveFolder(null);
-    clearFile();
-    setDriveStatus('연결 해제됨');
-    setDriveError(null);
-  };
+  const disconnect = driveDisconnect(
+    google,
+    () => {
+      setConnected(false);
+      setSaveFolder(null);
+      clearFile();
+      setDriveStatus('연결 해제됨');
+      setDriveError(null);
+    },
+    setBusy,
+    setDriveError,
+  );
   return {
     dialog,
     closeDialog,
@@ -394,5 +396,4 @@ export function useDrive({
     clearFile,
   };
 }
-
 export type DriveController = ReturnType<typeof useDrive>;

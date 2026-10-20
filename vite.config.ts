@@ -7,6 +7,7 @@ const results = process.env.MAPLET_TEST_RUN_DIR ?? 'test-results/unmanaged/unit'
 export default defineConfig({
   plugins: [react()],
   base: './',
+  server: { strictPort: true },
   test: {
     environment: 'jsdom',
     include: ['tests/**/*.test.{ts,tsx}'],

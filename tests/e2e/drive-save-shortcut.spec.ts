@@ -130,18 +130,20 @@ test('shows conflicts and keeps local work when the shortcut encounters a change
   ).toBeVisible();
 });
 
-test('saves to Drive immediately after refresh without loading the Google SDK again', async ({
+test('requires explicit reconnection after refresh before saving with the shortcut', async ({
   page,
 }) => {
   const { state } = await setupDriveWorkspace(page);
   await page.clock.runFor(300);
   await page.reload();
+  await page.keyboard.press(shortcut);
+  await expect(page.getByRole('dialog', { name: 'Google Drive', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: '다시 연결', exact: true }).click();
   await waitForDriveResume(page);
   await renameRoot(page, 'After refresh shortcut');
   await page.keyboard.press(shortcut);
   await expect.poll(() => state.updates.length).toBe(1);
-  await expect(page.locator('html')).not.toHaveAttribute('data-authorizations');
-  expect(await page.locator('script[src^="https://accounts.google.com"]').count()).toBe(0);
+  await expect(page.locator('html')).toHaveAttribute('data-authorizations', '1');
 });
 
 test('asks for a save folder rather than downloading when authorization has no destination', async ({

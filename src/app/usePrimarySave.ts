@@ -33,7 +33,7 @@ export function usePrimarySave(drive: DriveController, download: () => void, doc
           busy: drive.busy,
           saving: drive.driveStatus === 'Drive 저장 중…',
           paused: drive.autoSaveStatus === 'Drive 자동 저장 중지',
-          conflict: drive.driveStatus === '충돌 · 로컬 초안 유지',
+          conflict: drive.driveStatus === '충돌 · 현재 편집 유지',
           dirty: drive.driveDirty,
           hasFile: Boolean(drive.driveFile),
         })

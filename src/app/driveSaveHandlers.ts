@@ -75,14 +75,14 @@ export function driveSaveHandlers(state: State) {
       state.setAutoPaused(true);
       if (reason instanceof DriveConflict) {
         state.setDialog('conflict');
-        state.setDriveStatus('충돌 · 로컬 초안 유지');
+        state.setDriveStatus('충돌 · 현재 편집 유지');
       } else {
         state.fail(reason, !automatic);
         if (automatic)
           state.setNotice(
-            'Drive 자동 저장이 중지되었습니다. Google Drive에서 다시 저장해 주세요. 로컬 초안은 유지됩니다.',
+            'Drive 자동 저장이 중지되었습니다. Google Drive에서 다시 저장해 주세요. 현재 편집은 유지됩니다.',
           );
-        state.setDriveStatus('저장 실패 · 로컬 초안 유지');
+        state.setDriveStatus('저장 실패 · 현재 편집 유지');
       }
     },
   };

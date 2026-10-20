@@ -30,6 +30,7 @@ import { usePrimarySave } from './usePrimarySave';
 import { mergeHistory } from '../application/merge-history';
 import { parseMaplet } from '../adapters/maplet/codec';
 import { useEditorShortcuts } from './useEditorShortcuts';
+import { useDraftPrivacy } from './useDraftPrivacy';
 
 const drafts = new DraftStore();
 
@@ -47,7 +48,10 @@ export function App() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [draftStatus, setDraftStatus] = useState('이 기기에만 보관');
+  const [draftStatus, setDraftStatus] = useState(
+    drafts.enabled ? '이 기기에만 보관' : '기기 초안 보관 꺼짐',
+  );
+  const draftPrivacy = useDraftPrivacy(drafts, setDraftStatus, setError);
   const [recoveryReady, setRecoveryReady] = useState(false);
   const [recovery, setRecovery] = useState<Draft | null>(null);
   const [dialog, setDialog] = useState<'new' | 'help' | null>(null);
@@ -255,7 +259,7 @@ export function App() {
       drive: driveState.draftWorkspace,
       driveBaseline: driveState.draftBaseline,
     },
-    recoveryReady && !recovery && hasWork.current,
+    recoveryReady && !recovery && hasWork.current && draftPrivacy.enabled,
     setDraftStatus,
     setError,
   );
@@ -265,6 +269,7 @@ export function App() {
   return (
     <>
       <Editor
+        draftPrivacy={draftPrivacy}
         map={map}
         selected={selectedId}
         filename={filename}

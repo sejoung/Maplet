@@ -45,6 +45,20 @@
 .settings-hint {
   margin-top: 12px;
 }
+
+.draft-privacy {
+  margin-top: 24px;
+}
+.draft-privacy label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.draft-privacy input[type='checkbox'] {
+  width: auto;
+  min-height: 0;
+  flex: 0 0 auto;
+}
 .tool-selection {
   color: #5d6864;
   overflow: hidden;

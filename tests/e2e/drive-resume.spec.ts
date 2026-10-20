@@ -118,14 +118,12 @@ test('checks the remote version before renaming a Drive file', async ({ page }) 
   await expect(page.getByLabel('저장하지 않은 변경', { exact: true })).toBeVisible();
 });
 
-test('automatically restores the folder and file after reload without reauthorization', async ({
-  page,
-}) => {
+test('restores the remembered folder and file after explicit reconnection', async ({ page }) => {
   const { state, root } = await setup(page);
   await page.clock.runFor(300);
   await page.reload();
   await reconnect(page);
-  await expect(page.locator('html')).not.toHaveAttribute('data-authorizations');
+  await expect(page.locator('html')).toHaveAttribute('data-authorizations', '1');
   await expect(page.getByRole('treeitem', { name: 'Drive original', exact: true })).toBeVisible();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   expect(state.updates).toHaveLength(0);
@@ -135,7 +133,7 @@ test('automatically restores the folder and file after reload without reauthoriz
   await expect.poll(() => state.updates.length).toBe(1);
   expect(JSON.parse(state.updates[0]).nodes[root].title).toBe('Edit after reload');
   expect(state.creates).toHaveLength(0);
-  await expect(page.locator('html')).not.toHaveAttribute('data-authorizations');
+  await expect(page.locator('html')).toHaveAttribute('data-authorizations', '1');
   const stored = await page.evaluate(() => JSON.stringify({ ...localStorage }));
   expect(stored).not.toContain('browser-test-token');
   expect(stored).not.toContain('Edit after reload');
@@ -218,7 +216,8 @@ test('keeps autosave paused if the remembered folder is unavailable', async ({ p
   state.folderAvailable = false;
   await page.reload();
   await expect(page.locator('.save-status')).toContainText('Drive 다시 연결 필요');
-  await page.getByRole('button', { name: 'Google Drive 연결됨', exact: true }).click();
+  await page.getByRole('button', { name: 'Google Drive 연결', exact: true }).click();
+  await page.getByRole('button', { name: '다시 연결', exact: true }).click();
   await expect(page.getByRole('alert')).toContainText('404');
   await expect(
     page

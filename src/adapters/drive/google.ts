@@ -1,5 +1,5 @@
 import { translate, type Language } from '../../i18n/core';
-import { clearDriveSession, readDriveSession, writeDriveSession } from './session';
+import { clearDriveSession } from './session';
 
 export interface GoogleConfig {
   clientId: string;
@@ -50,7 +50,10 @@ interface GoogleApi {
         callback: (result: TokenResponse) => void;
         error_callback: () => void;
       }): { requestAccessToken(options: { prompt: string }): void };
-      revoke(token: string, callback: () => void): void;
+      revoke(
+        token: string,
+        callback: (result: { successful: boolean; error?: string }) => void,
+      ): void;
     };
   };
   picker: {
@@ -110,20 +113,21 @@ function script(src: string): Promise<void> {
 export class GoogleConnection {
   private token: string | null = null;
   private expiresAt = 0;
+  private generation = 0;
   constructor(readonly config: GoogleConfig) {
-    const session = readDriveSession(config.clientId);
-    this.token = session?.token ?? null;
-    this.expiresAt = session?.expiresAt ?? 0;
+    clearDriveSession();
   }
   getToken = (): string | null => {
     if (Date.now() < this.expiresAt) return this.token;
-    clearDriveSession(this.config.clientId);
+    this.token = null;
+    this.expiresAt = 0;
     return null;
   };
   clearToken(): void {
+    this.generation++;
     this.token = null;
     this.expiresAt = 0;
-    clearDriveSession(this.config.clientId);
+    clearDriveSession();
   }
 
   async prepare(): Promise<void> {
@@ -143,18 +147,22 @@ export class GoogleConnection {
 
   async connect(): Promise<void> {
     if (!window.google?.accounts) throw new Error('Google 연결 준비 후 다시 눌러 주세요.');
+    const generation = ++this.generation;
     await new Promise<void>((resolve, reject) => {
       const client = window.google!.accounts.oauth2.initTokenClient({
         client_id: this.config.clientId,
         scope: 'https://www.googleapis.com/auth/drive.file',
         callback: (result) => {
+          if (generation !== this.generation) {
+            reject(new Error('Google Drive 연결 요청이 취소되었습니다.'));
+            return;
+          }
           if (result.error || !result.access_token) {
             reject(new Error('Google Drive 권한이 취소되었습니다.'));
             return;
           }
           this.token = result.access_token;
           this.expiresAt = Date.now() + Math.max(0, (result.expires_in ?? 3600) - 30) * 1000;
-          writeDriveSession(this.config.clientId, { token: this.token, expiresAt: this.expiresAt });
           resolve();
         },
         error_callback: () => reject(new Error('Google 로그인 창이 닫혔거나 차단되었습니다.')),
@@ -196,8 +204,32 @@ export class GoogleConnection {
     });
   }
 
-  disconnect(): void {
-    if (this.token) window.google?.accounts.oauth2.revoke(this.token, () => {});
+  async disconnect(): Promise<void> {
+    const token = this.getToken();
     this.clearToken();
+    if (!token) return;
+    try {
+      if (!window.google?.accounts?.oauth2) {
+        scripts.delete('https://accounts.google.com/gsi/client');
+        await script('https://accounts.google.com/gsi/client');
+      }
+      await new Promise<void>((resolve, reject) => {
+        const timer = window.setTimeout(() => reject(new Error('revoke timeout')), 10000);
+        try {
+          window.google!.accounts.oauth2.revoke(token, (result) => {
+            clearTimeout(timer);
+            if (result?.successful) resolve();
+            else reject(new Error('revoke failed'));
+          });
+        } catch (error) {
+          clearTimeout(timer);
+          reject(error);
+        }
+      });
+    } catch {
+      throw new Error(
+        '이 기기의 연결은 해제했지만 Google 권한 철회를 확인하지 못했습니다. Google 계정에서 앱 권한을 해제해 주세요.',
+      );
+    }
   }
 }

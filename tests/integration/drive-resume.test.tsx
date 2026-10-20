@@ -214,7 +214,7 @@ it('does not restore an old target after creating another document or explicitly
   expect(api.create).not.toHaveBeenCalled();
   expect(api.open).not.toHaveBeenCalled();
   expect(options.replace).not.toHaveBeenCalled();
-  act(() => result.current.disconnect());
+  await act(async () => result.current.disconnect());
   expect(readDriveWorkspace('client')).toBeNull();
   act(() => result.current.restoreDraftWorkspace(workspace));
   expect(result.current.saveFolder).toBeNull();

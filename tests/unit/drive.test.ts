@@ -1,5 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
-import { DriveClient, DriveConflict, DriveAuthError } from '../../src/adapters/drive/client';
+import {
+  DriveClient,
+  DriveConflict,
+  DriveAuthError,
+  DrivePermissionError,
+  DriveRequestError,
+} from '../../src/adapters/drive/client';
 
 const response = (body: unknown, etag = '"v1"', status = 200) =>
   new Response(typeof body === 'string' ? body : JSON.stringify(body), {
@@ -121,7 +127,9 @@ describe('Drive transport contracts', () => {
         () => 'token',
         vi.fn().mockResolvedValue(response('error', '', status)),
       );
-      await expect(client.open('x')).rejects.toThrow();
+      await expect(client.open('x')).rejects.toBeInstanceOf(
+        status === 401 ? DriveAuthError : status === 403 ? DrivePermissionError : DriveRequestError,
+      );
     }
     const large = new DriveClient(
       () => 'token',

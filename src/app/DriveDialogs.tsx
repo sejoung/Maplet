@@ -63,6 +63,11 @@ export function DriveDialogs({ controller, save }: { controller: DriveController
             </>
           ) : (
             <>
+              <p className="muted">
+                {t(
+                  '보안을 위해 새로고침 후에는 Drive에 다시 연결해야 합니다. 저장 위치는 기억합니다.',
+                )}
+              </p>
               {driveError && (
                 <p className="form-error" role="alert">
                   {t(driveError)}
@@ -158,6 +163,14 @@ export function DriveDialogs({ controller, save }: { controller: DriveController
                 </div>
               </div>
               <div className="drive-actions">
+                <a
+                  className="text-button"
+                  href="https://myaccount.google.com/permissions"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {t('Google 계정 앱 권한 관리')}
+                </a>
                 {!driveReady && !busy && (
                   <button className="button" onClick={showDrive}>
                     {t('다시 불러오기')}
@@ -168,7 +181,7 @@ export function DriveDialogs({ controller, save }: { controller: DriveController
                     className="text-button"
                     disabled={busy}
                     onClick={() => {
-                      disconnect();
+                      void disconnect();
                     }}
                   >
                     {t('연결 해제')}
@@ -191,7 +204,7 @@ export function DriveDialogs({ controller, save }: { controller: DriveController
       )}
       {dialog === 'conflict' && !controller.mergeConflict && (
         <Dialog title={t('Drive 파일을 확인해 주세요.')} onClose={closeDialog}>
-          <p>{t('다른 곳에서 파일이 변경되었습니다. 현재 편집과 로컬 초안은 유지됩니다.')}</p>
+          <p>{t('다른 곳에서 파일이 변경되었습니다. 현재 편집은 유지됩니다.')}</p>
           <div className="drive-actions">
             <button
               className="button primary"
