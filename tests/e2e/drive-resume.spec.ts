@@ -2,7 +2,11 @@ import { test, expect, type Page } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import { mockGoogle } from './support/google';
 
-async function setup(page: Page, openFile = true) {
+async function setup(
+  page: Page,
+  openFile = true,
+  validators: 'all' | 'missing' | 'download-only' | 'upload-missing' = 'all',
+) {
   await mockGoogle(page);
   await page.clock.install();
   const document = JSON.parse(await readFile('tests/fixtures/native-v1.maplet', 'utf8'));
@@ -12,6 +16,7 @@ async function setup(page: Page, openFile = true) {
     content: JSON.stringify(document),
     name: 'source.maplet',
     version: 1,
+    versionAvailable: true,
     folderAvailable: true,
     updates: [] as string[],
     creates: [] as { parents: string[]; content: string; name: string }[],
@@ -19,7 +24,15 @@ async function setup(page: Page, openFile = true) {
   await page.route('https://www.googleapis.com/**', async (route) => {
     const request = route.request(),
       url = new URL(request.url());
-    const headers = { ETag: `"v${state.version}"`, 'Access-Control-Expose-Headers': 'ETag' };
+    const metadataEtag =
+      validators === 'all' || (validators === 'upload-missing' && request.method() === 'GET');
+    const headers: Record<string, string> = metadataEtag
+      ? { ETag: `"v${state.version}"`, 'Access-Control-Expose-Headers': 'ETag' }
+      : {};
+    if (validators === 'download-only' && url.searchParams.has('alt')) {
+      headers.ETag = '"download-validator"';
+      headers['Access-Control-Expose-Headers'] = 'ETag';
+    }
     if (url.pathname.endsWith('/chosen-folder'))
       return route.fulfill(
         state.folderAvailable
@@ -36,7 +49,9 @@ async function setup(page: Page, openFile = true) {
           : { status: 404, body: '{}' },
       );
     if (request.method() === 'PATCH') {
-      if (request.headers()['if-match'] !== `"v${state.version}"`)
+      const expected =
+        validators === 'all' || validators === 'upload-missing' ? `"v${state.version}"` : undefined;
+      if (request.headers()['if-match'] !== expected)
         return route.fulfill({ status: 412, body: '{}' });
       let content = request.postData()!;
       if (url.searchParams.get('uploadType') === 'multipart') {
@@ -49,7 +64,7 @@ async function setup(page: Page, openFile = true) {
       state.version++;
       return route.fulfill({
         contentType: 'application/json',
-        headers: { ...headers, ETag: `"v${state.version}"` },
+        headers: metadataEtag ? { ...headers, ETag: `"v${state.version}"` } : headers,
         body: JSON.stringify({
           id: 'chosen-file',
           name: state.name,
@@ -79,7 +94,7 @@ async function setup(page: Page, openFile = true) {
         : JSON.stringify({
             id: 'chosen-file',
             name: state.name,
-            version: String(state.version),
+            ...(state.versionAvailable ? { version: String(state.version) } : {}),
             size: String(state.content.length),
             parents: ['chosen-folder'],
           }),
@@ -117,6 +132,64 @@ async function renameFile(page: Page, name: string) {
   await input.fill(name);
   await input.press('Enter');
 }
+
+for (const validators of ['missing', 'download-only', 'upload-missing'] as const) {
+  test(`continues autosaving and renaming the same file without upload ETags: ${validators}`, async ({
+    page,
+  }) => {
+    const { state, root } = await setup(page, true, validators);
+    await rename(page, 'First edit');
+    await page.clock.runFor(1600);
+    await expect.poll(() => state.updates.length).toBe(1);
+    await rename(page, 'Second edit');
+    await page.clock.runFor(1600);
+    await expect.poll(() => state.updates.length).toBe(2);
+    await renameFile(page, 'Renamed');
+    await page.clock.runFor(1600);
+    await expect.poll(() => state.updates.length).toBe(3);
+    expect(state.name).toBe('Renamed.maplet');
+    expect(state.creates).toHaveLength(0);
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await expect(page.getByLabel('저장하지 않은 변경', { exact: true })).toHaveCount(0);
+    await page.clock.runFor(300);
+    await page.reload();
+    await reconnect(page);
+    await expect(page.getByRole('treeitem', { name: 'Second edit', exact: true })).toBeVisible();
+    await rename(page, 'After reconnect');
+    await page.clock.runFor(1600);
+    await expect.poll(() => state.updates.length).toBe(4);
+    expect(JSON.parse(state.content).nodes[root].title).toBe('After reconnect');
+    expect(state.creates).toHaveLength(0);
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+  });
+}
+
+test('still pauses on external changes when ETags are absent', async ({ page }) => {
+  const { state } = await setup(page, true, 'missing');
+  state.version++;
+  await rename(page, 'Local changes');
+  await page.clock.runFor(1600);
+  await expect(page.getByRole('dialog', { name: 'Drive 파일을 확인해 주세요.' })).toBeVisible();
+  expect(state.updates).toHaveLength(0);
+  await expect(page.getByRole('treeitem', { name: 'Local changes', exact: true })).toBeVisible();
+});
+
+test('treats missing versions as a save error without claiming an external conflict', async ({
+  page,
+}) => {
+  const { state } = await setup(page, true, 'missing');
+  state.versionAvailable = false;
+  await rename(page, 'Unsaved local work');
+  await page.clock.runFor(1600);
+  await expect(page.locator('.save-status')).toContainText('Drive 자동 저장 중지');
+  expect(state.updates).toHaveLength(0);
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Google Drive 연결됨', exact: true }).click();
+  await expect(page.getByRole('alert')).toContainText('버전을 확인하지 못했습니다');
+  await expect(
+    page.getByRole('treeitem', { name: 'Unsaved local work', exact: true }),
+  ).toBeVisible();
+});
 
 test('creates a Drive file with the edited filename without changing node titles', async ({
   page,

@@ -31,6 +31,7 @@ export class DriveClient {
     const token = this.token();
     if (!token) throw new DriveAuthError();
     const response = await this.fetcher(url, {
+      cache: 'no-store',
       ...init,
       headers: { ...init.headers, Authorization: `Bearer ${token}` },
     });
@@ -57,7 +58,8 @@ export class DriveClient {
     const response = await this.request(`${endpoint}?alt=media`);
     return {
       ...meta,
-      etag: response.headers.get('ETag') ?? metaResponse.headers.get('ETag'),
+      // A media download validator must not be used to condition a metadata update.
+      etag: metaResponse.headers.get('ETag') || null,
       content: await response.text(),
     };
   }
@@ -91,14 +93,15 @@ export class DriveClient {
     name = file.name,
   ): Promise<DriveFile> {
     const endpoint = `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(file.id)}`;
-    const meta = (await (await this.request(`${endpoint}?fields=version`)).json()) as {
+    const metaResponse = await this.request(`${endpoint}?fields=version`);
+    const meta = (await metaResponse.json()) as {
       version: string;
     };
+    if (!overwrite && (!file.version || !meta.version))
+      throw new Error('Drive 파일의 버전을 확인하지 못했습니다. 다시 연결한 뒤 저장해 주세요.');
     if (!overwrite && meta.version !== file.version) throw new DriveConflict();
-    if (!overwrite && !file.etag)
-      throw new Error(
-        'Drive 버전 검증 정보가 없습니다. 새 사본 저장 또는 명시적 덮어쓰기를 선택해 주세요.',
-      );
+    // Drive v3 does not require an exposed ETag; use only the fresh metadata header if present.
+    const etag = metaResponse.headers.get('ETag');
     const upload = name === file.name ? null : multipartUpload({ name }, content);
     const response = await this.request(
       `https://www.googleapis.com/upload/drive/v3/files/${encodeURIComponent(file.id)}?uploadType=${upload ? 'multipart' : 'media'}&fields=id,name,version`,
@@ -106,7 +109,7 @@ export class DriveClient {
         method: 'PATCH',
         headers: {
           'Content-Type': upload?.contentType ?? 'application/json',
-          ...(!overwrite && file.etag ? { 'If-Match': file.etag } : {}),
+          ...(!overwrite && etag ? { 'If-Match': etag } : {}),
         },
         body: upload?.body ?? content,
       },
@@ -114,7 +117,7 @@ export class DriveClient {
     return {
       ...file,
       ...((await response.json()) as Omit<DriveFile, 'etag'>),
-      etag: response.headers.get('ETag'),
+      etag: response.headers.get('ETag') || null,
     };
   }
 
@@ -135,7 +138,7 @@ export class DriveClient {
     );
     return {
       ...((await response.json()) as Omit<DriveFile, 'etag'>),
-      etag: response.headers.get('ETag'),
+      etag: response.headers.get('ETag') || null,
     };
   }
 }

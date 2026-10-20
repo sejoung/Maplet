@@ -277,10 +277,7 @@ export function useDrive({
     } catch (reason) {
       if (!current()) return;
       setAutoPaused(true);
-      if (
-        reason instanceof DriveConflict ||
-        (reason instanceof Error && reason.message.includes('검증'))
-      ) {
+      if (reason instanceof DriveConflict) {
         setDialog('conflict');
         setDriveStatus('충돌 · 로컬 초안 유지');
       } else {

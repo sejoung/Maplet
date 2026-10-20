@@ -87,14 +87,15 @@ describe('Drive transport contracts', () => {
     ).rejects.toBeInstanceOf(DriveConflict);
     expect(fetcher.mock.calls[1][1].headers['If-Match']).toBe('"v1"');
   });
-  it('writes successfully, refuses unverifiable overwrites and allows explicit overwrite', async () => {
+  it('writes with a matching version even without ETag and allows explicit overwrite', async () => {
     const fetcher = vi
       .fn()
       .mockImplementation(async () => response({ id: 'f', name: 'x', version: '1' }, ''));
     const client = new DriveClient(() => 'token', fetcher);
-    await expect(
-      client.save({ id: 'f', name: 'x', version: '1', etag: null }, 'x'),
-    ).rejects.toThrow(/검증/);
+    expect(await client.save({ id: 'f', name: 'x', version: '1', etag: null }, 'x')).toMatchObject({
+      id: 'f',
+      etag: null,
+    });
     expect(
       await client.save({ id: 'f', name: 'x', version: '1', etag: null }, 'x', true),
     ).toMatchObject({ id: 'f' });

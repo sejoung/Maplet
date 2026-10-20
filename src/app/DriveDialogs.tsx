@@ -180,11 +180,7 @@ export function DriveDialogs({ controller, save }: { controller: DriveController
       )}
       {dialog === 'conflict' && (
         <Dialog title={t('Drive 파일을 확인해 주세요.')} onClose={closeDialog}>
-          <p>
-            {t(
-              '다른 곳에서 파일이 변경되었거나 버전 검증 정보를 얻지 못했습니다. 현재 편집과 로컬 초안은 유지됩니다.',
-            )}
-          </p>
+          <p>{t('다른 곳에서 파일이 변경되었습니다. 현재 편집과 로컬 초안은 유지됩니다.')}</p>
           <div className="drive-actions">
             <button
               className="button primary"
