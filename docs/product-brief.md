@@ -102,7 +102,7 @@ Your mind maps belong to you.
 
 - 예외 테스트: 잘못된 JSON, 빈 맵, 중복 ID, 매우 큰 맵, 잘못된 링크, Drive 권한 취소.
 
-- 브라우저: Chrome, Safari(Mac), Firefox; 키보드 접근성 및 모바일 읽기 검증.
+- 브라우저: 데스크톱 Google Chrome을 공식 지원하며 Chromium으로 키보드·접근성·편집·저장 흐름을 검증한다. Firefox·Safari·모바일 브라우저는 공식 지원 범위에서 제외하며 필요할 때 지원 대상과 E2E 프로젝트를 추가한다. [ADR 0012](adr/0012-desktop-chrome-support.md)를 따른다.
 
 # 10. 개발 단계·완료 조건
 

@@ -68,7 +68,7 @@ test('moves the other branch live and commits exactly the visible arrangement on
   const { start, target, scale } = await overlap(page);
   const preview = await positions(page);
   // Browsers quantize screen pointer coordinates; check the visible destination
-  // within one screen pixel even when the map is zoomed out on mobile.
+  // within one screen pixel even when the map is zoomed out.
   expect(Math.abs((preview.a.y - before.a.y) * scale - (target.y - start.y))).toBeLessThanOrEqual(
     1,
   );

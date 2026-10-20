@@ -19,7 +19,9 @@
 
 ![자유롭게 배치한 예제 마인드맵이 열린 Maplet 에디터](docs/screenshots/free-positioning.png)
 
-[빠른 시작](#빠른-시작) · [주요 기능](#주요-기능) · [개발](#개발) · [기여](#기여) · [모바일 화면](docs/screenshots/mobile.png)
+[빠른 시작](#빠른-시작) · [주요 기능](#주요-기능) · [개발](#개발) · [기여](#기여)
+
+공식 지원 브라우저는 **데스크톱 Google Chrome**입니다. 자동 브라우저 검증에는 Chromium을 사용합니다. Firefox·Safari·모바일 브라우저는 현재 공식 지원 범위에서 제외합니다.
 
 ## 주요 기능
 
@@ -97,14 +99,14 @@ React·TypeScript·Vite와 SVG 레이아웃 렌더러를 사용합니다. 테스
 npm run verify
 
 # 브라우저 회귀 테스트
-npx playwright install chromium firefox webkit
+npx playwright install chromium
 npm run test:e2e
 
 # 개발 중 테스트 감시
 npm run test:watch
 ```
 
-품질 검사 workflow에서 전체 검증과 Chromium·Firefox·WebKit·모바일 WebKit E2E를 실행하고 접근성도 검사합니다. 아키텍처 테스트로 계층 의존성과 순환 참조를 검사합니다. 코드 파일은 빈 줄·주석을 포함해 **400줄**로 제한하며 운영 CSS에도 같은 상한을 적용합니다.
+품질 검사와 Pages workflow에서 전체 검증과 데스크톱 Chromium E2E·접근성 검사를 실행하며 CI 테스트 worker는 최대 2개입니다. 아키텍처 테스트로 계층 의존성과 순환 참조를 검사합니다. 코드 파일은 빈 줄·주석을 포함해 **400줄**로 제한하며 운영 CSS에도 같은 상한을 적용합니다.
 
 각 npm 테스트 명령은 `test-results/<UTC 실행시각>-<종류>-<고유값>/`에 로그와 보고서를 저장합니다. 상대 심볼릭 링크로 실패를 포함한 최근 종료 결과에 접근할 수 있습니다.
 

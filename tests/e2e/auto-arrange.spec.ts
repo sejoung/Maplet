@@ -159,8 +159,7 @@ test('arranges, restores history and drafts, reopens native files and keeps the 
     await expect(page.getByRole('button', { name: /^파일 이름 변경:/ })).toHaveText('arranged');
     expect(await boxes(page)).toEqual(after);
   });
-  await test.step('commit an in-progress title and arrange an overlapping map at 320px', async () => {
-    await page.setViewportSize({ width: 320, height: 700 });
+  await test.step('commit an in-progress title and arrange an overlapping map', async () => {
     await open(page);
     await rootElement.press('F2');
     await page
@@ -177,9 +176,9 @@ test('arranges, restores history and drafts, reopens native files and keeps the 
     ).toBe(true);
   });
   for (const language of ['ko', 'en'])
-    for (const width of [320, 360, 390, 768, 901, 1024, 1280])
+    for (const width of [1024, 1280, 1440])
       await test.step(`toolbar: ${language}, ${width}px`, async () => {
-        if (width === 320)
+        if (width === 1024)
           await page.getByRole('combobox', { name: /^(언어|Language)$/ }).selectOption(language);
         await page.setViewportSize({ width, height: 700 });
         const clipped = await page

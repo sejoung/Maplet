@@ -93,10 +93,7 @@ test('fits large multiline text and restores typography from files and browser d
   await expect(root).toHaveCSS('text-align', 'center');
 });
 
-test('localizes the style dialog and keeps controls accessible on small screens', async ({
-  page,
-}) => {
-  await page.setViewportSize({ width: 320, height: 640 });
+test('localizes the style dialog and applies its controls', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('maplet-language', 'en'));
   await page.goto('/');
   await openStyle(page, 'Style', 'More');

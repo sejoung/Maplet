@@ -19,7 +19,9 @@ Create `.maplet` documents or import `.mup` files, arrange your ideas, and downl
 
 ![Maplet editor with a sample mind map and freely positioned nodes](docs/screenshots/free-positioning.png)
 
-[Quick start](#quick-start) · [Features](#features) · [Development](#development) · [Contributing](#contributing) · [Mobile preview](docs/screenshots/mobile.png)
+[Quick start](#quick-start) · [Features](#features) · [Development](#development) · [Contributing](#contributing)
+
+The officially supported browser is **desktop Google Chrome**. Automated browser tests use Chromium. Firefox, Safari, and mobile browsers are outside the current support scope.
 
 ## Features
 
@@ -97,14 +99,14 @@ Built with React, TypeScript, Vite, and an SVG-based layout renderer. Tests use 
 npm run verify
 
 # Browser regression tests
-npx playwright install chromium firefox webkit
+npx playwright install chromium
 npm run test:e2e
 
 # Watch tests while developing
 npm run test:watch
 ```
 
-The quality workflow runs verification and E2E tests across Chromium, Firefox, WebKit, and mobile WebKit. It also checks accessibility. Layer boundaries and circular dependencies are enforced by architecture tests. Code files are limited to **400 lines**, including comments and blank lines; source CSS has the same limit.
+The quality and Pages workflows run verification and desktop Chromium E2E tests, including accessibility checks, with at most two test workers in CI. Layer boundaries and circular dependencies are enforced by architecture tests. Code files are limited to **400 lines**, including comments and blank lines; source CSS has the same limit.
 
 Each npm test command saves logs and reports in `test-results/<UTC timestamp>-<kind>-<unique suffix>/`. Relative symlinks point to the latest completed run, including failures:
 

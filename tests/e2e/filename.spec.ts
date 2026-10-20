@@ -97,10 +97,7 @@ test('uses the current name when saving directly from the filename editor', asyn
   );
 });
 
-test('keeps filename editing available on a narrow screen and translates its controls', async ({
-  page,
-}) => {
-  await page.setViewportSize({ width: 360, height: 740 });
+test('keeps long filenames editable and translates filename controls', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: /^파일 이름 변경:/ }).click();
   await page

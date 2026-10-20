@@ -92,7 +92,7 @@ test('treats imported HTML as text and backs up the exact original', async ({ pa
   expect(Buffer.concat(chunks).toString()).toBe(hostile);
 });
 
-test('selects a node with touch and edits inline', async ({ page, isMobile }) => {
+test('selects a node with the mouse and edits inline', async ({ page }) => {
   await openFixture(page);
   const root = page.getByRole('treeitem', { name: '중심', exact: true });
   await root.press('ArrowRight');
@@ -101,8 +101,7 @@ test('selects a node with touch and edits inline', async ({ page, isMobile }) =>
     'true',
   );
   await page.getByRole('button', { name: '화면에 맞추기', exact: true }).click();
-  if (isMobile) await root.tap();
-  else await root.click();
+  await root.click();
   await expect(root).toHaveAttribute('aria-selected', 'true');
   await root.press('F2');
   await expect(page.getByRole('textbox', { name: '노드 제목' })).toHaveValue('중심');
