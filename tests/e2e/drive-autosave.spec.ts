@@ -11,14 +11,21 @@ async function setup(page: Page, native = false, inDestination = true) {
   const creates: { name: string; content: string; parents: string[] }[] = [];
   const updates: { id: string; content: string; etag: string | undefined }[] = [];
   let version = 1;
+  let savedContent = original;
   const state = { conflict: false };
   await page.route('https://www.googleapis.com/**', async (route) => {
     const request = route.request(),
       url = new URL(request.url());
     const headers = { ETag: `"v${version}"`, 'Access-Control-Expose-Headers': 'ETag' };
+    if (url.pathname.endsWith('/generateIds'))
+      return route.fulfill({
+        contentType: 'application/json',
+        body: JSON.stringify({ ids: ['native-copy'] }),
+      });
     if (request.method() === 'POST') {
       const parts = request.postData()!.split('\r\n\r\n');
       const meta = JSON.parse(parts[1].split('\r\n')[0]);
+      savedContent = parts[2].split('\r\n--')[0];
       creates.push({
         name: meta.name,
         content: parts[2].split('\r\n--')[0],
@@ -34,6 +41,7 @@ async function setup(page: Page, native = false, inDestination = true) {
       const id = url.pathname.split('/').at(-1)!;
       updates.push({ id, content: request.postData()!, etag: request.headers()['if-match'] });
       if (state.conflict) return route.fulfill({ status: 412, body: '{}' });
+      savedContent = request.postData()!;
       version++;
       return route.fulfill({
         contentType: 'application/json',
@@ -49,10 +57,10 @@ async function setup(page: Page, native = false, inDestination = true) {
       contentType: 'application/json',
       headers,
       body: url.searchParams.has('alt')
-        ? original
+        ? savedContent
         : JSON.stringify({
             id: 'chosen-file',
-            name: native ? 'source.maplet' : 'source.mup',
+            name: native || url.pathname.endsWith('/native-copy') ? 'source.maplet' : 'source.mup',
             version: String(version),
             size: String(original.length),
             parents: [inDestination ? 'chosen-folder' : 'another-folder'],
@@ -172,7 +180,7 @@ test('pauses automatic saving on conflict and resumes after an explicit successf
   await page.getByRole('button', { name: '편집으로 돌아가기', exact: true }).click();
   await rename(page, '계속 편집');
   await page.clock.runFor(6000);
-  expect(updates).toHaveLength(1);
+  expect(updates).toHaveLength(3);
   await expect(page.locator('.save-status')).toContainText('Drive 자동 저장 중지');
   await expect(page.getByLabel('저장하지 않은 변경', { exact: true })).toBeVisible();
   state.conflict = false;
@@ -184,6 +192,6 @@ test('pauses automatic saving on conflict and resumes after an explicit successf
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await rename(page, '자동 저장 재개');
   await page.clock.runFor(1600);
-  await expect.poll(() => updates.length).toBe(3);
-  expect(JSON.parse(updates[2].content).nodes.root.title).toBe('자동 저장 재개');
+  await expect.poll(() => updates.length).toBe(5);
+  expect(JSON.parse(updates[4].content).nodes.root.title).toBe('자동 저장 재개');
 });

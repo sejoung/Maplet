@@ -1,36 +1,19 @@
 import { useCallback, useLayoutEffect, useRef, useState } from 'react';
-import type { MindMap } from '../domain/model';
-import { parseDocument, nativeFilename, driveSaveTarget } from '../adapters/documents';
+import { parseDocument, nativeFilename } from '../adapters/documents';
 import { serializeMaplet } from '../adapters/maplet/codec';
-import { DriveClient, DriveConflict, DriveAuthError } from '../adapters/drive/client';
-import { GoogleConnection, type GoogleConfig } from '../adapters/drive/google';
+import { DriveConflict, DriveAuthError } from '../adapters/drive/client';
 import { useI18n } from '../i18n/react';
 import { useDriveWorkspace } from './useDriveWorkspace';
 import { restoreDriveWorkspace } from './restoreDriveWorkspace';
-import { saveDriveDocument } from './saveDriveDocument';
+import { useDriveSaving } from './useDriveSaving';
+import { driveSaveHandlers } from './driveSaveHandlers';
+import { type DriveBaseline } from './driveMerge';
 import { useDriveAutosave } from './useDriveAutosave';
 import { useDriveStartup } from './useDriveStartup';
+import { parseDriveBaseline } from '../adapters/storage/drive-baseline';
 
-interface DriveOptions {
-  content: string;
-  filename: string;
-  documentKey: number;
-  restorationReady?: boolean;
-  hasLocalWork?: boolean;
-  markSaved(content: string, filename?: string): void;
-  allowReplace(): boolean;
-  replace(next: MindMap, name: string): void;
-  setNotice(message: string): void;
-}
-
-const config: GoogleConfig = {
-  clientId: import.meta.env.VITE_GOOGLE_CLIENT_ID ?? '',
-  apiKey: import.meta.env.VITE_GOOGLE_API_KEY ?? '',
-  appId: import.meta.env.VITE_GOOGLE_APP_ID ?? '',
-};
-const google =
-  config.clientId && config.apiKey && config.appId ? new GoogleConnection(config) : null;
-const drive = google ? new DriveClient(google.getToken) : null;
+import { config, google, drive } from './driveConnection';
+import type { DriveOptions } from './DriveOptions';
 
 export function useDrive({
   content,
@@ -39,6 +22,7 @@ export function useDrive({
   restorationReady = false,
   hasLocalWork = false,
   markSaved,
+  applyMerge,
   allowReplace,
   replace,
   setNotice,
@@ -56,8 +40,9 @@ export function useDrive({
     pending,
     setPending,
     draftWorkspace,
-    restoreDraftWorkspace,
+    restoreDraftWorkspace: restoreWorkspace,
   } = useDriveWorkspace(config.clientId);
+  const [baseline, setBaseline] = useState<DriveBaseline | null>(null);
   const [driveSavedContent, setDriveSavedContent] = useState<string | null>(null);
   const [driveSavedFilename, setDriveSavedFilename] = useState<string | null>(null);
   const driveDirty = content !== driveSavedContent || filename !== driveSavedFilename;
@@ -123,17 +108,35 @@ export function useDrive({
     try {
       if (!automatic) await authorize();
       if (!current()) return;
-      const restored = await restoreDriveWorkspace(drive, workspace, keepLocal, content);
+      const restored = await restoreDriveWorkspace(
+        drive,
+        workspace,
+        keepLocal,
+        content,
+        baseline,
+        filename,
+      );
       if (!current()) return;
       if (!keepLocal && restored.document)
         replace(restored.document.map, restored.document.filename);
+      if (keepLocal && restored.merged) applyMerge?.({ content, filename }, restored.merged);
       setSaveFolder(restored.folder);
       setDriveFile(restored.file);
       setSourceFile(restored.source);
-      let baseline: string | null = restored.document?.content ?? content;
+      let savedContent: string | null = restored.document?.content ?? content;
       if (!restored.document && keepLocal)
-        baseline = pending ? null : (driveSavedContent ?? content);
-      setDriveSavedContent(baseline);
+        savedContent = pending ? null : (driveSavedContent ?? content);
+      setBaseline(
+        restored.file && restored.document
+          ? {
+              fileId: restored.file.id,
+              version: restored.file.version,
+              content: restored.document.content,
+              filename: restored.document.filename,
+            }
+          : null,
+      );
+      setDriveSavedContent(savedContent);
       const restoredName =
         restored.document?.filename ??
         (keepLocal && !pending ? (driveSavedFilename ?? filename) : filename);
@@ -148,6 +151,7 @@ export function useDrive({
       if (!current()) return;
       setAutoPaused(true);
       if (reason instanceof DriveConflict) {
+        saving.capture(reason);
         setDriveFile(workspace.file);
         setSourceFile(workspace.source);
         setPending(null);
@@ -180,6 +184,7 @@ export function useDrive({
       if (folder) {
         if (folder.id !== saveFolder?.id || pending) {
           setDriveFile(null);
+          setBaseline(null);
           setSourceFile(null);
           setDriveSavedContent(content);
           setDriveSavedFilename(filename);
@@ -232,6 +237,12 @@ export function useDrive({
         /\.maplet$/i.test(file.name) && file.parents?.includes(saveFolder.id) ? file : null,
       );
       setSourceFile(file);
+      setBaseline({
+        fileId: file.id,
+        version: file.version,
+        content: serializeMaplet(next),
+        filename: nativeFilename(file.name),
+      });
       setDriveSavedContent(serializeMaplet(next));
       setDriveSavedFilename(nativeFilename(file.name));
       setDriveStatus('Drive 파일을 열었습니다');
@@ -245,79 +256,64 @@ export function useDrive({
       setBusy(false);
     }
   };
-  const saveDrive = async (mode: 'normal' | 'copy' | 'overwrite' = 'normal', automatic = false) => {
-    if (!google || !drive || !saveFolder || pending || busy || inFlight.current) return;
-    if (!automatic && !driveReady && (mode === 'copy' || !google.getToken())) {
-      showDrive();
-      return;
-    }
-    const target = driveSaveTarget(filename, driveFile, mode === 'copy', t('사본'));
-    if (automatic && (autoPaused || !driveDirty)) return;
-    const operation = generation.current;
-    const savedDocument = documentKey;
-    const current = () =>
-      operation === generation.current && savedDocument === latestDocument.current;
-    inFlight.current = true;
-    setBusy(true);
-    setDriveError(null);
-    try {
+  const saving = useDriveSaving({
+    content,
+    filename,
+    documentKey,
+    drive,
+    folder: saveFolder,
+    file: driveFile,
+    baseline,
+    busy,
+    blocked: Boolean(pending),
+    paused: autoPaused,
+    dirty: driveDirty,
+    inFlight,
+    generation,
+    copyLabel: t('사본'),
+    authorize: async (automatic) => {
       if (automatic) {
-        if (!google.getToken()) throw new DriveAuthError();
-      } else await authorize();
-      if (!current()) return;
-      let folder = saveFolder;
-      if (mode === 'copy') {
-        setDialog(null);
-        const selected = await google.pick('folder', language);
-        if (!current()) return;
-        if (!selected) {
-          setDriveStatus('저장 위치 선택을 취소했습니다.');
-          setDialog('drive');
-          return;
-        }
-        folder = selected;
-      }
-      if (!current()) return;
-      setDriveStatus('Drive 저장 중…');
-      const file = await saveDriveDocument(
-        drive,
-        driveFile,
-        target,
-        content,
-        folder.id,
-        mode === 'overwrite',
-      );
-      if (!current()) return;
-      setDriveFile(file);
-      setSourceFile(file);
-      setSaveFolder(folder);
-      setDriveSavedContent(content);
-      setDriveSavedFilename(target.name);
-      if (target.name === filename) markSaved(content);
-      else markSaved(content, target.name);
-      setAutoPaused(false);
-      setDriveStatus('Drive에 저장됨');
-      if (!automatic) setNotice('Google Drive에 저장했습니다.');
-      setDialog(null);
-    } catch (reason) {
-      if (!current()) return;
-      setAutoPaused(true);
-      if (reason instanceof DriveConflict) {
-        setDialog('conflict');
-        setDriveStatus('충돌 · 로컬 초안 유지');
+        if (!google?.getToken()) throw new DriveAuthError();
       } else {
-        fail(reason, !automatic);
-        if (automatic)
-          setNotice(
-            'Drive 자동 저장이 중지되었습니다. Google Drive에서 다시 저장해 주세요. 로컬 초안은 유지됩니다.',
-          );
-        setDriveStatus('저장 실패 · 로컬 초안 유지');
+        if (!driveReady && !google?.getToken()) {
+          showDrive();
+          throw new DriveAuthError();
+        }
+        await authorize();
       }
-    } finally {
-      inFlight.current = false;
-      setBusy(false);
-    }
-  };
+    },
+    pickFolder: async () => {
+      if (!google) return null;
+      await google.prepare();
+      setDriveReady(true);
+      setDialog(null);
+      const folder = await google.pick('folder', language);
+      if (!folder) {
+        setDriveStatus('저장 위치 선택을 취소했습니다.');
+        setDialog('drive');
+      }
+      return folder;
+    },
+    ...driveSaveHandlers({
+      current: () => latestWork.current,
+      setBusy,
+      setDriveError,
+      setDriveStatus,
+      setAutoPaused,
+      setDialog,
+      setDriveFile,
+      setSourceFile,
+      setSaveFolder,
+      setBaseline,
+      setDriveSavedContent,
+      setDriveSavedFilename,
+      applyMerge,
+      markSaved,
+      setNotice,
+      fail,
+    }),
+  });
+  const saveDrive = saving.save;
   useDriveAutosave(
     Boolean(connected && !pending && !busy && !dialog && !autoPaused && saveFolder && driveDirty),
     () => {
@@ -345,6 +341,8 @@ export function useDrive({
   const closeDialog = useCallback(() => setDialog(null), []);
   const clearFile = (nextContent = content, nextFilename = filename) => {
     generation.current++;
+    saving.clear();
+    setBaseline(null);
     setDriveFile(null);
     setSourceFile(null);
     setPending(null);
@@ -375,7 +373,14 @@ export function useDrive({
     needsReconnect: Boolean(saveFolder && (pending || !connected)),
     awaitingRestore: Boolean(pending),
     draftWorkspace,
-    restoreDraftWorkspace,
+    restoreDraftWorkspace: (value: unknown, recoveredBaseline?: DriveBaseline | null) => {
+      restoreWorkspace(value);
+      setBaseline(parseDriveBaseline(recoveredBaseline));
+      saving.clear();
+    },
+    draftBaseline: baseline && saving.attempt ? { ...baseline, attempt: saving.attempt } : baseline,
+    mergeConflict: saving.conflict,
+    resolveConflict: saving.resolve,
     driveDirty,
     driveStatus,
     autoSaveStatus,

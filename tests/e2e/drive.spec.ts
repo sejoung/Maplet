@@ -53,6 +53,11 @@ test('selects a destination folder before saving and does not write when selecti
   const updates: string[] = [];
   await page.route('https://www.googleapis.com/**', (route) => {
     const request = route.request();
+    if (new URL(request.url()).pathname.endsWith('/generateIds'))
+      return route.fulfill({
+        contentType: 'application/json',
+        body: JSON.stringify({ ids: [created.length ? 'created-2' : 'created'] }),
+      });
     if (request.method() === 'POST') {
       created.push(JSON.parse(request.postData()!.split('\r\n\r\n')[1].split('\r\n')[0]));
     }
@@ -60,7 +65,11 @@ test('selects a destination folder before saving and does not write when selecti
     return route.fulfill({
       contentType: 'application/json',
       headers: { ETag: '"v1"', 'Access-Control-Expose-Headers': 'ETag' },
-      body: JSON.stringify({ id: 'created', name: created.at(-1)?.name, version: '1' }),
+      body: JSON.stringify({
+        id: created.length > 1 ? 'created-2' : 'created',
+        name: created.at(-1)?.name,
+        version: '1',
+      }),
     });
   });
   await page.goto('/');
@@ -93,7 +102,9 @@ test('selects a destination folder before saving and does not write when selecti
   await page.getByRole('button', { name: '다른 위치에 새 사본 저장', exact: true }).click();
   await page.getByRole('button', { name: '테스트 폴더 선택' }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
-  expect(created[1]).toMatchObject({ name: '제목 없음 (사본).maplet', parents: ['chosen-folder'] });
+  await expect
+    .poll(() => created[1])
+    .toMatchObject({ name: '제목 없음 (사본).maplet', parents: ['chosen-folder'] });
   await expect(page.locator('html')).toHaveAttribute('data-authorizations', '1');
 });
 
@@ -107,8 +118,9 @@ test('opens, updates and creates Drive files with the native browser fetch', asy
       path: url.pathname + url.search,
       authorization: request.headers().authorization,
     });
-    const body =
-      request.method() === 'POST'
+    const body = url.pathname.endsWith('/generateIds')
+      ? { ids: ['copy'] }
+      : request.method() === 'POST'
         ? { id: 'copy', name: 'copy.maplet', version: '1' }
         : request.method() === 'PATCH'
           ? { id: 'file', name: 'map.maplet', version: '2' }
@@ -158,6 +170,11 @@ test('opens, updates and creates Drive files with the native browser fetch', asy
     {
       method: 'PATCH',
       path: '/upload/drive/v3/files/file?uploadType=media&fields=id,name,version',
+      authorization: 'Bearer test-token',
+    },
+    {
+      method: 'GET',
+      path: '/drive/v3/files/generateIds?count=1&space=drive&type=files',
       authorization: 'Bearer test-token',
     },
     {

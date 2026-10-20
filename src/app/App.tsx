@@ -27,6 +27,8 @@ import { NewMapDialog } from '../components/NewMapDialog';
 import { DriveDialogs } from './DriveDialogs';
 import { useDraftPersistence } from './useDraftPersistence';
 import { usePrimarySave } from './usePrimarySave';
+import { mergeHistory } from '../application/merge-history';
+import { parseMaplet } from '../adapters/maplet/codec';
 import { useEditorShortcuts } from './useEditorShortcuts';
 
 const drafts = new DraftStore();
@@ -189,7 +191,7 @@ export function App() {
       const restored = restoreDraft(recovery);
       replace(restored.map, restored.filename, restored.savedContent, restored.savedFilename);
       setFilenamePending(recovery.filenamePending ?? false);
-      driveState.restoreDraftWorkspace(recovery.drive);
+      driveState.restoreDraftWorkspace(recovery.drive, recovery.driveBaseline);
       setRecovery(null);
       setNotice('이 기기의 초안을 복구했습니다. 파일로 다운로드해 보관하세요.');
     } catch (reason) {
@@ -215,6 +217,14 @@ export function App() {
       setSavedContent(saved);
       setSavedFilename(name);
       setFilename((current) => (current === filename ? name : current));
+    },
+    applyMerge: (base, incoming) => {
+      if (base.content !== incoming.content)
+        setHistory((current) =>
+          mergeHistory(current, parseMaplet(base.content), parseMaplet(incoming.content)),
+        );
+      if (base.filename !== incoming.filename)
+        setFilename((current) => (current === base.filename ? incoming.filename : current));
     },
     allowReplace,
     replace,
@@ -243,6 +253,7 @@ export function App() {
       savedContent,
       savedFilename,
       drive: driveState.draftWorkspace,
+      driveBaseline: driveState.draftBaseline,
     },
     recoveryReady && !recovery && hasWork.current,
     setDraftStatus,

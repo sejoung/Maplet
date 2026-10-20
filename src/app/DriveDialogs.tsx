@@ -3,6 +3,7 @@ import { Cloud, Download, FolderOpen } from 'lucide-react';
 import { Dialog } from '../components/Dialog';
 import { driveSaveTarget } from '../adapters/documents';
 import type { DriveController } from './useDrive';
+import { DriveMergeDialog } from './DriveMergeDialog';
 
 export function DriveDialogs({ controller, save }: { controller: DriveController; save(): void }) {
   const { t } = useI18n();
@@ -178,7 +179,17 @@ export function DriveDialogs({ controller, save }: { controller: DriveController
           )}
         </Dialog>
       )}
-      {dialog === 'conflict' && (
+      {dialog === 'conflict' && controller.mergeConflict && (
+        <DriveMergeDialog
+          conflict={controller.mergeConflict}
+          busy={busy}
+          resolve={controller.resolveConflict}
+          close={closeDialog}
+          download={save}
+          copy={() => void saveDrive('copy')}
+        />
+      )}
+      {dialog === 'conflict' && !controller.mergeConflict && (
         <Dialog title={t('Drive 파일을 확인해 주세요.')} onClose={closeDialog}>
           <p>{t('다른 곳에서 파일이 변경되었습니다. 현재 편집과 로컬 초안은 유지됩니다.')}</p>
           <div className="drive-actions">

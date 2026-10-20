@@ -31,7 +31,7 @@ Create `.maplet` documents or import `.mup` files, arrange your ideas, and downl
 - **Move whole branches:** drag a parent and all its descendants together, preserving their relative positions. Connections follow as you move. Group regions are highlighted while dragging; branches move aside in real time when these regions overlap, including their empty interiors, keeping a 24px gap between groups' nodes. Your branch follows the pointer. Release to keep the visible arrangement, or press Escape to restore the original positions.
 - **Navigate your map:** search, collapse branches, zoom, pan, fit to screen, or restore automatic layout.
 - **Undo and recovery:** undo or redo a whole drag in one step; recover browser drafts from IndexedDB and keep manual positions when reopening files.
-- **Optional Google Drive:** choose a save folder first to autosave later changes. Valid authentication, the folder and the file are restored automatically on same-tab reloads; use Reconnect when authorization expires. Files opened from other folders are saved as copies in the selected folder. Imported .mup originals are preserved; version conflicts pause autosave for explicit resolution.
+- **Optional Google Drive:** choose a save folder first to autosave later changes. Valid authentication, the folder and the file are restored automatically on same-tab reloads; use Reconnect when authorization expires. Files opened from other folders are saved as copies in the selected folder. Imported .mup originals are preserved; external changes are merged by node and property, with explicit resolution for conflicting edits.
 
 The current app interface is in Korean. Both README versions describe the same features and commands.
 
@@ -49,6 +49,8 @@ npm run dev
 Open [http://127.0.0.1:5173](http://127.0.0.1:5173). Start from the central topic or open a file through **파일 → 열기** (File → Open). Double-click a node to edit it, drag it to move its branch, and use **.maplet 저장** to download the document. Use **파일 → .mup 내보내기** for a MindMup-compatible copy.
 
 When Drive is connected, the primary Save button and Ctrl/Cmd+S save to Drive. Use **File → Download .maplet** for a local copy. The header shows editing, pending, saving, synced, error and reconnect states beneath the Drive button.
+
+Keep editing during saves: newer changes are coalesced and saved sequentially. External changes to different nodes or properties merge automatically. Conflicting property edits, deletions and structural changes prompt you to choose what to keep.
 
 Click the filename in the header to rename it. Press Enter or click outside to apply; Escape cancels. Downloads and Drive saves use the new name while node titles stay unchanged. Filename-only edits can also be recovered from the browser draft.
 

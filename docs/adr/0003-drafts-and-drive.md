@@ -1,5 +1,7 @@
 # ADR 0003: 로컬 복구와 명시적 Drive 저장
 
+후속 결정: 저장 큐·외부 변경 충돌 정책은 [ADR 0010](0010-drive-save-queue-and-merge.md)의 노드·속성 병합으로 확장한다.
+
 후속 결정: 초안·Drive의 기본 내용은 [ADR 0009](0009-native-maplet-format.md)의 `.maplet` 형식으로 전환한다. 기존 MUP 초안의 복구와 원본 보존은 유지한다.
 
 - 상태: 채택, 실제 OAuth 환경 검증 대기

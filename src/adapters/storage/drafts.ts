@@ -1,4 +1,5 @@
 import type { DriveWorkspace } from './drive-workspace';
+import type { DriveBaseline } from './drive-baseline';
 
 export interface Draft {
   content: string;
@@ -9,6 +10,7 @@ export interface Draft {
   savedFilename?: string;
   updatedAt: number;
   drive?: DriveWorkspace | null;
+  driveBaseline?: DriveBaseline | null;
 }
 
 export class DraftStore {

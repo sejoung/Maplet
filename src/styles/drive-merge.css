@@ -1,0 +1,50 @@
+.merge-conflicts {
+  max-height: 55vh;
+  overflow-y: auto;
+  margin: 20px 0;
+}
+.merge-conflict {
+  min-width: 0;
+  margin: 0 0 16px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.merge-conflict legend {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  font-weight: 600;
+}
+.merge-conflict pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 160px;
+  overflow: auto;
+  margin: 8px 0;
+  font: inherit;
+  font-size: 13px;
+}
+.merge-choice {
+  display: block;
+  margin-top: 12px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+}
+.merge-choice:has(input:checked) {
+  border-color: var(--accent);
+  background: #eef6f2;
+}
+.merge-choice input {
+  flex: 0 0 auto;
+  width: auto;
+  min-height: 0;
+  margin: 0;
+}
+.merge-choice span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}

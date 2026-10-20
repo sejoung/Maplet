@@ -85,7 +85,12 @@ it('keeps an existing destination when folder selection is cancelled and switche
   options.content = 'edit in the new destination';
   rerender();
   await act(() => vi.advanceTimersByTimeAsync(1500));
-  expect(api.create).toHaveBeenLastCalledWith('local.maplet', options.content, 'folder-B');
+  expect(api.create).toHaveBeenLastCalledWith(
+    'local.maplet',
+    options.content,
+    'folder-B',
+    expect.any(String),
+  );
   expect(result.current.driveFile?.id).toBe('folder-B-file');
   expect(api.save).not.toHaveBeenCalled();
 });
@@ -105,7 +110,12 @@ it('retains the chosen folder across local document changes and waits for an edi
   options.content = 'first edit';
   rerender();
   await act(() => vi.advanceTimersByTimeAsync(1500));
-  expect(api.create).toHaveBeenCalledExactlyOnceWith('next.maplet', 'first edit', 'folder-A');
+  expect(api.create).toHaveBeenCalledExactlyOnceWith(
+    'next.maplet',
+    'first edit',
+    'folder-A',
+    expect.any(String),
+  );
 });
 
 it('does not resume an old file target after disconnecting', async () => {

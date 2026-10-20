@@ -27,6 +27,13 @@ export async function setupDriveWorkspace(
     const request = route.request(),
       url = new URL(request.url());
     if (state.authStatus !== 200) return route.fulfill({ status: state.authStatus, body: '{}' });
+    if (url.pathname.endsWith('/generateIds'))
+      return route.fulfill({
+        contentType: 'application/json',
+        body: JSON.stringify({
+          ids: [state.creates.length ? `new-file-${state.creates.length + 1}` : 'new-file'],
+        }),
+      });
     if (request.method() === 'GET') state.reads.push(url.href);
     const metadataEtag =
       validators === 'all' || (validators === 'upload-missing' && request.method() === 'GET');
@@ -70,7 +77,7 @@ export async function setupDriveWorkspace(
         contentType: 'application/json',
         headers: metadataEtag ? { ...headers, ETag: `"v${state.version}"` } : headers,
         body: JSON.stringify({
-          id: 'chosen-file',
+          id: url.pathname.split('/').at(-1),
           name: state.name,
           version: String(state.version),
         }),
@@ -84,10 +91,13 @@ export async function setupDriveWorkspace(
         content: parts[2].split('\r\n--')[0],
         name: meta.name,
       });
+      state.content = state.creates.at(-1)!.content;
+      state.name = meta.name;
+      state.version = 1;
       return route.fulfill({
         contentType: 'application/json',
         headers,
-        body: JSON.stringify({ id: 'new-file', name: meta.name, version: '1' }),
+        body: JSON.stringify({ id: meta.id, name: meta.name, version: '1' }),
       });
     }
     return route.fulfill({
@@ -96,7 +106,7 @@ export async function setupDriveWorkspace(
       body: url.searchParams.has('alt')
         ? state.content
         : JSON.stringify({
-            id: 'chosen-file',
+            id: url.pathname.split('/').at(-1),
             name: state.name,
             ...(state.versionAvailable ? { version: String(state.version) } : {}),
             size: String(state.content.length),

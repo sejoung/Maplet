@@ -9,8 +9,16 @@ export function useDraftPersistence(
   onError: (message: string) => void,
 ) {
   const queue = useRef(Promise.resolve());
-  const { content, original, filename, filenamePending, savedContent, savedFilename, drive } =
-    draft;
+  const {
+    content,
+    original,
+    filename,
+    filenamePending,
+    savedContent,
+    savedFilename,
+    drive,
+    driveBaseline,
+  } = draft;
   useEffect(() => {
     if (!enabled) return;
     let active = true;
@@ -24,6 +32,7 @@ export function useDraftPersistence(
         savedContent,
         savedFilename,
         drive,
+        driveBaseline,
         updatedAt: Date.now(),
       };
       queue.current = queue.current.catch(() => {}).then(() => store.save(snapshot));
@@ -52,6 +61,7 @@ export function useDraftPersistence(
     savedContent,
     savedFilename,
     drive,
+    driveBaseline,
     onStatus,
     onError,
   ]);

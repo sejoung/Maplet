@@ -10,6 +10,7 @@ const file = { id: 'f', name: 'plan.maplet', version: '1', etag: null };
 it('continues updating a newly created file when every response omits ETag', async () => {
   const fetcher = vi
     .fn()
+    .mockResolvedValueOnce(response({ ids: ['f'] }))
     .mockResolvedValueOnce(response(file))
     .mockResolvedValueOnce(response({ version: '1' }))
     .mockResolvedValueOnce(response({ ...file, version: '2' }))
@@ -20,13 +21,14 @@ it('continues updating a newly created file when every response omits ETag', asy
   const saved = await client.save(created, '{"second":2}');
   expect(await client.save(saved, '{"third":3}')).toMatchObject({ id: 'f', version: '3' });
   expect(fetcher.mock.calls.map(([, init]) => init.method ?? 'GET')).toEqual([
+    'GET',
     'POST',
     'GET',
     'PATCH',
     'GET',
     'PATCH',
   ]);
-  for (const index of [2, 4]) {
+  for (const index of [3, 5]) {
     expect(fetcher.mock.calls[index][0]).toContain('/files/f?uploadType=media');
     expect(fetcher.mock.calls[index][1].headers).not.toHaveProperty('If-Match');
   }

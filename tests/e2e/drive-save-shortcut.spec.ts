@@ -115,12 +115,15 @@ test('shows conflicts and keeps local work when the shortcut encounters a change
 }) => {
   const { state } = await setupDriveWorkspace(page);
   await renameRoot(page, 'Conflicting local edit');
+  const remote = JSON.parse(state.content);
+  remote.nodes[remote.roots[0]].title = 'External change';
+  state.content = JSON.stringify(remote);
   state.version++;
   await page.keyboard.press(shortcut);
   await expect(page.getByRole('status', { name: 'Drive 동기화 상태', exact: true })).toHaveText(
     '동기화 충돌',
   );
-  await expect(page.getByRole('dialog', { name: 'Drive 파일을 확인해 주세요.' })).toBeVisible();
+  await expect(page.getByRole('dialog', { name: '충돌한 변경 확인' })).toBeVisible();
   expect(state.updates).toHaveLength(0);
   await expect(
     page.getByRole('treeitem', { name: 'Conflicting local edit', exact: true }),

@@ -1,10 +1,9 @@
-import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
+import { useCallback, useLayoutEffect, useRef } from 'react';
 import type { DriveController } from './useDrive';
 import { driveSyncStatus } from '../application/drive-sync';
 
 export function usePrimarySave(drive: DriveController, download: () => void, documentKey: number) {
   const latest = useRef({ drive, download, documentKey });
-  const queued = useRef<number | null>(null);
   useLayoutEffect(() => {
     latest.current = { drive, download, documentKey };
   });
@@ -12,7 +11,7 @@ export function usePrimarySave(drive: DriveController, download: () => void, doc
     const current = latest.current;
     const target = current.drive;
     if (target.busy) {
-      queued.current = current.documentKey;
+      void target.saveDrive();
       return;
     }
     if (!target.connected && !target.saveFolder) return current.download();
@@ -22,12 +21,6 @@ export function usePrimarySave(drive: DriveController, download: () => void, doc
       return;
     void target.saveDrive();
   }, []);
-  useEffect(() => {
-    if (drive.busy || queued.current === null) return;
-    const requestedDocument = queued.current;
-    queued.current = null;
-    if (requestedDocument === documentKey) save();
-  }, [drive.busy, documentKey, save]);
   const saveToDrive = Boolean(drive.connected || drive.saveFolder);
   return {
     save,

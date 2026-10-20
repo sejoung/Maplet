@@ -21,7 +21,17 @@ export class DriveAuthError extends Error {
   }
 }
 
+export class DriveRequestError extends Error {
+  constructor(readonly status: number) {
+    super(`Drive 요청이 실패했습니다 (${status}). 로컬 사본은 유지됩니다.`);
+  }
+}
+
 export class DriveClient {
+  private creations = new Map<
+    string,
+    { id: string; content: string; name: string; previous?: { content: string; name: string } }
+  >();
   constructor(
     private readonly token: () => string | null,
     private readonly fetcher: typeof fetch = (...args) => globalThis.fetch(...args),
@@ -30,15 +40,25 @@ export class DriveClient {
   private async request(url: string, init: RequestInit = {}): Promise<Response> {
     const token = this.token();
     if (!token) throw new DriveAuthError();
-    const response = await this.fetcher(url, {
-      cache: 'no-store',
-      ...init,
-      headers: { ...init.headers, Authorization: `Bearer ${token}` },
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30_000);
+    let response: Response;
+    try {
+      response = await this.fetcher(url, {
+        cache: 'no-store',
+        ...init,
+        signal: init.signal ?? controller.signal,
+        headers: { ...init.headers, Authorization: `Bearer ${token}` },
+      });
+    } catch (error) {
+      if (controller.signal.aborted) throw new DriveRequestError(408);
+      throw error;
+    } finally {
+      clearTimeout(timeout);
+    }
     if (response.status === 401 || response.status === 403) throw new DriveAuthError();
     if (response.status === 412) throw new DriveConflict();
-    if (!response.ok)
-      throw new Error(`Drive 요청이 실패했습니다 (${response.status}). 로컬 사본은 유지됩니다.`);
+    if (!response.ok) throw new DriveRequestError(response.status);
     return response;
   }
 
@@ -121,24 +141,89 @@ export class DriveClient {
     };
   }
 
-  async create(name: string, content: string, parentId?: string): Promise<DriveFile> {
-    const metadata = {
-      name,
-      mimeType: 'application/json',
-      ...(parentId && { parents: [parentId] }),
-    };
-    const upload = multipartUpload(metadata, content);
-    const response = await this.request(
-      'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,version',
-      {
-        method: 'POST',
-        headers: { 'Content-Type': upload.contentType },
-        body: upload.body,
-      },
-    );
-    return {
-      ...((await response.json()) as Omit<DriveFile, 'etag'>),
-      etag: response.headers.get('ETag') || null,
-    };
+  async create(
+    name: string,
+    content: string,
+    parentId?: string,
+    operation: string = crypto.randomUUID(),
+  ): Promise<DriveFile> {
+    let pending = this.creations.get(operation);
+    if (!pending) {
+      const ids = await this.request(
+        'https://www.googleapis.com/drive/v3/files/generateIds?count=1&space=drive&type=files',
+      );
+      const generated = (await ids.json()) as { ids?: string[] };
+      if (!generated.ids?.[0])
+        throw new Error('Drive 파일 ID를 준비하지 못했습니다. 다시 저장해 주세요.');
+      pending = { id: generated.ids[0], content, name };
+      this.creations.set(operation, pending);
+    }
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const upload = multipartUpload(
+        {
+          id: pending.id,
+          name,
+          mimeType: 'application/json',
+          ...(parentId && { parents: [parentId] }),
+        },
+        content,
+      );
+      try {
+        const response = await this.request(
+          'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,version',
+          {
+            method: 'POST',
+            headers: { 'Content-Type': upload.contentType },
+            body: upload.body,
+          },
+        );
+        const file = (await response.json()) as Omit<DriveFile, 'etag'>;
+        if (file.id !== pending.id) throw new Error('Drive 저장 대상이 일치하지 않습니다.');
+        this.creations.delete(operation);
+        return { ...file, etag: response.headers.get('ETag') || null };
+      } catch (error) {
+        if (
+          !(error instanceof TypeError) &&
+          !(
+            error instanceof DriveRequestError &&
+            (error.status === 408 ||
+              error.status === 409 ||
+              error.status === 429 ||
+              error.status >= 500)
+          )
+        )
+          throw error;
+        let existing: Awaited<ReturnType<DriveClient['open']>>;
+        try {
+          existing = await this.open(pending.id);
+        } catch (readError) {
+          if (
+            !(readError instanceof DriveRequestError && readError.status === 404) ||
+            attempt === 2
+          )
+            throw readError;
+          await new Promise((resolve) => setTimeout(resolve, 300 * 2 ** attempt));
+          continue;
+        }
+        const matches = (snapshot: { content: string; name: string }) =>
+          existing.content === snapshot.content && existing.name === snapshot.name;
+        if (
+          (!matches(pending) && (!pending.previous || !matches(pending.previous))) ||
+          (parentId && !existing.parents?.includes(parentId))
+        )
+          throw new DriveConflict();
+        if (content === existing.content && name === existing.name) {
+          this.creations.delete(operation);
+          return existing;
+        }
+        pending.previous = { content: existing.content, name: existing.name };
+        pending.content = content;
+        pending.name = name;
+        const saved = await this.save(existing, content, false, name);
+        this.creations.delete(operation);
+        return saved;
+      }
+    }
+    throw new Error('Drive 저장을 완료하지 못했습니다. 다시 저장해 주세요.');
   }
 }

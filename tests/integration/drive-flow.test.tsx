@@ -89,8 +89,7 @@ describe('Drive autosave after choosing a native destination', () => {
     await act(async () => {
       complete({ id: 'created', name: 'local.maplet', version: '2', etag: '"v2"' });
     });
-    expect(options.markSaved).toHaveBeenLastCalledWith('snapshot A');
-    await tick();
+    expect(options.markSaved).toHaveBeenCalledWith('snapshot A');
     expect(api.save).toHaveBeenLastCalledWith(
       expect.objectContaining({ version: '2', etag: '"v2"' }),
       'snapshot B',
@@ -102,6 +101,7 @@ describe('Drive autosave after choosing a native destination', () => {
   it('pauses on conflict and keeps unsaved content without an automatic overwrite or retry', async () => {
     const { options, refresh } = await ready();
     api.save.mockRejectedValueOnce(new DriveConflict());
+    api.open.mockRejectedValueOnce(new DriveConflict());
     options.content = 'conflicting edit';
     refresh();
     await tick();
@@ -242,7 +242,12 @@ describe('Drive actions continue through sign-in and selection', () => {
     const { user } = await setup();
     await user.click(screen.getByRole('button', { name: 'Drive에 저장' }));
     await waitFor(() =>
-      expect(api.create).toHaveBeenCalledWith('local.maplet', 'local content', 'selected-id'),
+      expect(api.create).toHaveBeenCalledWith(
+        'local.maplet',
+        'local content',
+        'selected-id',
+        expect.any(String),
+      ),
     );
     expect(bridge.pick).toHaveBeenCalledWith('folder', 'ko');
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
@@ -302,6 +307,7 @@ describe('Drive actions continue through sign-in and selection', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     await user.click(screen.getByRole('button', { name: 'Drive' }));
     api.save.mockRejectedValueOnce(new DriveConflict());
+    api.open.mockRejectedValueOnce(new DriveConflict());
     await user.click(screen.getByRole('button', { name: 'Drive에 저장' }));
     expect(
       await screen.findByRole('dialog', { name: 'Drive 파일을 확인해 주세요.' }),
@@ -312,6 +318,7 @@ describe('Drive actions continue through sign-in and selection', () => {
         'local (사본).maplet',
         'local content',
         'selected-id',
+        expect.any(String),
       ),
     );
     expect(bridge.pick).toHaveBeenCalledTimes(2);
@@ -354,7 +361,12 @@ describe('Drive actions continue through sign-in and selection', () => {
     await user.click(screen.getByRole('button', { name: 'Drive' }));
     await user.click(screen.getByRole('button', { name: 'Drive에 저장' }));
     await waitFor(() =>
-      expect(api.create).toHaveBeenCalledWith(name, options.content, 'selected-id'),
+      expect(api.create).toHaveBeenCalledWith(
+        name,
+        options.content,
+        'selected-id',
+        expect.any(String),
+      ),
     );
     expect(JSON.parse(api.create.mock.calls[0][1])).toMatchObject({ format: 'maplet', version: 1 });
     expect(api.save).not.toHaveBeenCalled();

@@ -39,10 +39,13 @@ for (const validators of ['missing', 'download-only', 'upload-missing'] as const
 
 test('still pauses on external changes when ETags are absent', async ({ page }) => {
   const { state } = await setup(page, true, 'missing');
+  const remote = JSON.parse(state.content);
+  remote.nodes[remote.roots[0]].title = 'External title';
+  state.content = JSON.stringify(remote);
   state.version++;
   await rename(page, 'Local changes');
   await page.clock.runFor(1600);
-  await expect(page.getByRole('dialog', { name: 'Drive 파일을 확인해 주세요.' })).toBeVisible();
+  await expect(page.getByRole('dialog', { name: '충돌한 변경 확인' })).toBeVisible();
   expect(state.updates).toHaveLength(0);
   await expect(page.getByRole('treeitem', { name: 'Local changes', exact: true })).toBeVisible();
 });
@@ -104,10 +107,11 @@ test('recovers a filename-only edit and renames the same Drive file after reconn
 test('checks the remote version before renaming a Drive file', async ({ page }) => {
   const { state } = await setup(page);
   await renameFile(page, '충돌 중 이름');
+  state.name = 'External name.maplet';
   state.version++;
   await page.clock.runFor(1600);
-  await expect(page.getByRole('dialog', { name: 'Drive 파일을 확인해 주세요.' })).toBeVisible();
-  expect(state.name).toBe('source.maplet');
+  await expect(page.getByRole('dialog', { name: '충돌한 변경 확인' })).toBeVisible();
+  expect(state.name).toBe('External name.maplet');
   expect(state.updates).toHaveLength(0);
   await page.getByRole('button', { name: '편집으로 돌아가기', exact: true }).click();
   await expect(page.getByRole('button', { name: /^파일 이름 변경:/ })).toHaveText('충돌 중 이름');
@@ -173,7 +177,7 @@ test('pauses on a remote change without overwriting the recovered draft or Drive
   state.version++;
   await page.getByRole('button', { name: '초안 복구', exact: true }).click();
   await reconnect(page);
-  await expect(page.getByRole('dialog', { name: 'Drive 파일을 확인해 주세요.' })).toBeVisible();
+  await expect(page.getByRole('dialog', { name: '충돌한 변경 확인' })).toBeVisible();
   await page.getByRole('button', { name: '편집으로 돌아가기', exact: true }).click();
   await expect(page.getByRole('treeitem', { name: 'Local work', exact: true })).toBeVisible();
   await page.clock.runFor(6000);

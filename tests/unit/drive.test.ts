@@ -105,6 +105,7 @@ describe('Drive transport contracts', () => {
       .fn()
       .mockResolvedValueOnce(response({ version: '1' }))
       .mockResolvedValueOnce(response({ id: 'f', name: 'x', version: '2' }, '"v2"'))
+      .mockResolvedValueOnce(response({ ids: ['copy'] }))
       .mockResolvedValueOnce(response({ id: 'copy', name: 'copy.mup', version: '1' }));
     const client = new DriveClient(() => 'token', fetcher);
     expect(
@@ -136,14 +137,16 @@ describe('Drive transport contracts', () => {
   it('creates a file in the selected folder without changing its content', async () => {
     const fetcher = vi
       .fn()
+      .mockResolvedValueOnce(response({ ids: ['new'] }))
       .mockResolvedValue(response({ id: 'new', name: 'map.maplet', version: '1' }));
     const client = new DriveClient(() => 'token', fetcher);
     const content = '{"title":"keep this exactly"}';
     await client.create('map.maplet', content, 'chosen-folder');
-    const request = fetcher.mock.calls[0][1];
+    const request = fetcher.mock.calls[1][1];
     const boundary = request.headers['Content-Type'].split('boundary=')[1];
     const parts = request.body.split(`--${boundary}`);
     expect(JSON.parse(parts[1].split('\r\n\r\n')[1])).toEqual({
+      id: 'new',
       name: 'map.maplet',
       mimeType: 'application/json',
       parents: ['chosen-folder'],

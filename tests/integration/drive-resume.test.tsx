@@ -172,7 +172,12 @@ it('creates a copy in the remembered folder if the original file has moved elsew
   vi.useFakeTimers();
   await act(async () => result.current.resumeDrive());
   await act(() => vi.advanceTimersByTimeAsync(1500));
-  expect(api.create).toHaveBeenCalledExactlyOnceWith('saved.maplet', options.content, 'folder');
+  expect(api.create).toHaveBeenCalledExactlyOnceWith(
+    'saved.maplet',
+    options.content,
+    'folder',
+    expect.any(String),
+  );
   expect(api.save).not.toHaveBeenCalled();
 });
 
@@ -189,7 +194,12 @@ it('retains copy semantics for a recovered source that was never an update targe
   vi.useFakeTimers();
   await act(async () => result.current.resumeDrive());
   await act(() => vi.advanceTimersByTimeAsync(1500));
-  expect(api.create).toHaveBeenCalledExactlyOnceWith('saved.maplet', options.content, 'folder');
+  expect(api.create).toHaveBeenCalledExactlyOnceWith(
+    'saved.maplet',
+    options.content,
+    'folder',
+    expect.any(String),
+  );
   expect(api.save).not.toHaveBeenCalled();
   expect(options.replace).not.toHaveBeenCalled();
 });
