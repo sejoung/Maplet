@@ -8,6 +8,7 @@ const driveBehavior = [
   '**/drive-merge.spec.ts',
   '**/drive-resume.spec.ts',
   '**/drive-session.spec.ts',
+  '**/drive-manual-save.spec.ts',
 ];
 
 export default defineConfig({

@@ -1,10 +1,11 @@
 import { test, expect } from '@playwright/test';
 import { setupDriveWorkspace, renameRoot, waitForDriveResume } from './support/drive-workspace';
 import { mockGoogle } from './support/google';
+import { seedDriveWorkspace } from './support/drive-seed';
 
 const shortcut = `${process.platform === 'darwin' ? 'Meta' : 'Control'}+s`;
 
-test('saves immediately to Drive with the shortcut and keeps local downloads in the File menu', async ({
+test('saves committed edits with the shortcut and primary button while keeping local downloads in the File menu', async ({
   page,
 }) => {
   const { state, root } = await setupDriveWorkspace(page);
@@ -24,12 +25,6 @@ test('saves immediately to Drive with the shortcut and keeps local downloads in 
   await page.getByRole('button', { name: '.maplet 다운로드', exact: true }).click();
   expect((await downloaded).suggestedFilename()).toBe('source.maplet');
   expect(state.updates).toHaveLength(1);
-});
-
-test('commits edited filenames and node titles before saving from the shortcut or primary button', async ({
-  page,
-}) => {
-  const { state, root } = await setupDriveWorkspace(page);
   await page.getByRole('button', { name: /^파일 이름 변경:/ }).click();
   const filename = page.getByRole('textbox', { name: '파일 이름', exact: true });
   await filename.fill('Renamed by shortcut');
@@ -37,7 +32,7 @@ test('commits edited filenames and node titles before saving from the shortcut o
     '편집 중',
   );
   await filename.press(shortcut);
-  await expect.poll(() => state.updates.length).toBe(1);
+  await expect.poll(() => state.updates.length).toBe(2);
   expect(state.name).toBe('Renamed by shortcut.maplet');
   await page.getByRole('treeitem').first().press('F2');
   await page.getByRole('textbox', { name: '노드 제목', exact: true }).fill('Saved by button');
@@ -45,51 +40,11 @@ test('commits edited filenames and node titles before saving from the shortcut o
     '편집 중',
   );
   await page.locator('.save-button').click();
-  await expect.poll(() => state.updates.length).toBe(2);
+  await expect.poll(() => state.updates.length).toBe(3);
   expect(JSON.parse(state.content).nodes[root].title).toBe('Saved by button');
   await expect(page.getByRole('status', { name: 'Drive 동기화 상태', exact: true })).toHaveText(
     '동기화 완료',
   );
-});
-
-test('queues the latest manual save during an upload and never marks stale content as synced', async ({
-  page,
-}) => {
-  const { state, root } = await setupDriveWorkspace(page);
-  let release!: () => void;
-  let started!: () => void;
-  const held = new Promise<void>((resolve) => {
-    release = resolve;
-  });
-  const requested = new Promise<void>((resolve) => {
-    started = resolve;
-  });
-  await page.route(
-    'https://www.googleapis.com/upload/drive/v3/files/chosen-file?*',
-    async (route) => {
-      started();
-      await held;
-      await route.fallback();
-    },
-    { times: 1 },
-  );
-  await renameRoot(page, 'First saved content');
-  await page.keyboard.press(shortcut);
-  await requested;
-  const sync = page.getByRole('status', { name: 'Drive 동기화 상태', exact: true });
-  await expect(sync).toHaveText('저장 중');
-  await renameRoot(page, 'New edit during save');
-  await page.keyboard.press(shortcut);
-  await expect(sync).not.toHaveText('동기화 완료');
-  release();
-  await expect.poll(() => state.updates.length).toBe(2);
-  expect(state.updates.map((content) => JSON.parse(content).nodes[root].title)).toEqual([
-    'First saved content',
-    'New edit during save',
-  ]);
-  await expect(sync).toHaveText('동기화 완료');
-  await page.clock.runFor(3000);
-  expect(state.updates).toHaveLength(2);
 });
 
 test('shows sync errors and retries the same file with the shortcut after a network failure', async ({
@@ -153,11 +108,12 @@ test('asks for a save folder rather than downloading when authorization has no d
   page,
 }) => {
   await mockGoogle(page);
+  await seedDriveWorkspace(page, null);
   await page.goto('/');
-  await page.getByRole('button', { name: 'Google Drive 연결', exact: true }).click();
-  await page.getByRole('button', { name: '저장 위치 선택', exact: true }).click();
-  await page.getByRole('button', { name: '선택 취소', exact: true }).click();
-  await page.getByRole('button', { name: '대화상자 닫기', exact: true }).click();
+  await expect(
+    page.getByRole('button', { name: 'Google Drive 연결됨', exact: true }),
+  ).toBeEnabled();
+  await expect(page.locator('[data-picker-view]')).toHaveCount(0);
   const downloads: string[] = [];
   page.on('download', (file) => downloads.push(file.suggestedFilename()));
   await page.keyboard.press(shortcut);

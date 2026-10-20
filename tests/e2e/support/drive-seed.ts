@@ -1,7 +1,7 @@
 import type { Page } from '@playwright/test';
 import type { DriveWorkspace } from '../../../src/adapters/storage/drive-workspace';
 
-export async function seedDriveWorkspace(page: Page, workspace: DriveWorkspace) {
+export async function seedDriveWorkspace(page: Page, workspace: DriveWorkspace | null) {
   await page.addInitScript((workspace) => {
     // Every page gets its own initial state; a refresh must still require reconnection.
     const marker = 'maplet:test:drive-fixture';
