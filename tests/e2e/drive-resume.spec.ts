@@ -12,13 +12,13 @@ for (const validators of ['missing', 'download-only', 'upload-missing'] as const
   }) => {
     const { state, root } = await setup(page, true, validators);
     await rename(page, 'First edit');
-    await page.clock.runFor(1600);
+    await page.clock.runFor(5100);
     await expect.poll(() => state.updates.length).toBe(1);
     await rename(page, 'Second edit');
-    await page.clock.runFor(1600);
+    await page.clock.runFor(5100);
     await expect.poll(() => state.updates.length).toBe(2);
     await renameFile(page, 'Renamed');
-    await page.clock.runFor(1600);
+    await page.clock.runFor(5100);
     await expect.poll(() => state.updates.length).toBe(3);
     expect(state.name).toBe('Renamed.maplet');
     expect(state.creates).toHaveLength(0);
@@ -29,7 +29,7 @@ for (const validators of ['missing', 'download-only', 'upload-missing'] as const
     await reconnect(page);
     await expect(page.getByRole('treeitem', { name: 'Second edit', exact: true })).toBeVisible();
     await rename(page, 'After reconnect');
-    await page.clock.runFor(1600);
+    await page.clock.runFor(5100);
     await expect.poll(() => state.updates.length).toBe(4);
     expect(JSON.parse(state.content).nodes[root].title).toBe('After reconnect');
     expect(state.creates).toHaveLength(0);
@@ -44,7 +44,7 @@ test('still pauses on external changes when ETags are absent', async ({ page }) 
   state.content = JSON.stringify(remote);
   state.version++;
   await rename(page, 'Local changes');
-  await page.clock.runFor(1600);
+  await page.clock.runFor(5100);
   await expect(page.getByRole('dialog', { name: '충돌한 변경 확인' })).toBeVisible();
   expect(state.updates).toHaveLength(0);
   await expect(page.getByRole('treeitem', { name: 'Local changes', exact: true })).toBeVisible();
@@ -56,7 +56,7 @@ test('treats missing versions as a save error without claiming an external confl
   const { state } = await setup(page, true, 'missing');
   state.versionAvailable = false;
   await rename(page, 'Unsaved local work');
-  await page.clock.runFor(1600);
+  await page.clock.runFor(5100);
   await expect(page.locator('.save-status')).toContainText('Drive 자동 저장 중지');
   expect(state.updates).toHaveLength(0);
   await expect(page.getByRole('dialog')).toHaveCount(0);
@@ -72,7 +72,7 @@ test('creates a Drive file with the edited filename without changing node titles
 }) => {
   const { state } = await setup(page, false);
   await renameFile(page, '업무 계획');
-  await page.clock.runFor(1600);
+  await page.clock.runFor(5100);
   await expect.poll(() => state.creates.length).toBe(1);
   expect(state.creates[0].name).toBe('업무 계획.maplet');
   expect(state.creates[0].parents).toEqual(['chosen-folder']);
@@ -90,7 +90,7 @@ test('recovers a filename-only edit and renames the same Drive file after reconn
   await page.getByRole('button', { name: '초안 복구', exact: true }).click();
   await expect(page.getByRole('button', { name: /^파일 이름 변경:/ })).toHaveText('변경한 파일');
   await reconnect(page);
-  await page.clock.runFor(1600);
+  await page.clock.runFor(5100);
   await expect.poll(() => state.updates.length).toBe(1);
   expect(state.name).toBe('변경한 파일.maplet');
   expect(JSON.parse(state.content).nodes[root].title).toBe('Drive original');
@@ -109,7 +109,7 @@ test('checks the remote version before renaming a Drive file', async ({ page }) 
   await renameFile(page, '충돌 중 이름');
   state.name = 'External name.maplet';
   state.version++;
-  await page.clock.runFor(1600);
+  await page.clock.runFor(5100);
   await expect(page.getByRole('dialog', { name: '충돌한 변경 확인' })).toBeVisible();
   expect(state.name).toBe('External name.maplet');
   expect(state.updates).toHaveLength(0);
@@ -129,7 +129,7 @@ test('restores the remembered folder and file after explicit reconnection', asyn
   expect(state.updates).toHaveLength(0);
   expect(state.creates).toHaveLength(0);
   await rename(page, 'Edit after reload');
-  await page.clock.runFor(1600);
+  await page.clock.runFor(5100);
   await expect.poll(() => state.updates.length).toBe(1);
   expect(JSON.parse(state.updates[0]).nodes[root].title).toBe('Edit after reload');
   expect(state.creates).toHaveLength(0);
@@ -156,7 +156,7 @@ test('recovers unsaved local edits after reload and resumes their original Drive
   await expect(
     page.getByRole('treeitem', { name: 'Recovered local edit', exact: true }),
   ).toBeVisible();
-  await page.clock.runFor(1600);
+  await page.clock.runFor(5100);
   await expect.poll(() => state.updates.length).toBe(1);
   expect(JSON.parse(state.updates[0]).nodes[root].title).toBe('Recovered local edit');
   expect(state.creates).toHaveLength(0);
@@ -194,7 +194,7 @@ test('remembers a folder without creating a file until an edit after reconnectin
   await page.clock.runFor(4000);
   expect(state.creates).toHaveLength(0);
   await rename(page, 'First local edit');
-  await page.clock.runFor(1600);
+  await page.clock.runFor(5100);
   await expect.poll(() => state.creates.length).toBe(1);
   expect(state.creates[0].parents).toEqual(['chosen-folder']);
   expect(state.creates[0].name).toBe('First local edit.maplet');

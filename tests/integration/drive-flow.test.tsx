@@ -47,9 +47,10 @@ describe('Drive autosave after choosing a native destination', () => {
     await waitFor(() => expect(api.create).toHaveBeenCalledOnce());
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     vi.useFakeTimers();
+    await act(() => vi.advanceTimersByTimeAsync(5000));
     return result;
   }
-  const tick = (ms = 1500) => act(() => vi.advanceTimersByTimeAsync(ms));
+  const tick = (ms = 5100) => act(() => vi.advanceTimersByTimeAsync(ms));
 
   it('debounces changes and saves the latest committed content to the same native file', async () => {
     const { options, refresh } = await ready();
@@ -58,7 +59,7 @@ describe('Drive autosave after choosing a native destination', () => {
     await tick(1000);
     options.content = 'latest edit';
     refresh();
-    await tick(1499);
+    await tick(2999);
     expect(api.save).not.toHaveBeenCalled();
     await tick(1);
     expect(api.save).toHaveBeenCalledExactlyOnceWith(
@@ -239,7 +240,7 @@ describe('Drive actions continue through sign-in and selection', () => {
   });
 
   it('authorizes then saves in the selected folder, and updates that file next time', async () => {
-    const { user } = await setup();
+    const { user, options, refresh } = await setup();
     await user.click(screen.getByRole('button', { name: 'Drive에 저장' }));
     await waitFor(() =>
       expect(api.create).toHaveBeenCalledWith(
@@ -251,6 +252,8 @@ describe('Drive actions continue through sign-in and selection', () => {
     );
     expect(bridge.pick).toHaveBeenCalledWith('folder', 'ko');
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    options.content = 'updated content';
+    refresh();
     await user.click(screen.getByRole('button', { name: 'Drive' }));
     await user.click(screen.getByRole('button', { name: 'Drive에 저장' }));
     await waitFor(() => expect(api.save).toHaveBeenCalledOnce());
@@ -302,9 +305,11 @@ describe('Drive actions continue through sign-in and selection', () => {
   });
 
   it('keeps conflict handling and chooses a new folder for a separate copy', async () => {
-    const { user } = await setup();
+    const { user, options, refresh } = await setup();
     await user.click(screen.getByRole('button', { name: 'Drive에 저장' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    options.content = 'conflicting local edit';
+    refresh();
     await user.click(screen.getByRole('button', { name: 'Drive' }));
     api.save.mockRejectedValueOnce(new DriveConflict());
     api.open.mockRejectedValueOnce(new DriveConflict());
@@ -316,7 +321,7 @@ describe('Drive actions continue through sign-in and selection', () => {
     await waitFor(() =>
       expect(api.create).toHaveBeenLastCalledWith(
         'local (사본).maplet',
-        'local content',
+        options.content,
         'selected-id',
         expect.any(String),
       ),
@@ -334,7 +339,7 @@ describe('Drive actions continue through sign-in and selection', () => {
   });
 
   it('imports MUP as a native document, creates a .maplet file and updates only that copy', async () => {
-    const { user, options } = await setup();
+    const { user, options, refresh } = await setup();
     api.open.mockResolvedValueOnce({
       id: 'source-mup',
       name: 'source.mup',
@@ -370,6 +375,9 @@ describe('Drive actions continue through sign-in and selection', () => {
     );
     expect(JSON.parse(api.create.mock.calls[0][1])).toMatchObject({ format: 'maplet', version: 1 });
     expect(api.save).not.toHaveBeenCalled();
+    const { renameNode } = await import('../../src/domain/commands');
+    options.content = serializeMaplet(renameNode(map, map.roots[0], 'Updated imported map'));
+    refresh();
     await user.click(screen.getByRole('button', { name: 'Drive' }));
     await user.click(screen.getByRole('button', { name: 'Drive에 저장' }));
     await waitFor(() =>

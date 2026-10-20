@@ -84,7 +84,7 @@ it('keeps an existing destination when folder selection is cancelled and switche
   act(() => result.current.closeDialog());
   options.content = 'edit in the new destination';
   rerender();
-  await act(() => vi.advanceTimersByTimeAsync(1500));
+  await act(() => vi.advanceTimersByTimeAsync(5100));
   expect(api.create).toHaveBeenLastCalledWith(
     'local.maplet',
     options.content,
@@ -109,7 +109,7 @@ it('retains the chosen folder across local document changes and waits for an edi
   expect(api.create).not.toHaveBeenCalled();
   options.content = 'first edit';
   rerender();
-  await act(() => vi.advanceTimersByTimeAsync(1500));
+  await act(() => vi.advanceTimersByTimeAsync(5100));
   expect(api.create).toHaveBeenCalledExactlyOnceWith(
     'next.maplet',
     'first edit',

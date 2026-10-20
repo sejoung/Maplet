@@ -1,4 +1,11 @@
-import { useEffect, useLayoutEffect, useRef, useState, type MutableRefObject } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type MutableRefObject,
+} from 'react';
 import { DriveClient, type DriveFile } from '../adapters/drive/client';
 import { driveSaveTarget } from '../adapters/documents';
 import type { GoogleSelection } from '../adapters/drive/google';
@@ -10,6 +17,7 @@ import {
   type DriveSnapshot,
 } from './driveMerge';
 import type { MergeChoices } from '../domain/merge';
+import { DriveSaveBuffer } from '../application/drive-save-buffer';
 
 type Mode = 'normal' | 'copy' | 'overwrite';
 interface Options extends DriveSnapshot {
@@ -22,6 +30,7 @@ interface Options extends DriveSnapshot {
   blocked: boolean;
   paused: boolean;
   dirty: boolean;
+  autosave?: boolean;
   inFlight: MutableRefObject<boolean>;
   generation: MutableRefObject<number>;
   copyLabel: string;
@@ -29,6 +38,7 @@ interface Options extends DriveSnapshot {
   pickFolder(): Promise<GoogleSelection | null>;
   begin(): void;
   finish(): void;
+  unchanged(): void;
   success(
     result: SaveResult,
     folder: GoogleSelection,
@@ -55,33 +65,42 @@ export function useDriveSaving(options: Options) {
     attempt: DriveSnapshot;
     file: DriveFile | null;
   } | null>(null);
-  const queued = useRef<{ key: number; automatic: boolean } | null>(null);
+  const buffer = useRef(new DriveSaveBuffer());
+  const [bufferVersion, setBufferVersion] = useState(0);
+  const stage = useCallback((key: number, snapshot: DriveSnapshot, manual = false) => {
+    if (buffer.current.stage(key, snapshot, Date.now(), manual))
+      setBufferVersion((value) => value + 1);
+  }, []);
   const saver = useRef<DriveDocumentSaver | null>(null);
   if (!saver.current && options.drive) saver.current = new DriveDocumentSaver(options.drive);
   const [conflict, setConflict] = useState<DriveMergeConflict | null>(null);
   const conflictKey = useRef<number | null>(null);
   useLayoutEffect(() => {
     latest.current = options;
-    if (
+    const sameActive =
       active.current?.key === options.documentKey &&
-      (active.current.snapshot.content !== options.content ||
-        active.current.snapshot.filename !== options.filename)
-    ) {
-      queued.current ??= { key: options.documentKey, automatic: true };
-    }
-  });
-  const save = async (mode: Mode = 'normal', automatic = false) => {
+      active.current.snapshot.content === options.content &&
+      active.current.snapshot.filename === options.filename;
+    if (sameActive || (options.file && !options.dirty && !options.paused)) {
+      if (buffer.current.clear()) setBufferVersion((value) => value + 1);
+    } else if (
+      options.autosave &&
+      options.dirty &&
+      !options.paused &&
+      !options.blocked &&
+      options.folder
+    )
+      stage(options.documentKey, options);
+    else if (buffer.current.clear(true)) setBufferVersion((value) => value + 1);
+  }, [options, stage]);
+  const performSave = async (mode: Mode = 'normal', automatic = false) => {
     const state = latest.current;
     if (active.current) {
-      if (mode === 'normal')
-        queued.current = {
-          key: state.documentKey,
-          automatic: automatic && (queued.current?.automatic ?? true),
-        };
+      if (mode === 'normal') stage(state.documentKey, state, !automatic);
       return;
     }
     if (state.busy) {
-      if (mode === 'normal') queued.current = { key: state.documentKey, automatic };
+      if (mode === 'normal') stage(state.documentKey, state, !automatic);
       return;
     }
     if (
@@ -93,12 +112,16 @@ export function useDriveSaving(options: Options) {
       (automatic && state.paused)
     )
       return;
-    if (automatic && state.file && !state.dirty && !state.paused) return;
+    if (mode === 'normal' && state.file && !state.dirty && !state.paused) {
+      if (!automatic) state.unchanged();
+      return;
+    }
     const key = state.documentKey,
       generation = state.generation.current;
     const current = () =>
       key === latest.current.documentKey && generation === state.generation.current;
     const requested = { content: state.content, filename: state.filename };
+    buffer.current.clear();
     active.current = { key, snapshot: requested, attempt: requested, file: state.file };
     state.inFlight.current = true;
     setConflict(null);
@@ -114,6 +137,7 @@ export function useDriveSaving(options: Options) {
         mode === 'copy',
         state.copyLabel,
       );
+      buffer.current.started(key, Date.now());
       const result =
         target.create || !state.file
           ? {
@@ -142,13 +166,13 @@ export function useDriveSaving(options: Options) {
       state.success(result, folder, requested, automatic);
     } catch (reason) {
       if (!current()) return;
-      queued.current = null;
+      buffer.current.clear();
       let failure = reason;
       if (reason instanceof DriveMergeConflict) {
         const shown = mergeDriveSnapshots(reason.base, latest.current, reason.remote);
         if (!shown.conflicts.length) {
           state.resolved(shown, reason.remote, reason.remoteFile);
-          queued.current = { key, automatic: false };
+          stage(key, shown, true);
           return;
         }
         failure = new DriveMergeConflict(
@@ -168,18 +192,38 @@ export function useDriveSaving(options: Options) {
       state.finish();
     }
   };
-  const latestSave = useRef(save);
+  const save = async (mode: Mode = 'normal', automatic = false) => {
+    if (automatic && mode === 'normal') stage(latest.current.documentKey, latest.current);
+    else await performSave(mode, automatic);
+  };
+  const latestSave = useRef(performSave);
   useLayoutEffect(() => {
-    latestSave.current = save;
+    latestSave.current = performSave;
   });
   useEffect(() => {
-    if (options.busy || active.current || !queued.current) return;
-    const request = queued.current;
-    queued.current = null;
-    if (!options.dirty && options.file) return;
-    if (request.key === options.documentKey && !options.blocked && !options.paused)
-      void latestSave.current('normal', request.automatic);
+    if (options.busy || active.current || !buffer.current.pending) return;
+    const request = buffer.current.pending;
+    if (
+      request.key !== options.documentKey ||
+      options.blocked ||
+      !options.folder ||
+      (!request.manual && options.paused) ||
+      (!options.dirty && options.file && !options.paused)
+    ) {
+      buffer.current.clear();
+      return;
+    }
+    const delay = buffer.current.delay(Date.now());
+    if (!delay) {
+      void latestSave.current('normal', !request.manual);
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      void latestSave.current('normal', !request.manual);
+    }, delay);
+    return () => window.clearTimeout(timer);
   }, [
+    bufferVersion,
     options.busy,
     options.documentKey,
     options.blocked,
@@ -188,6 +232,7 @@ export function useDriveSaving(options: Options) {
     options.filename,
     options.dirty,
     options.file,
+    options.folder,
   ]);
   const resolve = (choices: MergeChoices) => {
     const state = latest.current;
@@ -210,7 +255,7 @@ export function useDriveSaving(options: Options) {
     }
     state.resolved(merged, conflict.remote, conflict.remoteFile);
     setConflict(null);
-    queued.current = { key: state.documentKey, automatic: false };
+    stage(state.documentKey, merged, true);
   };
   return {
     save,
@@ -229,7 +274,7 @@ export function useDriveSaving(options: Options) {
       }
     },
     clear: () => {
-      queued.current = null;
+      buffer.current.clear();
       setConflict(null);
     },
   };

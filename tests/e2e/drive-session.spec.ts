@@ -21,7 +21,7 @@ test('never stores credentials and asks for reconnection after every refresh', a
   await expect(page.locator('html')).toHaveAttribute('data-authorizations', '1');
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await renameRoot(page, 'After expired session');
-  await page.clock.runFor(1600);
+  await page.clock.runFor(5100);
   await expect.poll(() => state.updates.length).toBe(1);
 });
 
@@ -31,7 +31,7 @@ test('clears a revoked session without opening a login popup or retrying automat
   const { state } = await setupDriveWorkspace(page);
   state.authStatus = 401;
   await renameRoot(page, 'Unauthorized local edit');
-  await page.clock.runFor(1600);
+  await page.clock.runFor(5100);
   await expect(page.getByRole('button', { name: 'Google Drive 연결', exact: true })).toBeEnabled();
   await expect(page.locator('.save-status')).toContainText('Drive 자동 저장 중지');
   expect(await page.evaluate((key) => sessionStorage.getItem(key), sessionKey)).toBeNull();
@@ -66,7 +66,7 @@ test('waits for the recovery decision before accessing or restoring a remembered
   await expect(
     page.getByRole('treeitem', { name: 'Local unsaved draft', exact: true }),
   ).toBeVisible();
-  await page.clock.runFor(1600);
+  await page.clock.runFor(5100);
   await expect.poll(() => state.updates.length).toBe(1);
   await expect(page.locator('html')).toHaveAttribute('data-authorizations', '1');
 });
@@ -128,7 +128,7 @@ test('keeps authentication on a file permission error and allows retry without a
   const { state } = await setupDriveWorkspace(page);
   state.authStatus = 403;
   await renameRoot(page, 'Permission denied work');
-  await page.clock.runFor(1600);
+  await page.clock.runFor(5100);
   await expect(
     page.getByRole('button', { name: 'Google Drive 연결됨', exact: true }),
   ).toBeEnabled();

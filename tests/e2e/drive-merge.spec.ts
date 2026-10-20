@@ -33,6 +33,8 @@ test('coalesces frequent edits during an upload and drains only the newest snaps
   await expect(sync(page)).not.toHaveText('동기화 완료');
   expect(state.updates).toHaveLength(0);
   release();
+  await expect.poll(() => state.updates.length).toBe(1);
+  await page.clock.runFor(5100);
   await expect.poll(() => state.updates.length).toBe(2);
   expect(state.updates.map((value) => JSON.parse(value).nodes[root].title)).toEqual([
     'First snapshot',
@@ -189,7 +191,7 @@ test('restores its saved baseline and merges external changes after refreshing a
   await page.reload();
   await page.getByRole('button', { name: '초안 복구', exact: true }).click();
   await waitForDriveResume(page);
-  await page.clock.runFor(1600);
+  await page.clock.runFor(5100);
   await expect(sync(page)).toHaveText('동기화 완료');
   expect(JSON.parse(state.content).nodes[root]).toMatchObject({
     title: 'Recovered local',
@@ -220,12 +222,12 @@ test('saves periodically during continuous committed editing instead of waiting 
   page,
 }) => {
   const { state } = await setupDriveWorkspace(page);
-  for (let i = 0; i < 11; i++) {
+  for (let i = 0; i < 31; i++) {
     await renameRoot(page, `Continuous ${i}`);
     await page.clock.runFor(500);
   }
   await expect.poll(() => state.updates.length).toBeGreaterThan(0);
-  await page.clock.runFor(1600);
+  await page.clock.runFor(5100);
   await expect(sync(page)).toHaveText('동기화 완료');
 });
 
@@ -268,7 +270,7 @@ test('reconciles its uncertain previous write after refreshing with newer unsave
   await page.reload();
   await page.getByRole('button', { name: '초안 복구', exact: true }).click();
   await waitForDriveResume(page);
-  await page.clock.runFor(1600);
+  await page.clock.runFor(5100);
   await expect(sync(page)).toHaveText('동기화 완료');
   expect(JSON.parse(state.content).nodes[root].title).toBe('Latest local');
   expect(state.updates).toHaveLength(2);
@@ -344,7 +346,7 @@ test('preserves merged remote attributes if an upload fails and the editor is re
   await page.reload();
   await page.getByRole('button', { name: '초안 복구', exact: true }).click();
   await waitForDriveResume(page);
-  await page.clock.runFor(1600);
+  await page.clock.runFor(5100);
   await expect(sync(page)).toHaveText('동기화 완료');
   expect(JSON.parse(state.content).nodes[root]).toMatchObject({
     title: 'Latest local',

@@ -8,7 +8,6 @@ import { restoreDriveWorkspace } from './restoreDriveWorkspace';
 import { useDriveSaving } from './useDriveSaving';
 import { driveSaveHandlers } from './driveSaveHandlers';
 import { type DriveBaseline } from './driveMerge';
-import { useDriveAutosave } from './useDriveAutosave';
 import { useDriveStartup } from './useDriveStartup';
 import { parseDriveBaseline } from '../adapters/storage/drive-baseline';
 import { driveDisconnect } from './driveDisconnect';
@@ -266,6 +265,7 @@ export function useDrive({
     blocked: Boolean(pending),
     paused: autoPaused,
     dirty: driveDirty,
+    autosave: Boolean(connected && !pending && !dialog && !autoPaused),
     inFlight,
     generation,
     copyLabel: t('사본'),
@@ -312,15 +312,6 @@ export function useDrive({
     }),
   });
   const saveDrive = saving.save;
-  useDriveAutosave(
-    Boolean(connected && !pending && !busy && !dialog && !autoPaused && saveFolder && driveDirty),
-    () => {
-      void saveDrive('normal', true);
-    },
-    content,
-    filename,
-    documentKey,
-  );
   const autoSaveStatus = !saveFolder
     ? null
     : pending

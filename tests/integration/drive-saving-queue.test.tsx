@@ -49,6 +49,7 @@ it.each(['success', 'failure'])(
           pickFolder: async () => null,
           begin: () => setBusy(true),
           finish: () => setBusy(false),
+          unchanged: vi.fn(),
           success,
           fail: failure,
           resolved: vi.fn(),

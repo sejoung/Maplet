@@ -96,7 +96,7 @@ test('selects a destination folder before saving and does not write when selecti
     .getByRole('button', { name: 'Drive에 저장', exact: true })
     .click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
-  expect(updates).toHaveLength(1);
+  expect(updates).toHaveLength(0);
   expect(created).toHaveLength(1);
   await page.getByRole('button', { name: 'Google Drive 연결됨', exact: true }).click();
   await page.getByRole('button', { name: '다른 위치에 새 사본 저장', exact: true }).click();

@@ -39,6 +39,7 @@ export function driveSaveHandlers(state: State) {
       state.setDriveStatus('Drive 저장 중…');
     },
     finish: () => state.setBusy(false),
+    unchanged: () => state.setDialog(null),
     success: (
       result: SaveResult,
       folder: GoogleSelection,

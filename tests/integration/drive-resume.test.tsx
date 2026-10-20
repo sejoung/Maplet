@@ -97,7 +97,7 @@ it('shows remembered metadata without authorizing or accessing Drive, then reope
   expect(result.current.driveFile?.id).toBe('file');
   options.content = serializeMaplet(renameNode(map, map.roots[0], 'New edit'));
   rerender();
-  await act(() => vi.advanceTimersByTimeAsync(1500));
+  await act(() => vi.advanceTimersByTimeAsync(5100));
   expect(api.save).toHaveBeenCalledExactlyOnceWith(
     expect.objectContaining({ id: 'file', version: '7' }),
     options.content,
@@ -114,7 +114,7 @@ it('keeps recovered local edits and resumes against their original version', asy
   vi.useFakeTimers();
   await act(async () => result.current.resumeDrive());
   expect(options.replace).not.toHaveBeenCalled();
-  await act(() => vi.advanceTimersByTimeAsync(1500));
+  await act(() => vi.advanceTimersByTimeAsync(5100));
   expect(api.save).toHaveBeenCalledWith(
     expect.objectContaining({ version: '7' }),
     options.content,
@@ -171,7 +171,7 @@ it('creates a copy in the remembered folder if the original file has moved elsew
   api.create.mockResolvedValueOnce({ ...workspace.file, id: 'copy' });
   vi.useFakeTimers();
   await act(async () => result.current.resumeDrive());
-  await act(() => vi.advanceTimersByTimeAsync(1500));
+  await act(() => vi.advanceTimersByTimeAsync(5100));
   expect(api.create).toHaveBeenCalledExactlyOnceWith(
     'saved.maplet',
     options.content,
@@ -193,7 +193,7 @@ it('retains copy semantics for a recovered source that was never an update targe
   api.create.mockResolvedValueOnce({ ...workspace.file, id: 'copy' });
   vi.useFakeTimers();
   await act(async () => result.current.resumeDrive());
-  await act(() => vi.advanceTimersByTimeAsync(1500));
+  await act(() => vi.advanceTimersByTimeAsync(5100));
   expect(api.create).toHaveBeenCalledExactlyOnceWith(
     'saved.maplet',
     options.content,

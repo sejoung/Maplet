@@ -103,7 +103,7 @@ test('keeps the chosen folder for MUP imports and automatically updates only the
   expect(creates).toHaveLength(0);
   expect(updates).toHaveLength(0);
   await rename(page, '첫 편집');
-  await page.clock.runFor(1600);
+  await page.clock.runFor(5100);
   await expect.poll(() => creates.length).toBe(1);
   expect(creates).toHaveLength(1);
   expect(creates[0].name).toBe('source.maplet');
@@ -115,7 +115,7 @@ test('keeps the chosen folder for MUP imports and automatically updates only the
   await rename(page, '다음 편집');
   await page.clock.runFor(500);
   await rename(page, '최종 편집');
-  await page.clock.runFor(1600);
+  await page.clock.runFor(5100);
   await expect.poll(() => updates.length).toBe(1);
   expect(updates[0]).toMatchObject({ id: 'native-copy', etag: '"v1"' });
   expect(JSON.parse(updates[0].content).nodes.root.title).toBe('최종 편집');
@@ -126,7 +126,7 @@ test('keeps the chosen folder for MUP imports and automatically updates only the
     parseFloat((element as HTMLElement).style.width),
   );
   await node.getByRole('button', { name: '노드 크기 조절' }).press('ArrowRight');
-  await page.clock.runFor(1600);
+  await page.clock.runFor(5100);
   await expect.poll(() => updates.length).toBe(2);
   expect(updates[1]).toMatchObject({ id: 'native-copy', etag: '"v2"' });
   expect(JSON.parse(updates[1].content).nodes.root.style.width).toBeGreaterThan(widthBefore);
@@ -139,7 +139,7 @@ test('autosaves an existing native Drive file without choosing another destinati
 }) => {
   const { creates, updates } = await setup(page, true);
   await rename(page, 'Native autosave');
-  await page.clock.runFor(1600);
+  await page.clock.runFor(5100);
   await expect.poll(() => updates.length).toBe(1);
   expect(updates[0].id).toBe('chosen-file');
   expect(JSON.parse(updates[0].content).format).toBe('maplet');
@@ -155,12 +155,12 @@ test('copies a native file from another folder into the selected folder before a
   expect(creates).toHaveLength(0);
   expect(updates).toHaveLength(0);
   await rename(page, '외부 파일 편집');
-  await page.clock.runFor(1600);
+  await page.clock.runFor(5100);
   await expect.poll(() => creates.length).toBe(1);
   expect(creates[0]).toMatchObject({ name: 'source.maplet', parents: ['chosen-folder'] });
   expect(updates).toHaveLength(0);
   await rename(page, '사본에 계속 저장');
-  await page.clock.runFor(1600);
+  await page.clock.runFor(5100);
   await expect.poll(() => updates.length).toBe(1);
   expect(updates[0].id).toBe('native-copy');
   expect(JSON.parse(updates[0].content).nodes.root.title).toBe('사본에 계속 저장');
@@ -175,7 +175,7 @@ test('pauses automatic saving on conflict and resumes after an explicit successf
   await chooseNativeDestination(page);
   state.conflict = true;
   await rename(page, '충돌 중 편집');
-  await page.clock.runFor(1600);
+  await page.clock.runFor(5100);
   await expect(page.getByRole('dialog', { name: 'Drive 파일을 확인해 주세요.' })).toBeVisible();
   await page.getByRole('button', { name: '편집으로 돌아가기', exact: true }).click();
   await rename(page, '계속 편집');
@@ -191,7 +191,7 @@ test('pauses automatic saving on conflict and resumes after an explicit successf
     .click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await rename(page, '자동 저장 재개');
-  await page.clock.runFor(1600);
+  await page.clock.runFor(5100);
   await expect.poll(() => updates.length).toBe(5);
   expect(JSON.parse(updates[4].content).nodes.root.title).toBe('자동 저장 재개');
 });

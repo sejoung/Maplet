@@ -32,7 +32,7 @@ Create `.maplet` documents or import `.mup` files, arrange your ideas, and downl
 - **Arrange the whole map:** use `Auto arrange` in the toolbar to balance branches by their actual height, separate major branches, and fit the result on screen. One undo restores the previous arrangement. Content, hierarchy, formatting, and collapsed states are preserved.
 - **Navigate your map:** search, collapse branches, zoom, pan, fit to screen, or restore automatic layout.
 - **Undo and recovery:** undo or redo a whole drag in one step; recover browser drafts from IndexedDB and keep manual positions when reopening files.
-- **Optional Google Drive:** choose a save folder first to autosave later changes. Credentials stay in memory only, so use Reconnect after every reload. The folder and file location are remembered. Files opened from other folders are saved as copies in the selected folder. Imported .mup originals are preserved; external changes are merged by node and property, with explicit resolution for conflicting edits.
+- **Optional Google Drive:** choose a save folder first to batch later changes: 3 seconds after editing stops, at least 5 seconds between automatic uploads, and at most 15 seconds of continuous editing before a save. Unchanged snapshots are skipped; manual saves flush immediately. Credentials stay in memory only, so use Reconnect after every reload. The folder and file location are remembered. Files opened from other folders are saved as copies in the selected folder. Imported .mup originals are preserved; external changes are merged by node and property, with explicit resolution for conflicting edits.
 
 The current app interface is in Korean. Both README versions describe the same features and commands.
 
