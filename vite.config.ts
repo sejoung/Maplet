@@ -9,7 +9,9 @@ export default defineConfig({
   base: './',
   server: { strictPort: true },
   test: {
-    environment: 'jsdom',
+    environment: 'node',
+    // Let jsdom provide browser storage instead of Node's experimental Web Storage.
+    execArgv: ['--no-experimental-webstorage'],
     include: ['tests/**/*.test.{ts,tsx}'],
     setupFiles: ['tests/setup.ts'],
     reporters: ['default', 'json', 'junit'],

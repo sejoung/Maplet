@@ -6,6 +6,7 @@ const results = process.env.MAPLET_TEST_RUN_DIR ?? 'test-results/unmanaged/e2e';
 export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: true,
+  workers: process.env.CI ? 2 : '75%',
   outputDir: join(results, 'artifacts'),
   reporter: [
     ['list'],
@@ -15,9 +16,9 @@ export default defineConfig({
   ],
   use: { baseURL: 'http://127.0.0.1:4173', trace: 'retain-on-failure', locale: 'ko-KR' },
   webServer: {
-    command: 'npm run dev -- --port 4173 --strictPort',
+    command: 'node scripts/serve-e2e.mjs',
     url: 'http://127.0.0.1:4173',
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: false,
     env: {
       VITE_GOOGLE_CLIENT_ID: 'public-test-client',
       VITE_GOOGLE_API_KEY: 'public-test-key',

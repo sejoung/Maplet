@@ -27,7 +27,11 @@ test('uses browser language and switches UI without changing document contents',
     .locator('input[type=file]')
     .setInputFiles({ name: 'bad.mup', mimeType: 'application/json', buffer: Buffer.from('{bad') });
   await expect(page.getByRole('alert')).toContainText('Invalid JSON');
-  await page.getByRole('banner').getByRole('button', { name: 'Settings', exact: true }).click();
+  // Keyboard activation gives the focus-restoration assertion a focused trigger in every engine.
+  await page
+    .getByRole('banner')
+    .getByRole('button', { name: 'Settings', exact: true })
+    .press('Enter');
   const settings = page.getByRole('dialog', { name: 'Settings', exact: true });
   await settings.getByRole('combobox', { name: 'Language', exact: true }).selectOption('ko');
   await page

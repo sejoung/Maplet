@@ -135,7 +135,7 @@ test('opens, updates and creates Drive files with the native browser fetch', asy
   });
   await page.goto('/');
   const result = await page.evaluate(async () => {
-    const modulePath = '/src/adapters/drive/client.ts';
+    const modulePath = '/test-modules/drive-client.js';
     const { DriveClient } = await import(modulePath);
     const client = new DriveClient(() => 'test-token');
     const opened = await client.open('file');

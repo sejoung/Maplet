@@ -13,7 +13,7 @@ test('names an untitled document from its first committed root title before keyb
   await page.goto('/');
   const downloaded = page.waitForEvent('download');
   await editRoot(page, '업무 계획', `${process.platform === 'darwin' ? 'Meta' : 'Control'}+s`);
-  expect((await downloaded).suggestedFilename()).toMatch(/^업무[ _]계획\.maplet$/);
+  expect((await downloaded).suggestedFilename().normalize('NFC')).toMatch(/^업무[ _]계획\.maplet$/);
   await expect(page.getByRole('button', { name: /^파일 이름 변경:/ })).toHaveText('업무 계획');
   await expect(page.getByLabel('저장하지 않은 변경', { exact: true })).toHaveCount(0);
   await editRoot(page, '수정한 중심 주제');

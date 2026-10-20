@@ -16,14 +16,14 @@ test('edits the header filename and downloads native and compatible files withou
   let downloaded = page.waitForEvent('download');
   await page.getByRole('button', { name: '.maplet 저장', exact: true }).click();
   const file = await downloaded;
-  expect(file.suggestedFilename()).toMatch(/^나의[ _]계획\.maplet$/);
+  expect(file.suggestedFilename().normalize('NFC')).toMatch(/^나의[ _]계획\.maplet$/);
   const raw = JSON.parse(await readFile((await file.path())!, 'utf8'));
   expect(raw.nodes[raw.roots[0]].title).toBe('중심 주제');
   await expect(page.getByLabel('저장하지 않은 변경', { exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: '파일', exact: true }).click();
   downloaded = page.waitForEvent('download');
   await page.getByRole('button', { name: '.mup 내보내기', exact: true }).click();
-  expect((await downloaded).suggestedFilename()).toMatch(/^나의[ _]계획\.mup$/);
+  expect((await downloaded).suggestedFilename().normalize('NFC')).toMatch(/^나의[ _]계획\.mup$/);
 });
 
 test('commits on blur, cancels with Escape, rejects empty names and protects Korean composition', async ({
@@ -73,7 +73,9 @@ test('recovers a renamed file after refresh even when the document content did n
   await expect(page.getByLabel('저장하지 않은 변경', { exact: true })).toBeVisible();
   const downloaded = page.waitForEvent('download');
   await page.getByRole('button', { name: '.maplet 저장', exact: true }).click();
-  expect((await downloaded).suggestedFilename()).toMatch(/^복구할[ _]파일\.maplet$/);
+  expect((await downloaded).suggestedFilename().normalize('NFC')).toMatch(
+    /^복구할[ _]파일\.maplet$/,
+  );
 });
 
 test('uses the current name when saving directly from the filename editor', async ({ page }) => {
@@ -85,12 +87,14 @@ test('uses the current name when saving directly from the filename editor', asyn
   await page
     .getByRole('textbox', { name: '파일 이름', exact: true })
     .press(`${process.platform === 'darwin' ? 'Meta' : 'Control'}+s`);
-  expect((await downloaded).suggestedFilename()).toMatch(/^바로[ _]저장\.maplet$/);
+  expect((await downloaded).suggestedFilename().normalize('NFC')).toMatch(/^바로[ _]저장\.maplet$/);
   await rename.click();
   await page.getByRole('textbox', { name: '파일 이름', exact: true }).fill('버튼으로 저장');
   downloaded = page.waitForEvent('download');
   await page.getByRole('button', { name: '.maplet 저장', exact: true }).click();
-  expect((await downloaded).suggestedFilename()).toMatch(/^버튼으로[ _]저장\.maplet$/);
+  expect((await downloaded).suggestedFilename().normalize('NFC')).toMatch(
+    /^버튼으로[ _]저장\.maplet$/,
+  );
 });
 
 test('keeps filename editing available on a narrow screen and translates its controls', async ({

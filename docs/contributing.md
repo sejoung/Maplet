@@ -20,6 +20,10 @@ npm run test:e2e
 
 `npm run verify`는 포맷 → lint → 타입 → 단위/통합/아키텍처 및 커버리지 → 빌드를 순서대로 실행한다. E2E는 별도 브라우저가 필요하므로 독립 명령으로 운영한다. CI는 둘 다 수행한다. 문장 85%, 분기 75%, 함수 90%, 줄 85% 미만이면 실패한다. 외부 Google SDK 브리지의 실제 동작은 실 Cloud 환경에서 추가 검증한다. [구현 범위와 검증 기록](verification.md)을 함께 관리한다.
 
+Vitest는 기본적으로 Node 환경에서 실행한다. DOM·브라우저 저장소·React가 필요한 테스트 파일에는 첫 줄에 `// @vitest-environment jsdom`을 지정한다. DOM matcher와 React cleanup은 이 환경에서만 불러오며, IndexedDB 모방은 사용하는 테스트에서 직접 import한다. Node의 실험적 Web Storage는 테스트 worker에서 꺼서 jsdom 저장소와 충돌하지 않게 한다.
+
+E2E는 실행마다 `scripts/serve-e2e.mjs`로 앱을 한 번 빌드한 뒤 Vite preview로 제공한다. 페이지마다 개발 서버의 소스 모듈을 다시 읽는 비용을 줄이고 배포용 번들을 검증한다. 빌드는 해당 실행의 `site/`에 저장해 기존 `dist/`와 분리하며, 4173 포트의 기존 서버를 재사용하지 않으므로 테스트 시작 전 이 포트를 비워 둔다. 네 브라우저 환경·실패 trace·결과 reporter는 유지한다. 기본 worker 수는 로컬 CPU의 75%, CI에서는 2개이며 `npm run test:e2e -- --workers=4`처럼 덮어쓸 수 있다.
+
 ## 테스트 결과
 
 위 npm 명령은 매번 `test-results/2026-10-17T14-41-40-254Z-unit-고유값/`처럼 UTC 시각·테스트 종류·고유값으로 별도 폴더를 만든다. 같은 시각에 병렬 실행해도 겹치지 않고 이전 결과는 보존한다. `npm run verify`의 테스트 결과 종류는 coverage다.
@@ -36,6 +40,7 @@ test-results/
     ...
   <UTC 시각>-e2e-<고유값>/
     html/index.html
+    site/              # 이 실행에서 검증한 앱 빌드
     artifacts/         # 실패 시 trace.zip 등
     ...
   latest -> 가장 최근에 종료된 실행 폴더
