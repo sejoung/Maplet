@@ -120,7 +120,7 @@ test('runs document keyboard shortcuts while a canvas node has focus', async ({ 
   expect((await download).suggestedFilename()).toBe('interaction.maplet');
 });
 
-test('keeps the parent when dragging a node over another node', async ({ page }) => {
+test('keeps the parent and separates nodes dropped on top of another node', async ({ page }) => {
   await openFixture(page);
   await page.getByRole('button', { name: '화면에 맞추기', exact: true }).click();
   const branch = page.getByRole('treeitem', { name: '둘째 가지', exact: true });
@@ -133,9 +133,21 @@ test('keeps the parent when dragging a node over another node', async ({ page })
   await page.mouse.move(target.x + target.width / 2, target.y + target.height / 2, { steps: 8 });
   await page.mouse.up();
   await expect(branch).toHaveAttribute('aria-level', '2');
+  expect((await branch.boundingBox())!.y).toBeCloseTo(target.y, 0);
   await expect
-    .poll(async () => Math.abs((await branch.boundingBox())!.y - target.y))
-    .toBeLessThan(1.5);
+    .poll(async () => {
+      const box = (await branch.boundingBox())!;
+      const other = (await page
+        .getByRole('treeitem', { name: '첫 가지', exact: true })
+        .boundingBox())!;
+      return (
+        box.x + box.width <= other.x ||
+        other.x + other.width <= box.x ||
+        box.y + box.height <= other.y ||
+        other.y + other.height <= box.y
+      );
+    })
+    .toBe(true);
 });
 
 test('pans the canvas from an empty area', async ({ page }) => {

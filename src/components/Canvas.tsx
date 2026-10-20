@@ -4,7 +4,6 @@ import {
   useEffect,
   useLayoutEffect,
   useImperativeHandle,
-  useMemo,
   useRef,
   useState,
   type KeyboardEvent,
@@ -15,9 +14,10 @@ import { canvasKeydown } from './canvas-keyboard';
 import { CanvasNodes } from './CanvasNodes';
 import type { CanvasProps } from './canvas-types';
 export type { CanvasControls, CanvasProps } from './canvas-types';
-import type { NodePosition } from '../domain/model';
-import { moveLayoutSubtree } from '../engine/layout';
-import { positionsForSubtreeMove } from '../domain/positions';
+import type { MindMap, NodePosition } from '../domain/model';
+import { layoutWithPositions, type Layout } from '../engine/layout';
+import { proposeSubtreeMove, type PlacementProposal } from '../engine/subtree-placement';
+import { BranchRegions } from './BranchRegions';
 
 export function Canvas(props: CanvasProps) {
   const { t } = useI18n();
@@ -32,20 +32,20 @@ export function Canvas(props: CanvasProps) {
     onZoomChange,
   } = props;
   const { layout: baseLayout, onDraftChange } = useEditingLayout(map, editingId, documentKey);
-  const [dragPreview, setDragPreview] = useState<{ id: string; position: NodePosition } | null>(
-    null,
-  );
+  const [preview, setDragPreview] = useState<{
+    id: string;
+    source: MindMap;
+    documentKey: number;
+    layout: Layout;
+    regions: PlacementProposal['regions'];
+  } | null>(null);
+  const dragPreview =
+    preview?.source === map && preview.documentKey === documentKey && !editingId ? preview : null;
   const viewport = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 900, height: 650 });
   const [view, setView] = useState({ x: 0, y: 0, zoom: 0.85 });
   const resizing = useNodeResize(map, baseLayout, view.zoom, props.onResize);
-  const layout = useMemo(
-    () =>
-      dragPreview
-        ? moveLayoutSubtree(map, baseLayout, dragPreview.id, dragPreview.position)
-        : resizing.layout,
-    [map, baseLayout, dragPreview, resizing.layout],
-  );
+  const layout = dragPreview?.layout ?? resizing.layout;
   const [panMode, setPanMode] = useState(false);
   const [panning, setPanning] = useState(false);
   const pointers = useRef(new Map<number, { x: number; y: number }>());
@@ -57,7 +57,8 @@ export function Canvas(props: CanvasProps) {
     zoom: number;
     origin: NodePosition;
     position: NodePosition;
-    positions: Record<string, NodePosition>;
+    layout: Layout;
+    proposal: PlacementProposal | null;
     moved: boolean;
   } | null>(null);
   const suppressClick = useRef(false);
@@ -77,6 +78,13 @@ export function Canvas(props: CanvasProps) {
     distance: number;
     zoom: number;
   } | null>(null);
+  useLayoutEffect(() => {
+    nodeDrag.current = null;
+    setDragPreview(null);
+    pointers.current.clear();
+    gesture.current = null;
+    setPanning(false);
+  }, [map, documentKey, editingId]);
   const layoutRef = useRef(layout);
   useLayoutEffect(() => {
     layoutRef.current = layout;
@@ -222,9 +230,8 @@ export function Canvas(props: CanvasProps) {
             zoom: view.zoom,
             origin: position,
             position,
-            positions: Object.fromEntries(
-              layout.nodes.map((node) => [node.id, { x: node.x, y: node.y }]),
-            ),
+            layout,
+            proposal: null,
             moved: false,
           };
           gesture.current = null;
@@ -258,9 +265,21 @@ export function Canvas(props: CanvasProps) {
           const dx = event.clientX - drag.x;
           const dy = event.clientY - drag.y;
           if (!drag.moved && Math.hypot(dx, dy) < 4) return;
+          const position = { x: drag.origin.x + dx / drag.zoom, y: drag.origin.y + dy / drag.zoom };
+          // Always resolve from the drag's starting layout so moving away restores
+          // displaced branches, and the same proposal is committed on release.
+          const proposal = proposeSubtreeMove(map, drag.layout, drag.id, position);
+          if (!proposal) return;
           drag.moved = true;
-          drag.position = { x: drag.origin.x + dx / drag.zoom, y: drag.origin.y + dy / drag.zoom };
-          setDragPreview({ id: drag.id, position: drag.position });
+          drag.position = position;
+          drag.proposal = proposal;
+          setDragPreview({
+            id: drag.id,
+            source: map,
+            documentKey,
+            layout: layoutWithPositions(drag.layout, proposal.positions),
+            regions: proposal.regions,
+          });
           return;
         }
         const start = gesture.current;
@@ -293,8 +312,13 @@ export function Canvas(props: CanvasProps) {
             window.setTimeout(() => {
               suppressClick.current = false;
             }, 0);
-            if (drag.position.x !== drag.origin.x || drag.position.y !== drag.origin.y)
-              onReposition(positionsForSubtreeMove(map, drag.positions, drag.id, drag.position));
+            if (
+              drag.proposal &&
+              (drag.position.x !== drag.origin.x ||
+                drag.position.y !== drag.origin.y ||
+                drag.proposal.displacedIds.length > 0)
+            )
+              onReposition(drag.proposal.positions);
           }
         }
         const remaining = [...pointers.current.values()][0];
@@ -337,6 +361,7 @@ export function Canvas(props: CanvasProps) {
           transform: `translate(${view.x}px, ${view.y}px) scale(${view.zoom})`,
         }}
       >
+        <BranchRegions regions={dragPreview?.regions} />
         <svg className="connections" width={layout.width} height={layout.height} aria-hidden="true">
           {layout.edges.map((edge) => (
             <path

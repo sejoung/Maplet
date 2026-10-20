@@ -210,6 +210,13 @@ export function moveLayoutSubtree(
     id,
     position,
   );
+  return layoutWithPositions(layout, positions);
+}
+
+export function layoutWithPositions(
+  layout: Layout,
+  positions: Record<string, NodePosition>,
+): Layout {
   return finishLayout(
     layout.nodes.map((node) => ({ ...node, ...positions[node.id] })),
     layout.edges.map(({ from, to, branch }) => ({ from, to, branch })),

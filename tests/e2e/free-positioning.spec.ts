@@ -55,13 +55,13 @@ test('adjusts connection length live by dragging a node and undoes the whole mov
   const childrenBefore = await Promise.all(descendants.map((node) => node.boundingBox()));
   const edge = page.locator('path[data-edge-to="a"]');
   const pathBefore = await edge.getAttribute('d');
-  await drag(page, node, 85, 60);
-  await expect.poll(async () => Math.round((await node.boundingBox())!.x - before.x)).toBe(85);
+  await drag(page, node, 140, 60);
+  await expect.poll(async () => Math.round((await node.boundingBox())!.x - before.x)).toBe(140);
   await expect(edge).not.toHaveAttribute('d', pathBefore!);
   for (const [index, child] of descendants.entries()) {
     await expect
       .poll(async () => Math.round((await child.boundingBox())!.x - childrenBefore[index]!.x))
-      .toBe(85);
+      .toBe(140);
     await expect
       .poll(async () => Math.round((await child.boundingBox())!.y - childrenBefore[index]!.y))
       .toBe(60);
@@ -71,7 +71,7 @@ test('adjusts connection length live by dragging a node and undoes the whole mov
   for (const [index, child] of descendants.entries())
     await expect
       .poll(async () => Math.round((await child.boundingBox())!.x - childrenBefore[index]!.x))
-      .toBe(85);
+      .toBe(140);
   await expect(node).toHaveAttribute('aria-level', '2');
   expect((await root.boundingBox())!.x).toBeCloseTo(rootBefore.x, 0);
   expect((await root.boundingBox())!.y).toBeCloseTo(rootBefore.y, 0);
@@ -83,11 +83,11 @@ test('adjusts connection length live by dragging a node and undoes the whole mov
       .poll(async () => Math.round((await child.boundingBox())!.x - childrenBefore[index]!.x))
       .toBe(0);
   await page.getByRole('button', { name: '다시 실행', exact: true }).click();
-  await expect.poll(async () => Math.round((await node.boundingBox())!.x - before.x)).toBe(85);
+  await expect.poll(async () => Math.round((await node.boundingBox())!.x - before.x)).toBe(140);
   for (const [index, child] of descendants.entries())
     await expect
       .poll(async () => Math.round((await child.boundingBox())!.x - childrenBefore[index]!.x))
-      .toBe(85);
+      .toBe(140);
 });
 
 test('preserves manual positions through recovery, download and reimport at a changed zoom', async ({

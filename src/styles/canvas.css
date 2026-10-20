@@ -189,3 +189,14 @@
 .inline-node-editor {
   cursor: text;
 }
+.branch-region {
+  position: absolute;
+  pointer-events: none;
+  border: 1px dashed #397760;
+  border-radius: 12px;
+  background: #3977600a;
+}
+.branch-region.displaced {
+  border-color: #9b7a3d;
+  background: #9b7a3d0a;
+}
