@@ -166,8 +166,10 @@ test('shares the connection with a new tab without storing it and disconnects ev
   const other = await context.newPage();
   await other.goto('/');
   await expect(other.locator('.drive-button.connected')).toBeEnabled();
-  await expect(other.getByRole('treeitem', { name: 'Drive original', exact: true })).toBeVisible();
+  // The folder carries over; the file stays with the tab that has it open.
+  await expect(other.getByRole('treeitem', { name: '중심 주제', exact: true })).toBeVisible();
   await expect(other.locator('.save-status')).not.toContainText('Drive 다시 연결 필요');
+  await expect(other.getByRole('treeitem', { name: 'Drive original', exact: true })).toHaveCount(0);
   await expect(other.locator('html')).not.toHaveAttribute('data-authorizations');
   await expect(page.locator('html')).toHaveAttribute('data-authorizations', '1');
   expect(
@@ -181,4 +183,33 @@ test('shares the connection with a new tab without storing it and disconnects ev
     null,
   );
   expect(state.updates).toHaveLength(0);
+});
+
+test('a new map tab keeps the folder and connection but leaves the open file to its tab', async ({
+  page,
+  context,
+}) => {
+  const { state } = await setupDriveWorkspace(page);
+  const opened = context.waitForEvent('page');
+  await page.getByRole('button', { name: '파일', exact: true }).click();
+  await page.getByRole('button', { name: '새 맵', exact: true }).click();
+  await page.getByRole('textbox', { name: '중심 주제' }).fill('Second map');
+  await page.getByRole('button', { name: '만들기', exact: true }).click();
+  const second = await opened;
+  await expect(second.getByRole('treeitem', { name: 'Second map', exact: true })).toBeVisible();
+  await expect(second.locator('.drive-button.connected')).toBeEnabled();
+  await expect(second.locator('html')).not.toHaveAttribute('data-authorizations');
+  await expect(page.getByRole('treeitem', { name: 'Drive original', exact: true })).toBeVisible();
+  await second.keyboard.press(`${process.platform === 'darwin' ? 'Meta' : 'Control'}+s`);
+  await expect.poll(() => state.creates.length).toBe(1);
+  expect(state.creates[0]).toMatchObject({ name: 'Second map.maplet', parents: ['chosen-folder'] });
+  expect(state.updates).toHaveLength(0);
+  // A tab opened while both are open must not take over either file.
+  const third = await context.newPage();
+  await third.goto('/');
+  await expect(third.locator('.drive-button.connected')).toBeEnabled();
+  await expect(third.getByRole('treeitem', { name: '중심 주제', exact: true })).toBeVisible();
+  await third.waitForTimeout(300);
+  await expect(third.getByRole('treeitem', { name: 'Second map', exact: true })).toHaveCount(0);
+  await expect(third.getByRole('treeitem', { name: 'Drive original', exact: true })).toHaveCount(0);
 });

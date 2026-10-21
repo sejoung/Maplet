@@ -3,7 +3,10 @@ import { beforeEach, afterEach, expect, it, vi } from 'vitest';
 import {
   parseDriveWorkspace,
   readDriveWorkspace,
+  readDriveWorkspaceOwner,
+  readTabWorkspace,
   writeDriveWorkspace,
+  writeTabWorkspace,
 } from '../../src/adapters/storage/drive-workspace';
 
 const workspace = {
@@ -51,4 +54,19 @@ it('handles invalid JSON and unavailable browser storage without breaking editin
   expect(readDriveWorkspace('client')).toBeNull();
   expect(() => writeDriveWorkspace('client', workspace)).not.toThrow();
   expect(() => writeDriveWorkspace('client', null)).not.toThrow();
+});
+
+it('records which tab wrote the shared workspace and keeps a separate one per tab', () => {
+  sessionStorage.clear();
+  writeDriveWorkspace('client', workspace, 'tab-a');
+  expect(readDriveWorkspace('client')).toEqual(workspace);
+  expect(readDriveWorkspaceOwner('client')).toBe('tab-a');
+  writeDriveWorkspace('client', workspace);
+  expect(readDriveWorkspaceOwner('client')).toBeNull();
+  expect(readTabWorkspace('client')).toBeNull();
+  writeTabWorkspace('client', { ...workspace, file: null });
+  expect(readTabWorkspace('client')).toEqual({ ...workspace, file: null });
+  expect(readDriveWorkspace('client')).toEqual(workspace);
+  writeTabWorkspace('client', null);
+  expect(readTabWorkspace('client')).toBeNull();
 });

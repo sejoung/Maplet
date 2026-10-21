@@ -36,22 +36,45 @@ export function parseDriveWorkspace(value: unknown): DriveWorkspace | null {
   if ((item.file != null && !target) || (item.source != null && !source)) return null;
   return { folder: { id: item.folder.id, name: item.folder.name }, file: target, source };
 }
-export function readDriveWorkspace(clientId: string): DriveWorkspace | null {
+type Scope = 'localStorage' | 'sessionStorage';
+const storageKey = (clientId: string) => `maplet:drive:${clientId}`;
+function read(scope: Scope, clientId: string): unknown {
   try {
-    return parseDriveWorkspace(
-      JSON.parse(localStorage.getItem(`maplet:drive:${clientId}`) ?? 'null'),
-    );
+    return JSON.parse(window[scope].getItem(storageKey(clientId)) ?? 'null');
   } catch {
     return null;
   }
 }
-export function writeDriveWorkspace(clientId: string, workspace: DriveWorkspace | null): void {
+function write(scope: Scope, clientId: string, value: object | null): void {
   try {
-    const key = `maplet:drive:${clientId}`;
-    const safe = parseDriveWorkspace(workspace);
-    if (safe) localStorage.setItem(key, JSON.stringify(safe));
-    else localStorage.removeItem(key);
+    if (value) window[scope].setItem(storageKey(clientId), JSON.stringify(value));
+    else window[scope].removeItem(storageKey(clientId));
   } catch {
     /* Drive remains usable when browser storage is unavailable. */
   }
+}
+
+/** The most recently changed workspace of any tab, for a later visit. */
+export function readDriveWorkspace(clientId: string): DriveWorkspace | null {
+  return parseDriveWorkspace(read('localStorage', clientId));
+}
+/** Which tab wrote the shared workspace; null for releases before tabs. */
+export function readDriveWorkspaceOwner(clientId: string): string | null {
+  const value = read('localStorage', clientId) as { tab?: unknown } | null;
+  return typeof value?.tab === 'string' ? value.tab : null;
+}
+export function writeDriveWorkspace(
+  clientId: string,
+  workspace: DriveWorkspace | null,
+  owner?: string,
+): void {
+  const safe = parseDriveWorkspace(workspace);
+  write('localStorage', clientId, safe && (owner ? { ...safe, tab: owner } : safe));
+}
+/** This tab's own workspace, kept across reloads of the tab. */
+export function readTabWorkspace(clientId: string): DriveWorkspace | null {
+  return parseDriveWorkspace(read('sessionStorage', clientId));
+}
+export function writeTabWorkspace(clientId: string, workspace: DriveWorkspace | null): void {
+  write('sessionStorage', clientId, parseDriveWorkspace(workspace));
 }

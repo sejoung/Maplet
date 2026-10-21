@@ -2,6 +2,7 @@ import { AppError } from '../../domain/errors';
 import type { DriveWorkspace } from './drive-workspace';
 import type { DriveBaseline } from './drive-baseline';
 import { keepLocalDrafts, rememberLocalDrafts } from './privacy';
+import { draftOwner } from './tab-session';
 
 export interface Draft {
   content: string;
@@ -15,13 +16,21 @@ export interface Draft {
   driveBaseline?: DriveBaseline | null;
 }
 
+/** A draft left by another tab, keyed as stored. */
+export interface StoredDraft {
+  key: string;
+  draft: Draft;
+}
+
 export class DraftStore {
   enabled = keepLocalDrafts();
   private generation = 0;
   private queue: Promise<unknown> = Promise.resolve();
+  /** `key` is this tab's slot; `current` is the single slot of releases before tabs. */
   constructor(
     private readonly name = 'maplet-v1',
     private readonly factory: IDBFactory = indexedDB,
+    private readonly key = 'current',
   ) {}
 
   private enqueue<T>(action: () => Promise<T>): Promise<T> {
@@ -33,7 +42,7 @@ export class DraftStore {
   configure(enabled: boolean): Promise<void> {
     this.enabled = enabled;
     rememberLocalDrafts(enabled);
-    return enabled ? Promise.resolve() : this.clear();
+    return enabled ? Promise.resolve() : this.clear(true);
   }
 
   private async open(): Promise<IDBDatabase> {
@@ -78,9 +87,33 @@ export class DraftStore {
     const generation = this.generation;
     await this.queue.catch(() => {});
     const draft =
-      (await this.transaction<Draft | undefined>('readonly', (store) => store.get('current'))) ??
+      (await this.transaction<Draft | undefined>('readonly', (store) => store.get(this.key))) ??
       null;
     return this.enabled && keepLocalDrafts() && generation === this.generation ? draft : null;
+  }
+  /** Drafts of tabs that are no longer open, newest first. */
+  async others(live: ReadonlySet<string>): Promise<StoredDraft[]> {
+    if (!this.enabled || !keepLocalDrafts()) return [];
+    const generation = this.generation;
+    await this.queue.catch(() => {});
+    // Keys and values from one transaction so they pair up.
+    let keys: IDBRequest<IDBValidKey[]> | undefined;
+    const drafts = await this.transaction<Draft[]>('readonly', (store) => {
+      keys = store.getAllKeys();
+      return store.getAll();
+    });
+    if (!this.enabled || !keepLocalDrafts() || generation !== this.generation) return [];
+    return keys!.result
+      .map((key, index) => ({ key: String(key), draft: drafts[index] }))
+      .filter(({ key }) => {
+        const owner = draftOwner(key);
+        return key !== this.key && !(owner && live.has(owner));
+      })
+      .sort((a, b) => b.draft.updatedAt - a.draft.updatedAt);
+  }
+  /** Delete another tab's draft, e.g. after taking it over; this tab's writes continue. */
+  async remove(key: string): Promise<void> {
+    await this.enqueue(() => this.transaction('readwrite', (store) => store.delete(key)));
   }
   async save(draft: Draft): Promise<void> {
     const generation = this.generation;
@@ -88,13 +121,16 @@ export class DraftStore {
       if (this.enabled && generation === this.generation)
         await this.transaction('readwrite', (store) =>
           this.enabled && keepLocalDrafts() && generation === this.generation
-            ? store.put(draft, 'current')
-            : store.get('current'),
+            ? store.put(draft, this.key)
+            : store.get(this.key),
         );
     });
   }
-  async clear(): Promise<void> {
+  /** Delete this tab's draft, or with `everyTab` every tab's (turning storage off). */
+  async clear(everyTab = false): Promise<void> {
     this.generation++;
-    await this.enqueue(() => this.transaction('readwrite', (store) => store.delete('current')));
+    await this.enqueue(() =>
+      this.transaction('readwrite', (store) => (everyTab ? store.clear() : store.delete(this.key))),
+    );
   }
 }

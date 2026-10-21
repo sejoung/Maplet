@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createMap } from '../domain/commands';
 import { messageOf } from '../domain/errors';
 import { stripMapExtension } from '../domain/filename';
@@ -9,7 +9,8 @@ import { serializeMaplet } from '../adapters/maplet/codec';
 import { parseDocument, nativeFilename } from '../adapters/documents';
 import { isOutlineName, parseOutline } from '../adapters/outline/outline';
 import { restoreDraft, draftHasChanges } from '../adapters/storage/recovery';
-import { DraftStore, type Draft } from '../adapters/storage/drafts';
+import { DraftStore, type Draft, type StoredDraft } from '../adapters/storage/drafts';
+import { FRESH_TAB, openNewMapTab, type TabSession } from '../adapters/storage/tab-session';
 import { downloadFile, readMapFile } from '../adapters/storage/files';
 import { Editor } from '../components/Editor';
 import { Dialog } from '../components/Dialog';
@@ -30,11 +31,12 @@ import { useExports } from './useExports';
 
 const defaultDrafts = new DraftStore();
 
-/** `drafts` and `driveServices` can be injected; production uses the browser defaults. */
+/** `drafts`, `driveServices` and `tab` can be injected; production uses the browser defaults. */
 export function App({
   drafts = defaultDrafts,
   driveServices,
-}: { drafts?: DraftStore; driveServices?: DriveServices } = {}) {
+  tab = FRESH_TAB,
+}: { drafts?: DraftStore; driveServices?: DriveServices; tab?: TabSession } = {}) {
   const { t, locale } = useI18n();
   const [error, setError] = useState<Translatable | null>(null);
   const [notice, setNotice] = useState<Translatable | null>(null);
@@ -54,15 +56,29 @@ export function App({
   );
   const draftPrivacy = useDraftPrivacy(drafts, setDraftStatus, setError);
   const [recoveryReady, setRecoveryReady] = useState(false);
-  const [recovery, setRecovery] = useState<Draft | null>(null);
+  // This tab's own draft (`key` null) first, then drafts of closed tabs, newest first.
+  const [recoveries, setRecoveries] = useState<{ key: string | null; draft: Draft }[]>([]);
+  const recovery = recoveries[0]?.draft ?? null;
   const [dialog, setDialog] = useState<'new' | 'help' | null>(null);
 
   useEffect(() => {
     let active = true;
-    drafts
-      .load()
-      .then((draft) => {
-        if (active && draft && draftHasChanges(draft)) setRecovery(draft);
+    const candidates = async () => {
+      // A tab opened for a new map starts empty; closed tabs' drafts wait for another visit.
+      if (tab.newMap !== null) return [];
+      const own = await drafts.load();
+      const others: StoredDraft[] = await drafts.others(tab.live);
+      // Drafts without unsaved changes have nothing left to recover.
+      for (const stale of others.filter(({ draft }) => !draftHasChanges(draft)))
+        void drafts.remove(stale.key).catch(() => {});
+      return [
+        ...(own && draftHasChanges(own) ? [{ key: null, draft: own }] : []),
+        ...others.filter(({ draft }) => draftHasChanges(draft)),
+      ];
+    };
+    candidates()
+      .then((found) => {
+        if (active) setRecoveries(found);
       })
       .catch((reason) => {
         if (active) report(reason);
@@ -73,7 +89,7 @@ export function App({
     return () => {
       active = false;
     };
-  }, [drafts, report]);
+  }, [drafts, report, tab]);
 
   useEffect(() => {
     if (!doc.dirty) return;
@@ -126,22 +142,33 @@ export function App({
   const commands = useNodeCommands(doc, t);
   const exports = useExports(map, filename, report, setNotice);
   const recover = () => {
-    if (!recovery) return;
+    const [candidate] = recoveries;
+    if (!candidate) return;
     try {
-      const restored = restoreDraft(recovery);
+      const { key, draft } = candidate;
+      const restored = restoreDraft(draft);
       replace(restored.map, restored.filename, restored.savedContent, restored.savedFilename);
-      doc.setFilenamePending(recovery.filenamePending ?? false);
-      driveState.restoreDraftWorkspace(recovery.drive, recovery.driveBaseline);
-      setRecovery(null);
+      doc.setFilenamePending(draft.filenamePending ?? false);
+      driveState.restoreDraftWorkspace(draft.drive, draft.driveBaseline);
+      // Other closed tabs' drafts stay for a later visit rather than replacing this one.
+      setRecoveries([]);
       setNotice('app.draftRecoveredDeviceDownloadFile');
+      // Take over a closed tab's draft: keep it in this tab's slot before deleting the old one.
+      if (key)
+        void drafts
+          .save(draft)
+          .then(() => drafts.remove(key))
+          .catch(report);
     } catch (reason) {
       report(reason);
     }
   };
   const discardRecovery = async () => {
+    const [candidate, ...rest] = recoveries;
+    if (!candidate) return;
     try {
-      await drafts.clear();
-      setRecovery(null);
+      await (candidate.key ? drafts.remove(candidate.key) : drafts.clear());
+      setRecoveries(rest);
     } catch (reason) {
       report(reason);
     }
@@ -154,6 +181,7 @@ export function App({
       documentKey: doc.documentKey,
       restorationReady: recoveryReady && !recovery,
       hasLocalWork: doc.hasWork,
+      tab,
       markSaved: doc.markSaved,
       applyMerge: doc.applyMerge,
       allowReplace,
@@ -185,6 +213,22 @@ export function App({
     setDraftStatus,
     setError,
   );
+  const createNewMap = (title: string) => {
+    const next = createMap(title);
+    const name = filenameFromTitle(title) ?? `${t('app.untitled')}.maplet`;
+    replace(next, name, '');
+    driveState.clearFile(serializeMaplet(next), name);
+  };
+  const latestCreate = useRef(createNewMap);
+  useLayoutEffect(() => {
+    latestCreate.current = createNewMap;
+  });
+  const startedNewMap = useRef(false);
+  useEffect(() => {
+    if (tab.newMap === null || startedNewMap.current) return;
+    startedNewMap.current = true;
+    latestCreate.current(tab.newMap);
+  }, [tab.newMap]);
   const closeDialog = useCallback(() => setDialog(null), []);
   const preventRecoveryClose = useCallback(() => {}, []);
 
@@ -264,13 +308,10 @@ export function App({
         <NewMapDialog
           onClose={closeDialog}
           onCreate={(title) => {
-            if (allowReplace()) {
-              const next = createMap(title);
-              const name = filenameFromTitle(title) ?? `${t('app.untitled')}.maplet`;
-              replace(next, name, '');
-              driveState.clearFile(serializeMaplet(next), name);
-              setDialog(null);
-            }
+            // Work already in this tab stays open; the new map gets its own tab.
+            if (doc.hasWork) openNewMapTab(title);
+            else createNewMap(title);
+            setDialog(null);
           }}
         />
       )}

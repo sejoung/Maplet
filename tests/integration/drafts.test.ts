@@ -86,3 +86,42 @@ it('does not offer a stale recovery when draft reading overlaps disabling storag
     await store.clear();
   }
 });
+
+it('keeps each tab in its own slot and offers only drafts of closed tabs', async () => {
+  const name = `tabs-${crypto.randomUUID()}`;
+  const draft = (content: string, updatedAt: number) => ({
+    content,
+    original: null,
+    filename: `${content}.maplet`,
+    savedContent: '',
+    updatedAt,
+  });
+  const legacy = new DraftStore(name);
+  const open = new DraftStore(name, indexedDB, 'tab:open');
+  const closed = new DraftStore(name, indexedDB, 'tab:closed');
+  const mine = new DraftStore(name, indexedDB, 'tab:mine');
+  await legacy.save(draft('legacy', 1));
+  await open.save(draft('open', 3));
+  await closed.save(draft('closed', 2));
+  await mine.save(draft('mine', 4));
+  expect((await mine.load())!.content).toBe('mine');
+  expect((await open.load())!.content).toBe('open');
+  const others = await mine.others(new Set(['open']));
+  expect(others.map(({ key, draft }) => [key, draft.content])).toEqual([
+    ['tab:closed', 'closed'],
+    ['current', 'legacy'],
+  ]);
+  await mine.remove('tab:closed');
+  expect(await closed.load()).toBeNull();
+  await mine.clear();
+  expect(await mine.load()).toBeNull();
+  expect((await open.load())!.content).toBe('open');
+  try {
+    await mine.configure(false);
+    expect(await open.load()).toBeNull();
+    expect(await legacy.load()).toBeNull();
+    expect(await mine.others(new Set())).toEqual([]);
+  } finally {
+    localStorage.removeItem('maplet:keep-local-drafts');
+  }
+});

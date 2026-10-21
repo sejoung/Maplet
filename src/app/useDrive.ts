@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import { parseDocument, nativeFilename } from '../adapters/documents';
 import { serializeMaplet } from '../adapters/maplet/codec';
 import { DriveConflict, DriveAuthError, type DriveClient } from '../adapters/drive/client';
-import type { AuthEvent, GoogleConfig, GoogleConnection } from '../adapters/drive/google';
+import type { GoogleConfig, GoogleConnection } from '../adapters/drive/google';
 import { parseDriveBaseline } from '../adapters/storage/drive-baseline';
 import {
   AUTO_SAVE_LABELS,
@@ -19,6 +19,7 @@ import { driveSaveHandlers } from './driveSaveHandlers';
 import type { DriveBaseline } from './driveMerge';
 import { useDriveStartup } from './useDriveStartup';
 import { useDriveBaseline } from './useDriveBaseline';
+import { useAuthEvents } from './useAuthEvents';
 import { driveDisconnect } from './driveDisconnect';
 import * as connection from './driveConnection';
 import type { DriveOptions } from './DriveOptions';
@@ -36,6 +37,7 @@ export function useDrive(
     documentKey,
     restorationReady = false,
     hasLocalWork = false,
+    tab,
     markSaved,
     applyMerge,
     allowReplace,
@@ -58,7 +60,7 @@ export function useDrive(
     setPending,
     draftWorkspace,
     restoreDraftWorkspace: restoreWorkspace,
-  } = useDriveWorkspace(config.clientId);
+  } = useDriveWorkspace(config.clientId, tab);
   const synced = useDriveBaseline();
   const { baseline } = synced;
   const driveDirty = content !== synced.content || filename !== synced.filename;
@@ -121,8 +123,10 @@ export function useDrive(
     if (!google || !drive || !workspace || busy || inFlight.current || (!automatic && !driveReady))
       return;
     const keepLocal = pending?.keepLocal ?? true;
-    if (automatic && (!google.getToken() || (!keepLocal && hasLocalWork))) return;
-    if (!automatic && !keepLocal && (workspace.file || workspace.source) && !allowReplace()) return;
+    // Only restoring a file replaces the document; a folder alone leaves local work as is.
+    const replacing = !keepLocal && Boolean(workspace.file || workspace.source);
+    if (automatic && (!google.getToken() || (replacing && hasLocalWork))) return;
+    if (!automatic && replacing && !allowReplace()) return;
     const savedDocument = documentKey;
     await exclusive(
       async (latest) => {
@@ -185,7 +189,11 @@ export function useDrive(
   };
   useDriveStartup(
     Boolean(
-      restorationReady && pending && connected && !busy && (pending.keepLocal || !hasLocalWork),
+      restorationReady &&
+      pending &&
+      connected &&
+      !busy &&
+      (pending.keepLocal || !hasLocalWork || !(pending.workspace.file || pending.workspace.source)),
     ),
     () => resumeDrive(true),
   );
@@ -340,21 +348,11 @@ export function useDrive(
     setDriveError(null);
   };
   const disconnect = driveDisconnect(google, resetConnection, setBusy, setDriveError);
-  const onAuthEvent = useRef<(event: AuthEvent) => void>(() => {});
-  useLayoutEffect(() => {
-    onAuthEvent.current = (event) => {
-      if (event === 'connected') setConnected(true);
-      else if (event === 'expired') setConnected(false);
-      else resetConnection();
-    };
+  useAuthEvents(google, (event) => {
+    if (event === 'connected') setConnected(true);
+    else if (event === 'expired') setConnected(false);
+    else resetConnection();
   });
-  useEffect(() => {
-    if (!google) return;
-    const unsubscribe = google.subscribe((event) => onAuthEvent.current(event));
-    // Another tab may have answered before this hook subscribed.
-    if (google.getToken()) setConnected(true);
-    return unsubscribe;
-  }, [google]);
   return {
     dialog,
     closeDialog,
