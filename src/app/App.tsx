@@ -1,12 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  createMap,
-  addNode,
-  renameNode,
-  deleteNode,
-  moveNode,
-  updateNode,
-} from '../domain/commands';
+import { createMap, addNode, renameNode, deleteNodes, updateNode } from '../domain/commands';
+import { moveNodes, updateNodes } from '../domain/selection';
 import type { MindNode } from '../domain/model';
 import { messageOf } from '../domain/errors';
 import { resizeNode } from '../domain/node-size';
@@ -162,14 +156,24 @@ export function App({
     doc.setEditingId(id);
   };
   const remove = () => {
-    const node = map.nodes[selectedId];
+    const ids = doc.targets(selectedId);
+    const nodes = ids.map((id) => map.nodes[id]);
     if (
-      node.children.length &&
-      !window.confirm(t('이 노드와 모든 하위 노드를 삭제할까요? 실행 취소로 복원할 수 있습니다.'))
+      nodes.some((node) => node.children.length) &&
+      !window.confirm(
+        ids.length > 1
+          ? t(
+              '선택한 노드 {count}개와 모든 하위 노드를 삭제할까요? 실행 취소로 복원할 수 있습니다.',
+              {
+                count: doc.selection.length,
+              },
+            )
+          : t('이 노드와 모든 하위 노드를 삭제할까요? 실행 취소로 복원할 수 있습니다.'),
+      )
     )
       return;
-    const fallback = node.parentId ?? map.roots.find((id) => id !== selectedId)!;
-    if (edit((current) => deleteNode(current, selectedId))) doc.setSelected(fallback);
+    const fallback = nodes[0].parentId ?? map.roots.find((id) => !ids.includes(id))!;
+    if (edit((current) => deleteNodes(current, ids))) doc.setSelected(fallback);
   };
   const recover = () => {
     if (!recovery) return;
@@ -240,6 +244,9 @@ export function App({
         draftPrivacy={draftPrivacy}
         map={map}
         selected={selectedId}
+        selection={doc.selection}
+        onToggleSelect={doc.toggleSelect}
+        onSelectNodes={doc.selectNodes}
         filename={filename}
         onFilenameChange={doc.rename}
         dirty={doc.dirty}
@@ -273,8 +280,13 @@ export function App({
         onUpdate={(
           id,
           patch: Partial<Pick<MindNode, 'notes' | 'links' | 'style' | 'side' | 'collapsed'>>,
-        ) => edit((current) => updateNode(current, id, patch))}
-        onMove={(id, parent) => edit((current) => moveNode(current, id, parent))}
+        ) =>
+          edit((current) =>
+            updateNodes(current, doc.selection.includes(id) ? doc.selection : [id], id, patch),
+          )
+        }
+        onMove={(id, parent) => edit((current) => moveNodes(current, doc.targets(id), parent))}
+        onReparent={(ids, parent, side) => edit((current) => moveNodes(current, ids, parent, side))}
         onResize={(id, width, positions) =>
           edit((current) => resizeNode(current, id, width, positions))
         }

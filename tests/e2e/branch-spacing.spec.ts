@@ -29,7 +29,8 @@ async function positions(page: Page) {
     ),
   );
 }
-async function overlap(page: Page) {
+/** Drag `a` so its child covers `b`; `free` holds Alt for live pushing aside. */
+async function overlap(page: Page, free = true) {
   const parent = page.locator('[data-node-id=a]');
   const box = (await parent.boundingBox())!;
   const width = await parent.evaluate((node) => (node as HTMLElement).offsetWidth);
@@ -47,6 +48,7 @@ async function overlap(page: Page) {
   const start = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
   const target = { x: start.x, y: start.y + obstacle.y - child.y };
   await page.mouse.move(start.x, start.y);
+  if (free) await page.keyboard.down('Alt');
   await page.mouse.down();
   // Only the descendant overlaps the other branch at this pointer position.
   await page.mouse.move(target.x, target.y, { steps: 8 });
@@ -104,6 +106,7 @@ test('moves the other branch live and commits exactly the visible arrangement on
   expect(original.nodes.a.position).toEqual({ x: before.a.x, y: before.a.y });
   expect(original.nodes.b.position).toEqual({ x: before.b.x, y: before.b.y });
   await page.mouse.up();
+  await page.keyboard.up('Alt');
   expect(await positions(page)).toEqual(preview);
   await expect(page.locator('.branch-region.displaced')).toHaveCount(0);
   await expect(page.locator('.branch-region')).toHaveCount(0);
@@ -134,6 +137,7 @@ test('restores both groups without history after Escape, pointercancel and lostp
       if (action === 'Escape') await page.keyboard.press('Escape');
       else await page.locator('[data-node-id=a]').dispatchEvent(action, { pointerId });
       await page.mouse.up();
+      await page.keyboard.up('Alt');
       expect(await positions(page)).toEqual(before);
       await expect(page.locator('.branch-region')).toHaveCount(0);
       await expect(page.getByRole('button', { name: '실행 취소', exact: true })).toBeDisabled();
@@ -149,8 +153,54 @@ test('abandons a live proposal if the document is replaced before release', asyn
     buffer: Buffer.from(JSON.stringify({ id: 'replacement', title: 'Replacement' })),
   });
   await page.mouse.up();
+  await page.keyboard.up('Alt');
   await expect(page.getByRole('treeitem')).toHaveCount(1);
   await expect(page.getByRole('treeitem')).toHaveAttribute('aria-label', 'Replacement');
   await expect(page.getByRole('button', { name: '실행 취소', exact: true })).toBeDisabled();
   await expect(page.getByRole('alert')).toHaveCount(0);
+});
+
+test('keeps other branches still by default, guiding where they will move on release', async ({
+  page,
+}) => {
+  await open(page);
+  const before = await positions(page);
+  await overlap(page, false);
+  // `b` stays put while a guide shows where it will make room.
+  expect((await positions(page)).b).toEqual(before.b);
+  await expect(page.locator('.branch-region.displaced')).toHaveCount(1);
+  await expect(page.locator('.drop-target')).toHaveCount(0);
+  const guide = await page
+    .locator('.branch-region.displaced')
+    .evaluate((region) => (region as HTMLElement).style.top);
+  await page.mouse.up();
+  const after = await positions(page);
+  expect(after.b).not.toEqual(before.b);
+  expect(after.b.y - 12).toBeCloseTo(parseFloat(guide), 5);
+  await expect(page.getByRole('treeitem', { name: 'a', exact: true })).toHaveAttribute(
+    'aria-level',
+    '2',
+  );
+});
+
+test('drops a branch with descendants onto a node beside it without the node moving away', async ({
+  page,
+}) => {
+  await open(page);
+  const before = await positions(page);
+  const { target } = await overlap(page, false);
+  const nodeA = page.locator('[data-node-id=a]');
+  const nodeB = page.locator('[data-node-id=b]');
+  const boxB = (await nodeB.boundingBox())!;
+  const boxA = (await nodeA.boundingBox())!;
+  // Bring `a` itself next to `b` while its child still covers other space.
+  await page.mouse.move(
+    target.x + boxB.x - 6 - (boxA.x + boxA.width),
+    target.y + boxB.y + boxB.height / 2 - (boxA.y + boxA.height / 2),
+    { steps: 6 },
+  );
+  await expect(nodeB).toHaveClass(/drop-target/);
+  expect((await positions(page)).b).toEqual(before.b);
+  await page.mouse.up();
+  await expect(nodeA).toHaveAttribute('aria-level', '3');
 });

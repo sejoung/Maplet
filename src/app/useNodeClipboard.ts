@@ -1,16 +1,16 @@
 import { useState } from 'react';
-import { deleteNode, moveSibling } from '../domain/commands';
+import { deleteNodes, moveSibling } from '../domain/commands';
 import {
-  copySubtree,
+  copyBranches,
   fragmentFromOutline,
   outlineOf,
   pasteFragment,
   type Fragment,
 } from '../domain/clipboard';
-import type { MindMap } from '../domain/model';
+import { canDeleteNodes } from '../domain/selection';
 import type { DocumentState } from './useDocument';
 
-/** Branch copy, cut, paste, duplicate and sibling order for the selected node. */
+/** Branch copy, cut, paste, duplicate and sibling order for the selected nodes. */
 export function useNodeClipboard(doc: DocumentState, report: (reason: unknown) => void) {
   const [clip, setClip] = useState<Fragment | null>(null);
   const insert = (fragment: Fragment, parentId: string, afterId?: string) => {
@@ -20,11 +20,11 @@ export function useNodeClipboard(doc: DocumentState, report: (reason: unknown) =
       pasted = result.roots;
       return result.map;
     });
-    if (done && pasted[0]) doc.setSelected(pasted[0]);
+    if (done && pasted.length) doc.selectNodes(pasted, pasted[0]);
   };
   const copy = (id: string) => {
     try {
-      const fragment = copySubtree(doc.map, id);
+      const fragment = copyBranches(doc.map, doc.targets(id));
       setClip(fragment);
       return outlineOf(fragment);
     } catch (reason) {
@@ -57,21 +57,36 @@ export function useNodeClipboard(doc: DocumentState, report: (reason: unknown) =
       }
     },
     cut: (id: string) => {
-      const map: MindMap = doc.map;
-      const node = map.nodes[id];
-      if (node.parentId === null && map.roots.length === 1) return null;
+      const map = doc.map;
+      const ids = doc.targets(id);
+      if (!canDeleteNodes(map, ids)) return null;
       const text = copy(id);
       if (text === null) return null;
-      const fallback = node.parentId ?? map.roots.find((root) => root !== id)!;
-      if (doc.edit((current) => deleteNode(current, id))) doc.setSelected(fallback);
+      const fallback = map.nodes[ids[0]].parentId ?? map.roots.find((root) => !ids.includes(root))!;
+      if (doc.edit((current) => deleteNodes(current, ids))) doc.setSelected(fallback);
       return text;
     },
     duplicate: (id: string) => {
-      const parentId = doc.map.nodes[id]?.parentId;
-      if (!parentId) return;
-      insert(copySubtree(doc.map, id), parentId, id);
+      const ids = doc.targets(id).filter((key) => doc.map.nodes[key]?.parentId);
+      if (!ids.length) return;
+      const copies: string[] = [];
+      const done = doc.edit((current) =>
+        ids.reduce((map, key) => {
+          const result = pasteFragment(
+            map,
+            copyBranches(current, [key]),
+            current.nodes[key].parentId!,
+            () => crypto.randomUUID(),
+            key,
+          );
+          copies.push(...result.roots);
+          return result.map;
+        }, current),
+      );
+      if (done) doc.selectNodes(copies, copies.at(-1)!);
     },
-    reorder: (id: string, offset: -1 | 1) =>
-      doc.edit((current) => moveSibling(current, id, offset)),
+    reorder: (id: string, offset: -1 | 1) => {
+      if (doc.selection.length === 1) doc.edit((current) => moveSibling(current, id, offset));
+    },
   };
 }

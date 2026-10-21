@@ -23,6 +23,7 @@ export function ShortcutHelpDialog({
           ['⌘ / Ctrl + D', '가지 복제'],
           ['Alt + ↑ / ↓', '형제 사이 순서 변경'],
           ['우클릭 / Shift + F10', '노드 메뉴 열기'],
+          ['빈 곳 우클릭', '맵 메뉴 열기'],
           ['⌘ / Ctrl + Z', '실행 취소'],
           ['⌘ / Ctrl + Shift + Z', '다시 실행'],
           ['⌘ / Ctrl + S', saveToDrive ? 'Drive에 저장' : '.maplet 파일 다운로드'],
@@ -32,6 +33,13 @@ export function ShortcutHelpDialog({
           ['모서리 드래그', '노드 크기 조절'],
           ['모서리 더블클릭 / Home', '자동 크기'],
           ['노드 드래그', '위치·연결선 길이 조절'],
+          ['다른 노드 위에 놓기', '그 노드의 하위로 옮기기'],
+          ['Alt(⌥) + 드래그', '다른 노드 근처에서도 위치만 이동'],
+          ['Shift / ⌘ / Ctrl + 클릭', '노드 여러 개 선택'],
+          ['Shift + 드래그 (빈 곳)', '영역으로 선택'],
+          ['Shift + 방향키', '선택 넓히기'],
+          ['⌘ / Ctrl + A', '보이는 노드 모두 선택'],
+          ['Esc', '여러 노드 선택 해제'],
         ].map(([key, action]) => (
           <div key={key}>
             <dt>

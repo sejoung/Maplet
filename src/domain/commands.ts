@@ -134,20 +134,26 @@ export function isDescendant(map: MindMap, ancestor: string, candidate: string):
 }
 
 export function deleteNode(map: MindMap, id: string): MindMap {
-  const node = nodeOf(map, id);
-  if (node.parentId === null && map.roots.length === 1)
+  return deleteNodes(map, [id]);
+}
+
+/** Delete separate branches in one change; `ids` must not contain each other's descendants. */
+export function deleteNodes(map: MindMap, ids: readonly string[]): MindMap {
+  ids.forEach((id) => nodeOf(map, id));
+  if (map.roots.every((root) => ids.includes(root)))
     throw new AppError('마지막 중심 노드는 삭제할 수 없습니다.');
   const result = structuredClone(map);
-  if (node.parentId === null) result.roots = result.roots.filter((key) => key !== id);
-  else
-    result.nodes[node.parentId].children = result.nodes[node.parentId].children.filter(
-      (key) => key !== id,
-    );
   const remove = (key: string) => {
     result.nodes[key].children.forEach(remove);
     delete result.nodes[key];
   };
-  remove(id);
+  for (const id of ids) {
+    const parentId = result.nodes[id].parentId;
+    if (parentId === null) result.roots = result.roots.filter((key) => key !== id);
+    else
+      result.nodes[parentId].children = result.nodes[parentId].children.filter((key) => key !== id);
+    remove(id);
+  }
   return result;
 }
 
@@ -161,7 +167,21 @@ function subtreeHeight(map: MindMap, id: string): number {
   return 1 + Math.max(0, ...map.nodes[id].children.map((child) => subtreeHeight(map, child)));
 }
 
-export function moveNode(map: MindMap, id: string, parentId: string): MindMap {
+/** Whether `moveNode(map, id, parentId)` would succeed and change the parent. */
+export function canMoveNode(map: MindMap, id: string, parentId: string): boolean {
+  if (!Object.hasOwn(map.nodes, id) || !Object.hasOwn(map.nodes, parentId)) return false;
+  const node = map.nodes[id];
+  return (
+    node.parentId !== null &&
+    node.parentId !== parentId &&
+    id !== parentId &&
+    !isDescendant(map, id, parentId) &&
+    depthOf(map, parentId) + subtreeHeight(map, id) <= MAX_DEPTH
+  );
+}
+
+/** Reparent a branch as the last child; `side` picks the side when the new parent is a root. */
+export function moveNode(map: MindMap, id: string, parentId: string, side?: Side): MindMap {
   const node = nodeOf(map, id);
   const parent = nodeOf(map, parentId);
   if (id === parentId || isDescendant(map, id, parentId))
@@ -170,6 +190,7 @@ export function moveNode(map: MindMap, id: string, parentId: string): MindMap {
     throw new AppError('중심 노드는 다른 노드 아래로 이동할 수 없습니다.');
   if (node.parentId === parentId) return map;
   if (depthOf(map, parentId) + subtreeHeight(map, id) > MAX_DEPTH) throw depthLimit();
+  const branchSide = parent.parentId === null ? (side ?? parent.side) : parent.side;
   const result = structuredClone(map);
   result.nodes[node.parentId].children = result.nodes[node.parentId].children.filter(
     (key) => key !== id,
@@ -177,8 +198,8 @@ export function moveNode(map: MindMap, id: string, parentId: string): MindMap {
   result.nodes[parentId].children.push(id);
   result.nodes[parentId].collapsed = false;
   result.nodes[id].parentId = parentId;
-  result.nodes[id].rank = nextRank(map, parent.children, parent.side);
-  setSide(result, id, parent.side);
+  result.nodes[id].rank = nextRank(map, parent.children, branchSide);
+  setSide(result, id, branchSide);
   return result;
 }
 

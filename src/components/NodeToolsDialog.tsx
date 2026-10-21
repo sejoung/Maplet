@@ -26,6 +26,7 @@ export function NodeToolsDialog({
   tool,
   map,
   selected,
+  selection = [selected],
   onUpdate,
   onMove,
   onSelect,
@@ -34,14 +35,25 @@ export function NodeToolsDialog({
   tool: NodeTool;
   map: MindMap;
   selected: string;
+  /** Style and move apply to every selected node; notes and links to `selected` only. */
+  selection?: string[];
   onSelect(id: string): void;
   onClose(): void;
 }) {
   const { t } = useI18n();
   const node = map.nodes[selected];
+  const group = selection.length > 1 && (tool === 'style' || tool === 'move');
+  const moving = group ? selection : [selected];
   const [notes, setNotes] = useState(node.notes);
   const [link, setLink] = useState(node.links[0] ?? '');
-  const [parent, setParent] = useState(node.parentId ?? '');
+  const parents = Object.values(map.nodes).filter((candidate) =>
+    moving.every((id) => candidate.id !== id && !isDescendant(map, id, candidate.id)),
+  );
+  const [parent, setParent] = useState(() =>
+    parents.some((candidate) => candidate.id === node.parentId)
+      ? node.parentId!
+      : (parents[0]?.id ?? ''),
+  );
   const [query, setQuery] = useState('');
   const [error, setError] = useState<string | null>(null);
   const matches = useMemo(() => {
@@ -56,7 +68,9 @@ export function NodeToolsDialog({
     <Dialog title={t(titles[tool])} onClose={onClose}>
       {tool !== 'search' && (
         <p className="tool-selection" title={node.title}>
-          {node.title}
+          {group
+            ? t('{title} 외 {count}개', { title: node.title, count: selection.length - 1 })
+            : node.title}
         </p>
       )}
       {error && (
@@ -153,16 +167,11 @@ export function NodeToolsDialog({
             value={parent}
             onChange={(event) => setParent(event.target.value)}
           >
-            {Object.values(map.nodes)
-              .filter(
-                (candidate) =>
-                  candidate.id !== selected && !isDescendant(map, selected, candidate.id),
-              )
-              .map((candidate) => (
-                <option key={candidate.id} value={candidate.id}>
-                  {candidate.title.slice(0, 70)}
-                </option>
-              ))}
+            {parents.map((candidate) => (
+              <option key={candidate.id} value={candidate.id}>
+                {candidate.title.slice(0, 70)}
+              </option>
+            ))}
           </select>
           <div className="dialog-actions">
             <button className="button" type="button" onClick={onClose}>

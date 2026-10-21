@@ -8,6 +8,7 @@ export type EditorCanvasProps = Omit<
   | 'controlsRef'
   | 'onZoomChange'
   | 'onContextMenu'
+  | 'onCanvasMenu'
   | 'onCopy'
   | 'onCut'
   | 'onPaste'

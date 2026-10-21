@@ -7,6 +7,7 @@ import {
   type RefObject,
   type ButtonHTMLAttributes,
   type CSSProperties,
+  type MouseEvent,
 } from 'react';
 import { ExternalLink, Minus, Plus, StickyNote } from 'lucide-react';
 import { safeUrl } from '../domain/commands';
@@ -21,8 +22,11 @@ type CanvasNodesProps = Pick<
   CanvasProps,
   | 'map'
   | 'selected'
+  | 'selection'
   | 'editingId'
   | 'onSelect'
+  | 'onToggleSelect'
+  | 'onSelectNodes'
   | 'onEdit'
   | 'onRename'
   | 'onCancelEdit'
@@ -33,10 +37,13 @@ type CanvasNodesProps = Pick<
   layout: Layout;
   onDraftChange(id: string, title: string): void;
   resizeHandlers(id: string): ButtonHTMLAttributes<HTMLButtonElement>;
-  draggingId?: string;
+  dragging?: string[];
+  dropTarget?: string;
   viewport: RefObject<HTMLDivElement | null>;
   onKeyDown(event: KeyboardEvent): void;
 };
+
+const additive = (event: MouseEvent) => event.shiftKey || event.metaKey || event.ctrlKey;
 
 export function CanvasNodes(props: CanvasNodesProps) {
   const { t } = useI18n();
@@ -44,8 +51,11 @@ export function CanvasNodes(props: CanvasNodesProps) {
   const {
     map,
     selected,
+    selection,
     editingId,
     onSelect,
+    onToggleSelect,
+    onSelectNodes,
     onEdit,
     onRename,
     onCancelEdit,
@@ -55,7 +65,8 @@ export function CanvasNodes(props: CanvasNodesProps) {
     layout,
     onDraftChange,
     resizeHandlers,
-    draggingId,
+    dragging,
+    dropTarget,
     viewport,
     onKeyDown,
   } = props;
@@ -76,7 +87,7 @@ export function CanvasNodes(props: CanvasNodesProps) {
     <div
       role="tree"
       aria-label={t('마인드맵')}
-      aria-multiselectable="false"
+      aria-multiselectable="true"
       style={{ position: 'absolute', inset: 0 }}
     >
       <span id={resizeHelpId} className="visually-hidden">
@@ -91,14 +102,24 @@ export function CanvasNodes(props: CanvasNodesProps) {
           depth++;
           parent = map.nodes[parent].parentId;
         }
+        const chosen = selection.includes(node.id);
+        const classes = [
+          'mind-node',
+          node.parentId === null && 'root-node',
+          chosen && 'selected',
+          chosen && selection.length > 1 && 'multi',
+          dragging?.includes(node.id) && 'dragging',
+          dropTarget === node.id && 'drop-target',
+        ];
         return (
           <div
             key={node.id}
-            className={`mind-node ${node.parentId === null ? 'root-node' : ''} ${node.id === selected ? 'selected' : ''} ${draggingId === node.id ? 'dragging' : ''}`}
+            className={classes.filter(Boolean).join(' ')}
             role="treeitem"
             aria-label={node.title}
             aria-level={depth}
-            aria-selected={selected === node.id}
+            aria-selected={chosen}
+            data-drop-label={dropTarget === node.id ? t('여기로 옮기기') : undefined}
             aria-expanded={node.children.length ? !node.collapsed : undefined}
             tabIndex={selected === node.id ? 0 : -1}
             data-node-id={node.id}
@@ -118,8 +139,23 @@ export function CanvasNodes(props: CanvasNodesProps) {
                 background: nodeBackground(node.style, node.parentId === null),
               } as CSSProperties
             }
-            onFocus={() => onSelect(node.id)}
-            onClick={() => onSelect(node.id)}
+            onFocus={() => {
+              if (!chosen) onSelect(node.id);
+              else if (node.id !== selected) onSelectNodes(selection, node.id);
+            }}
+            onMouseDown={(event) => {
+              // Keep focus where it is so the click can extend the selection instead.
+              if (additive(event)) event.preventDefault();
+            }}
+            onClick={(event) => {
+              if (!additive(event)) return onSelect(node.id);
+              onToggleSelect(node.id);
+              requestAnimationFrame(() =>
+                viewport.current
+                  ?.querySelector<HTMLElement>('[data-node-id][tabindex="0"]')
+                  ?.focus({ preventScroll: true }),
+              );
+            }}
             onDoubleClick={() => onEdit(node.id)}
             onKeyDown={(event) => {
               if (!event.metaKey && !event.ctrlKey) {
@@ -207,7 +243,7 @@ export function CanvasNodes(props: CanvasNodesProps) {
                 {node.collapsed ? <Plus size={12} /> : <Minus size={12} />}
               </button>
             )}
-            {selected === node.id && editingId !== node.id && (
+            {selected === node.id && selection.length === 1 && editingId !== node.id && (
               <button
                 type="button"
                 className="resize-node"

@@ -17,6 +17,7 @@ import {
   WandSparkles,
 } from 'lucide-react';
 import type { MindMap } from '../domain/model';
+import { canDeleteNodes } from '../domain/selection';
 import { ToolbarMenu } from './ToolbarMenu';
 import type { CanvasControls } from './canvas-types';
 import { NodeActionItems, type NodeActionGroups } from './node-actions';
@@ -25,6 +26,7 @@ import type { NodeTool } from './NodeToolsDialog';
 export function EditorToolbar({
   map,
   selected,
+  selection,
   actions,
   canUndo,
   canRedo,
@@ -41,6 +43,7 @@ export function EditorToolbar({
 }: {
   map: MindMap;
   selected: string;
+  selection: string[];
   actions: NodeActionGroups;
   canUndo: boolean;
   canRedo: boolean;
@@ -94,7 +97,7 @@ export function EditorToolbar({
           className="tool-button delete-node"
           aria-label={t('선택한 노드 삭제')}
           title={t('선택한 노드 삭제 (Delete)')}
-          disabled={node.parentId === null && map.roots.length === 1}
+          disabled={!canDeleteNodes(map, selection)}
           onClick={onDelete}
         >
           <Trash2 size={17} />

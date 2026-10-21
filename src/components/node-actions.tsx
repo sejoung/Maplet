@@ -4,6 +4,7 @@ import {
   ArrowLeft,
   ArrowRight,
   ArrowUp,
+  BoxSelect,
   CaseSensitive,
   ChevronsDownUp,
   ChevronsUpDown,
@@ -15,11 +16,19 @@ import {
   ListTree,
   MessageSquare,
   Palette,
+  Focus,
   Plus,
+  Redo2,
   Scissors,
+  Search,
   Trash2,
+  Undo2,
+  WandSparkles,
+  ZoomIn,
+  ZoomOut,
 } from 'lucide-react';
 import type { MindMap } from '../domain/model';
+import { canDeleteNodes, topLevel } from '../domain/selection';
 import type { NodeTool } from './NodeToolsDialog';
 
 export interface NodeAction {
@@ -54,20 +63,28 @@ export type NodeActionGroups = Record<
   NodeAction[]
 >;
 
-/** Every action on a node, grouped; the toolbar and context menus render from this one list. */
+/**
+ * Every action on a node, grouped; the toolbar and context menus render from this one list.
+ * With several nodes selected, branch commands act on all of them and order commands are off.
+ */
 export function nodeActionGroups(
   map: MindMap,
   id: string,
   handlers: NodeActionHandlers,
-  t: (message: string) => string,
+  t: (message: string, params?: Record<string, string | number>) => string,
+  selection: string[] = [id],
 ): NodeActionGroups {
   const node = map.nodes[id];
   const root = node.parentId === null;
+  const group = selection.length > 1;
+  const branches = group ? topLevel(map, selection) : [id];
+  const children = branches.filter((key) => map.nodes[key].parentId !== null);
   const siblings = root
     ? []
     : map.nodes[node.parentId!].children.filter((key) => map.nodes[key].side === node.side);
   const index = siblings.indexOf(id);
-  const lastRoot = root && map.roots.length === 1;
+  const undeletable = !canDeleteNodes(map, branches);
+  const onSide = (side: 'left' | 'right') => children.every((key) => map.nodes[key].side === side);
   return {
     create: [
       {
@@ -110,7 +127,7 @@ export function nodeActionGroups(
         label: t('잘라내기'),
         icon: <Scissors size={17} />,
         shortcut: mod('X'),
-        disabled: lastRoot,
+        disabled: undeletable,
         run: () => handlers.onCut(id),
       },
       {
@@ -124,7 +141,7 @@ export function nodeActionGroups(
         label: t('복제'),
         icon: <CopyPlus size={17} />,
         shortcut: mod('D'),
-        disabled: root,
+        disabled: !children.length,
         run: () => handlers.onDuplicate(id),
       },
     ],
@@ -133,32 +150,32 @@ export function nodeActionGroups(
         label: t('위로 이동'),
         icon: <ArrowUp size={17} />,
         shortcut: { label: 'Alt ↑', aria: 'Alt+ArrowUp' },
-        disabled: index < 1,
+        disabled: group || index < 1,
         run: () => handlers.onReorder(id, -1),
       },
       {
         label: t('아래로 이동'),
         icon: <ArrowDown size={17} />,
         shortcut: { label: 'Alt ↓', aria: 'Alt+ArrowDown' },
-        disabled: root || index === siblings.length - 1,
+        disabled: group || root || index === siblings.length - 1,
         run: () => handlers.onReorder(id, 1),
       },
       {
         label: t('노드 이동'),
         icon: <ListTree size={17} />,
-        disabled: root,
+        disabled: !children.length,
         run: () => handlers.openTool('move'),
       },
       {
         label: t('왼쪽 배치'),
         icon: <ArrowLeft size={17} />,
-        disabled: root || node.side === 'left',
+        disabled: onSide('left'),
         run: () => handlers.onSide(id, 'left'),
       },
       {
         label: t('오른쪽 배치'),
         icon: <ArrowRight size={17} />,
-        disabled: root || node.side === 'right',
+        disabled: onSide('right'),
         run: () => handlers.onSide(id, 'right'),
       },
       {
@@ -170,15 +187,89 @@ export function nodeActionGroups(
     ],
     remove: [
       {
-        label: t('노드 삭제'),
+        label: group
+          ? t('선택한 노드 {count}개 삭제', { count: selection.length })
+          : t('노드 삭제'),
         icon: <Trash2 size={17} />,
         shortcut: { label: 'Delete', aria: 'Delete' },
-        disabled: lastRoot,
+        disabled: undeletable,
         danger: true,
         run: handlers.onDelete,
       },
     ],
   };
+}
+
+export interface CanvasActionHandlers {
+  onUndo(): void;
+  onRedo(): void;
+  canUndo: boolean;
+  canRedo: boolean;
+  onPaste(): void;
+  canPaste: boolean;
+  onSelectAll(): void;
+  onSearch(): void;
+  onArrange(): void;
+  onFit(): void;
+  onZoomIn(): void;
+  onZoomOut(): void;
+}
+
+/** Map-wide actions for a right-click on empty canvas. */
+export function canvasActionGroups(
+  handlers: CanvasActionHandlers,
+  t: (message: string) => string,
+): NodeAction[][] {
+  return [
+    [
+      {
+        label: t('실행 취소'),
+        icon: <Undo2 size={17} />,
+        shortcut: mod('Z'),
+        disabled: !handlers.canUndo,
+        run: handlers.onUndo,
+      },
+      {
+        label: t('다시 실행'),
+        icon: <Redo2 size={17} />,
+        shortcut: { label: 'Ctrl/⌘ Shift Z', aria: 'Control+Shift+Z Meta+Shift+Z' },
+        disabled: !handlers.canRedo,
+        run: handlers.onRedo,
+      },
+    ],
+    [
+      {
+        label: t('선택한 노드에 붙여넣기'),
+        icon: <ClipboardPaste size={17} />,
+        shortcut: mod('V'),
+        disabled: !handlers.canPaste,
+        run: handlers.onPaste,
+      },
+      {
+        label: t('모두 선택'),
+        icon: <BoxSelect size={17} />,
+        shortcut: mod('A'),
+        run: handlers.onSelectAll,
+      },
+      { label: t('찾기'), icon: <Search size={17} />, run: handlers.onSearch },
+    ],
+    [
+      { label: t('자동 배치'), icon: <WandSparkles size={17} />, run: handlers.onArrange },
+      {
+        label: t('화면에 맞추기'),
+        icon: <Focus size={17} />,
+        shortcut: mod('0'),
+        run: handlers.onFit,
+      },
+      { label: t('확대'), icon: <ZoomIn size={17} />, shortcut: mod('+'), run: handlers.onZoomIn },
+      {
+        label: t('축소'),
+        icon: <ZoomOut size={17} />,
+        shortcut: mod('-'),
+        run: handlers.onZoomOut,
+      },
+    ],
+  ];
 }
 
 /** Menu rows for one action list; `role` distinguishes toolbar menus from a context menu. */

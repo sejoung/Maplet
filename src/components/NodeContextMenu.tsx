@@ -6,14 +6,16 @@ const items = (menu: HTMLElement) => [
   ...menu.querySelectorAll<HTMLButtonElement>('[role="menuitem"]:not(:disabled)'),
 ];
 
-/** Node actions at the pointer (right-click, long-press) or the node (keyboard). */
+/** Node or canvas actions at the pointer (right-click) or the focused node (keyboard). */
 export function NodeContextMenu({
   groups,
   at,
+  label = '노드 메뉴',
   onClose,
 }: {
   groups: NodeAction[][];
   at: { x: number; y: number };
+  label?: string;
   onClose(restoreFocus: boolean): void;
 }) {
   const { t } = useI18n();
@@ -57,7 +59,7 @@ export function NodeContextMenu({
       className="context-menu menu-items"
       role="menu"
       tabIndex={-1}
-      aria-label={t('노드 메뉴')}
+      aria-label={t(label)}
       style={{ left: position.x, top: position.y }}
       onKeyDown={keydown}
       onContextMenu={(event) => event.preventDefault()}

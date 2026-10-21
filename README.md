@@ -31,8 +31,10 @@ The officially supported browser is **desktop Google Chrome**. Automated browser
 - **MindMup compatibility:** import `.mup` files, export compatible copies, and download an untouched MindMup original backup.
 - **Direct editing:** create, rename, delete, and reparent nodes; add notes, links, and optional background colors from the toolbar.
 - **Node menu and branch editing:** right-click a node (or press `Shift`+`F10`) for every node action in one menu. Copy, cut, paste, and duplicate branches, and reorder siblings. Pasting an indented or bulleted list from another app creates nodes that follow its hierarchy; copied branches paste into other apps as an indented outline.
+- **Select several nodes:** `Shift`/`Ctrl`/`⌘`-click nodes, `Shift`-drag an area on the empty canvas, extend with `Shift`+arrow keys, or press `Ctrl`/`⌘`+`A` for every visible node. Delete, copy, cut, duplicate, move, side, and style changes apply to the whole selection in one undo step; drag any selected node to move the group together. `Escape` or a click on the empty canvas returns to one node.
+- **Drag to reparent:** bring a dragged node within 16px of another node (or onto it) to make it that node's child; the target is highlighted and the connector follows. The rest of the map holds still while you drag, so targets never slip away; a caught target is kept until the gap exceeds 32px. Dropping onto a central topic picks its left or right side. Selected groups move and reparent together.
 - **Image export:** download the visible map as PNG or SVG from the File menu.
-- **Move whole branches:** drag a parent and all its descendants together, preserving their relative positions. Connections follow as you move. Group regions are highlighted while dragging; branches move aside in real time when these regions overlap, including their empty interiors, keeping a 24px gap between groups' nodes. Your branch follows the pointer. Release to keep the visible arrangement, or press Escape to restore the original positions.
+- **Move whole branches:** drag a parent and all its descendants together, preserving their relative positions. Connections follow as you move. Dashed guides show where overlapping branches will make room — including their empty interiors, keeping a 24px gap between groups' nodes — and they move there on release. Hold `Alt`/`⌥` to place freely next to other nodes without reparenting; branches then move aside live. Press Escape to restore the original positions. A hint at the bottom of the canvas shows the current mode.
 - **Arrange the whole map:** use `Auto arrange` in the toolbar to balance branches by their actual height, separate major branches, and fit the result on screen. One undo restores the previous arrangement. Content, hierarchy, formatting, and collapsed states are preserved.
 - **Navigate your map:** search, collapse branches, zoom, pan, fit to screen, or restore automatic layout.
 - **Undo and recovery:** undo or redo a whole drag in one step; recover browser drafts from IndexedDB and keep manual positions when reopening files.
@@ -67,25 +69,31 @@ The interface supports Korean and English, initially following your browser lang
 
 ## Keyboard shortcuts
 
-| Shortcut                      | Action                            |
-| ----------------------------- | --------------------------------- |
-| `Tab`                         | Add a child                       |
-| `Enter`                       | Add a sibling                     |
-| `F2` / double-click           | Edit a title                      |
-| Arrow keys                    | Navigate the hierarchy            |
-| `Delete` / `Backspace`        | Delete a node and its descendants |
-| `Ctrl` / `⌘` + `Z`            | Undo                              |
-| `Ctrl` / `⌘` + `Shift` + `Z`  | Redo                              |
-| `Ctrl` / `⌘` + `S`            | Save to Drive / download locally  |
-| `Space` + drag                | Pan the canvas                    |
-| `Ctrl` + wheel / pinch        | Zoom                              |
-| `Ctrl` / `⌘` + `+` `-` `0`    | Zoom in, zoom out, fit            |
-| `Ctrl` / `⌘` + `C` `X` `V`    | Copy, cut, paste a branch         |
-| `Ctrl` / `⌘` + `D`            | Duplicate a branch                |
-| `Alt` + `↑` / `↓`             | Reorder among siblings            |
-| Right-click / `Shift` + `F10` | Node menu                         |
+| Shortcut                       | Action                                                  |
+| ------------------------------ | ------------------------------------------------------- |
+| `Tab`                          | Add a child                                             |
+| `Enter`                        | Add a sibling                                           |
+| `F2` / double-click            | Edit a title                                            |
+| Arrow keys                     | Navigate the hierarchy                                  |
+| `Delete` / `Backspace`         | Delete a node and its descendants                       |
+| `Ctrl` / `⌘` + `Z`             | Undo                                                    |
+| `Ctrl` / `⌘` + `Shift` + `Z`   | Redo                                                    |
+| `Ctrl` / `⌘` + `S`             | Save to Drive / download locally                        |
+| `Space` + drag                 | Pan the canvas                                          |
+| `Ctrl` + wheel / pinch         | Zoom                                                    |
+| `Ctrl` / `⌘` + `+` `-` `0`     | Zoom in, zoom out, fit                                  |
+| `Ctrl` / `⌘` + `C` `X` `V`     | Copy, cut, paste a branch                               |
+| `Ctrl` / `⌘` + `D`             | Duplicate a branch                                      |
+| `Alt` + `↑` / `↓`              | Reorder among siblings                                  |
+| Right-click / `Shift` + `F10`  | Node menu                                               |
+| Right-click empty canvas       | Map menu (undo, paste, select all, find, arrange, zoom) |
+| `Shift` / `Ctrl` / `⌘` + click | Add or remove a node from the selection                 |
+| `Shift` + drag on empty canvas | Select an area                                          |
+| `Shift` + arrow keys           | Extend the selection                                    |
+| `Ctrl` / `⌘` + `A`             | Select all visible nodes                                |
+| Drop next to or onto a node    | Move under that node                                    |
 
-While editing a title: `Enter` applies, `Shift` + `Enter` inserts a newline, `Escape` cancels, and `Tab` applies the title and starts a child. During a drag, `Escape` cancels the whole branch movement.
+While editing a title: `Enter` applies, `Shift` + `Enter` inserts a newline, `Escape` cancels, and `Tab` applies the title and starts a child. During a drag, `Escape` cancels the whole branch movement; otherwise it clears a multi-node selection.
 
 ## Document formats
 

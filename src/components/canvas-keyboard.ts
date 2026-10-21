@@ -5,7 +5,13 @@ export function canvasKeydown(
   event: KeyboardEvent,
   props: CanvasProps,
   viewport: RefObject<HTMLDivElement | null>,
-  actions: { isDragging(): boolean; cancelDrag(): void; pan(): void; openMenu(): void },
+  actions: {
+    isDragging(): boolean;
+    cancelDrag(): void;
+    pan(): void;
+    openMenu(): void;
+    selectAll(): void;
+  },
 ) {
   if ((event.target as HTMLElement).closest('button,input,textarea,select')) return;
   if (event.nativeEvent.isComposing) return;
@@ -14,6 +20,16 @@ export function canvasKeydown(
   if (event.key === 'Escape' && actions.isDragging()) {
     event.preventDefault();
     actions.cancelDrag();
+    return;
+  }
+  if (event.key === 'Escape' && props.selection.length > 1) {
+    event.preventDefault();
+    onSelect(selected);
+    return;
+  }
+  if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'a') {
+    event.preventDefault();
+    actions.selectAll();
     return;
   }
   if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'd') {
@@ -56,7 +72,10 @@ export function canvasKeydown(
     }
     if (next) {
       if (node.collapsed && node.children.includes(next)) onToggle(selected);
-      onSelect(next);
+      // Shift extends the selection along the way instead of replacing it.
+      if (event.shiftKey)
+        props.onSelectNodes([...props.selection.filter((id) => id !== next), next], next);
+      else onSelect(next);
       requestAnimationFrame(() =>
         viewport.current
           ?.querySelector<HTMLElement>(`[data-node-id="${CSS.escape(next!)}"]`)

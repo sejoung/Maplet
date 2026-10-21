@@ -213,3 +213,67 @@ a.node-badge:hover {
   border-color: #9b7a3d;
   background: #9b7a3d0a;
 }
+/* Nodes carry an inline background, so a group selection tints with an inset shadow. */
+.mind-node.multi {
+  box-shadow:
+    0 0 0 3px #3977600d,
+    inset 0 0 0 999px #3977601a;
+}
+.mind-node.multi[tabindex='0'] {
+  box-shadow:
+    0 0 0 4px #39776040,
+    inset 0 0 0 999px #3977601a;
+}
+/* The target stays visible above the branch hovering over it. */
+.canvas.has-drop-target .mind-node.dragging {
+  opacity: 0.55;
+}
+.mind-node.drop-target {
+  z-index: 4;
+  border: 2px solid var(--accent);
+  padding: calc(var(--node-padding-y) - 1px) calc(var(--node-padding-x) - 1px);
+  box-shadow: 0 0 0 5px #236b5833;
+}
+.mind-node.drop-target::after {
+  content: attr(data-drop-label);
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 6px);
+  transform: translateX(-50%);
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font:
+    600 12px/18px system-ui,
+    sans-serif;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.selection-marquee {
+  position: absolute;
+  z-index: 4;
+  pointer-events: none;
+  border: 1px solid #397760;
+  background: #3977601f;
+}
+.drag-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  z-index: 4;
+  max-width: calc(100% - 32px);
+  margin: 0;
+  padding: 6px 12px;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: #25352de6;
+  color: #fff;
+  font-size: 13px;
+  line-height: 18px;
+  text-align: center;
+  pointer-events: none;
+}
+.drag-hint.free {
+  background: #6b5a2ee6;
+}

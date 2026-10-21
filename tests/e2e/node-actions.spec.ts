@@ -129,3 +129,25 @@ test('keeps the document name readable on phones', async ({ page }) => {
   const name = await page.getByRole('button', { name: /^파일 이름 변경:/ }).boundingBox();
   expect(name!.width).toBeGreaterThan(60);
 });
+
+test('opens a map menu from a right-click anywhere on empty canvas', async ({ page }) => {
+  await page.goto('/');
+  await addChildren(page, '중심 주제', ['기획', '개발']);
+  const canvas = (await page.getByRole('application', { name: '마인드맵 캔버스' }).boundingBox())!;
+  await page.mouse.click(canvas.x + 40, canvas.y + canvas.height - 40, { button: 'right' });
+  const map = page.getByRole('menu', { name: '캔버스 메뉴' });
+  await expect(map).toBeVisible();
+  await expect(menu(page)).toHaveCount(0);
+  await expect(map.getByRole('menuitem', { name: '실행 취소' })).toBeEnabled();
+  await expect(map.getByRole('menuitem', { name: '다시 실행' })).toBeDisabled();
+  await map.getByRole('menuitem', { name: '모두 선택' }).click();
+  await expect(map).toHaveCount(0);
+  await expect(page.getByText('3개 선택됨')).toBeVisible();
+  // A right-click on a node still opens the node menu, which acts on the whole selection.
+  await node(page, '개발').click({ button: 'right' });
+  await expect(menu(page).getByRole('menuitem', { name: '선택한 노드 3개 삭제' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await page.mouse.click(canvas.x + canvas.width - 40, canvas.y + 40, { button: 'right' });
+  await map.getByRole('menuitem', { name: '찾기' }).click();
+  await expect(page.getByRole('dialog', { name: '찾기' })).toBeVisible();
+});

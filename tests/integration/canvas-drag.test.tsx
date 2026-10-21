@@ -40,6 +40,9 @@ function setup(map = parseMup(branchSpacingSource())) {
   const props: CanvasProps = {
     map,
     selected: 'a',
+    selection: ['a'],
+    onToggleSelect: vi.fn(),
+    onSelectNodes: vi.fn(),
     documentKey: 0,
     editingId: null,
     controlsRef: controls,
@@ -53,7 +56,9 @@ function setup(map = parseMup(branchSpacingSource())) {
     onToggle: vi.fn(),
     onResize: vi.fn(() => true),
     onReposition: vi.fn(() => true),
+    onReparent: vi.fn(() => true),
     onContextMenu: vi.fn(),
+    onCanvasMenu: vi.fn(),
     onCopy: vi.fn(() => null),
     onCut: vi.fn(() => null),
     onPaste: vi.fn(),
@@ -82,11 +87,13 @@ function setup(map = parseMup(branchSpacingSource())) {
     );
   const start = (id = 'a') =>
     fireEvent.pointerDown(node(id), { pointerId: 1, button: 0, clientX: 300, clientY: 100 });
-  const move = (dx: number, dy: number, pointerId = 1) =>
+  // Alt places freely and pushes other branches aside live; without it they hold still.
+  const move = (dx: number, dy: number, pointerId = 1, altKey = true) =>
     fireEvent.pointerMove(canvas, {
       pointerId,
       clientX: 300 + dx,
       clientY: 100 + dy,
+      altKey,
     });
   const finish = () => fireEvent.pointerUp(canvas, { pointerId: 1 });
   return { ...view, props, controls, node, canvas, positions, start, move, finish };
@@ -231,4 +238,21 @@ it('abandons the preview when the document changes before release', () => {
   view.finish();
   expect(view.props.onReposition).not.toHaveBeenCalled();
   expect(view.container.querySelectorAll('[data-node-id]')).toHaveLength(1);
+});
+
+it('holds other branches still without Alt and commits the guided arrangement on release', () => {
+  const view = setup(),
+    before = view.positions();
+  view.start();
+  view.move(0, 160, 1, false);
+  const held = view.positions();
+  expect(held.b).toEqual(before.b);
+  expect(held.a).toEqual({ x: before.a.x, y: before.a.y + 160 });
+  const guide = view.container.querySelector<HTMLElement>('.branch-region.displaced')!;
+  expect(JSON.parse(guide.dataset.regionNodes!)).toEqual(['b', 'bChild']);
+  view.finish();
+  const committed = vi.mocked(view.props.onReposition).mock.calls[0][0];
+  expect(committed.a).toEqual(held.a);
+  expect(committed.b).not.toEqual(before.b);
+  expect(committed.b.y - 12).toBeCloseTo(parseFloat(guide.style.top), 5);
 });

@@ -11,14 +11,20 @@ export interface Fragment {
 }
 
 export function copySubtree(map: MindMap, id: string): Fragment {
-  if (!Object.hasOwn(map.nodes, id)) throw new AppError('노드를 찾을 수 없습니다.');
+  return copyBranches(map, [id]);
+}
+
+/** Copy separate branches; `ids` must not contain each other's descendants. */
+export function copyBranches(map: MindMap, ids: readonly string[]): Fragment {
+  if (!ids.length || ids.some((id) => !Object.hasOwn(map.nodes, id)))
+    throw new AppError('노드를 찾을 수 없습니다.');
   const nodes: Record<string, MindNode> = {};
   const visit = (key: string) => {
     nodes[key] = structuredClone(map.nodes[key]);
     map.nodes[key].children.forEach(visit);
   };
-  visit(id);
-  return { roots: [id], nodes };
+  ids.forEach(visit);
+  return { roots: [...ids], nodes };
 }
 
 const height = (fragment: Fragment, id: string): number =>

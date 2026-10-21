@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { createMap, updateNode } from '../domain/commands';
 import type { MindMap } from '../domain/model';
+import { topLevel, visibleSelection } from '../domain/selection';
 import { commit, createHistory, redo, undo, type History } from '../application/history';
 import { mergeHistory } from '../application/merge-history';
 import { nativeFilename } from '../adapters/documents';
@@ -29,7 +30,12 @@ export function useDocument({ title, filename: initialFilename, onEdited, onErro
   const [filename, setFilename] = useState(initialFilename);
   const [filenamePending, setFilenamePending] = useState(true);
   const [savedFilename, setSavedFilename] = useState(initialFilename);
-  const [selected, setSelected] = useState(map.roots[0]);
+  const [selected, setFocused] = useState(map.roots[0]);
+  const [selection, setSelection] = useState([map.roots[0]]);
+  const setSelected = (id: string) => {
+    setFocused(id);
+    setSelection([id]);
+  };
   const [documentKey, setDocumentKey] = useState(0);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [hasWork, setHasWork] = useState(false);
@@ -70,6 +76,31 @@ export function useDocument({ title, filename: initialFilename, onEdited, onErro
     setSelected(id);
   };
 
+  const selectedId = Object.hasOwn(map.nodes, selected) ? selected : map.roots[0];
+  const selectedIds = useMemo(() => {
+    const visible = visibleSelection(map, selection);
+    return visible.includes(selectedId) ? visible : [selectedId];
+  }, [map, selection, selectedId]);
+  /** Add a node to the selection and focus it, or remove it and focus the last remaining one. */
+  const toggleSelect = (id: string) => {
+    if (!Object.hasOwn(map.nodes, id)) return;
+    if (!selectedIds.includes(id)) {
+      setSelection([...selectedIds, id]);
+      setFocused(id);
+      return;
+    }
+    if (selectedIds.length === 1) return;
+    const rest = selectedIds.filter((key) => key !== id);
+    setSelection(rest);
+    if (id === selectedId) setFocused(rest.at(-1)!);
+  };
+  // Not validated here: callers may select nodes an edit has just added. Rendering drops
+  // unknown or hidden IDs.
+  const selectNodes = (ids: string[], primary: string) => {
+    setSelection(ids.includes(primary) ? ids : [...ids, primary]);
+    setFocused(primary);
+  };
+
   const step = (direction: typeof undo) => {
     update(direction);
     setHasWork(true);
@@ -85,13 +116,20 @@ export function useDocument({ title, filename: initialFilename, onEdited, onErro
     filename,
     filenamePending,
     savedFilename,
-    selectedId: Object.hasOwn(map.nodes, selected) ? selected : map.roots[0],
+    selectedId,
+    /** Every selected node, including `selectedId`. */
+    selection: selectedIds,
+    /** The branches a command on `id` acts on: the whole selection when `id` is part of it. */
+    targets: (id: string) =>
+      selectedIds.length > 1 && selectedIds.includes(id) ? topLevel(map, selectedIds) : [id],
     documentKey,
     editingId,
     hasWork,
     edit,
     replace,
     select,
+    toggleSelect,
+    selectNodes,
     setSelected,
     setEditingId,
     setFilenamePending,

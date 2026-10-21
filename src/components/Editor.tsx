@@ -9,7 +9,8 @@ import { useAutoArrange } from './useAutoArrange';
 import { Canvas, type CanvasControls } from './Canvas';
 import { NodeToolsDialog, type NodeTool } from './NodeToolsDialog';
 import { NodeContextMenu } from './NodeContextMenu';
-import { nodeActionGroups } from './node-actions';
+import { canvasActionGroups, nodeActionGroups } from './node-actions';
+import { visibleSelection } from '../domain/selection';
 import type { EditorProps } from './editor-types';
 export type { EditorProps } from './editor-types';
 
@@ -26,7 +27,7 @@ export function Editor(props: EditorProps) {
   const [dragging, setDragging] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [editingText, setEditingText] = useState(false);
-  const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
+  const [menu, setMenu] = useState<{ x: number; y: number; canvas?: boolean } | null>(null);
   const closeSettings = useCallback(() => setSettingsOpen(false), []);
   const closeTool = useCallback(() => setTool(null), []);
   const command = (action: () => void) => () => {
@@ -68,8 +69,27 @@ export function Editor(props: EditorProps) {
       canPaste: props.canPaste,
     },
     t,
+    props.selection,
   );
   const arrangeMap = useAutoArrange(map, props.onAutoLayout, controls);
+  const canvasActions = canvasActionGroups(
+    {
+      onUndo: props.onUndo,
+      onRedo: props.onRedo,
+      canUndo: props.canUndo,
+      canRedo: props.canRedo,
+      onPaste: () => props.onPasteNode(selected),
+      canPaste: props.canPaste,
+      onSelectAll: () =>
+        props.onSelectNodes(visibleSelection(map, Object.keys(map.nodes)), selected),
+      onSearch: () => setTool('search'),
+      onArrange: arrangeMap,
+      onFit: () => controls.current?.fit(),
+      onZoomIn: () => controls.current?.zoomIn(),
+      onZoomOut: () => controls.current?.zoomOut(),
+    },
+    t,
+  );
   // Canvas apps zoom the document, not the browser page, with Ctrl/⌘ +, − and 0.
   useEffect(() => {
     const zoomKeys = (event: KeyboardEvent) => {
@@ -144,6 +164,7 @@ export function Editor(props: EditorProps) {
       <EditorToolbar
         map={map}
         selected={selected}
+        selection={props.selection}
         actions={actions}
         canUndo={props.canUndo}
         canRedo={props.canRedo}
@@ -186,8 +207,11 @@ export function Editor(props: EditorProps) {
         <Canvas
           map={map}
           selected={selected}
+          selection={props.selection}
           documentKey={props.documentKey}
           onSelect={props.onSelect}
+          onToggleSelect={props.onToggleSelect}
+          onSelectNodes={props.onSelectNodes}
           onEdit={props.onEdit}
           editingId={props.editingId}
           onRename={props.onRename}
@@ -197,10 +221,13 @@ export function Editor(props: EditorProps) {
           onToggle={props.onToggle}
           onResize={props.onResize}
           onReposition={props.onReposition}
+          onReparent={props.onReparent}
           onContextMenu={(id, at) => {
-            props.onSelect(id);
+            // Right-clicking inside a group keeps it, so menu commands act on every node.
+            if (!props.selection.includes(id)) props.onSelect(id);
             setMenu(at);
           }}
+          onCanvasMenu={(at) => setMenu({ ...at, canvas: true })}
           onCopy={props.onCopyNode}
           onCut={props.onCutNode}
           onPaste={props.onPasteNode}
@@ -222,6 +249,11 @@ export function Editor(props: EditorProps) {
           <span title={t(props.draftStatus)}>{t(props.driveSaveStatus ?? props.draftStatus)}</span>
         </div>
         <div className="status-tools">
+          {props.selection.length > 1 && (
+            <span className="selection-count" role="status">
+              {t('{count}개 선택됨', { count: props.selection.length })}
+            </span>
+          )}
           <span className="node-count">
             {t('노드 {count}개', { count: Object.keys(map.nodes).length })}
           </span>
@@ -235,6 +267,7 @@ export function Editor(props: EditorProps) {
           tool={tool}
           map={map}
           selected={selected}
+          selection={props.selection}
           onUpdate={props.onUpdate}
           onMove={props.onMove}
           onSelect={(id) => {
@@ -246,13 +279,12 @@ export function Editor(props: EditorProps) {
       )}
       {menu && map.nodes[selected] && (
         <NodeContextMenu
-          groups={[
-            actions.create,
-            actions.tools,
-            actions.clipboard,
-            actions.arrange,
-            actions.remove,
-          ]}
+          groups={
+            menu.canvas
+              ? canvasActions
+              : [actions.create, actions.tools, actions.clipboard, actions.arrange, actions.remove]
+          }
+          label={menu.canvas ? '캔버스 메뉴' : '노드 메뉴'}
           at={menu}
           onClose={closeMenu}
         />

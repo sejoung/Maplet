@@ -125,24 +125,73 @@ test('runs document keyboard shortcuts while a canvas node has focus', async ({ 
   expect((await download).suggestedFilename()).toBe('interaction.maplet');
 });
 
-test('keeps the parent and separates nodes dropped on top of another node', async ({ page }) => {
+test('reparents a branch dropped onto another node in one undo step', async ({ page }) => {
   await openFixture(page);
   await page.getByRole('button', { name: '화면에 맞추기', exact: true }).click();
   const branch = page.getByRole('treeitem', { name: '둘째 가지', exact: true });
+  const target = page.getByRole('treeitem', { name: '첫 가지', exact: true });
   const before = (await branch.boundingBox())!;
-  const target = (await page
-    .getByRole('treeitem', { name: '첫 가지', exact: true })
-    .boundingBox())!;
+  const box = (await target.boundingBox())!;
   await page.mouse.move(before.x + before.width / 2, before.y + before.height / 2);
   await page.mouse.down();
-  await page.mouse.move(target.x + target.width / 2, target.y + target.height / 2, { steps: 8 });
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 8 });
+  // While hovering, the target is marked and the connector already leads from it.
+  await expect(target).toHaveClass(/drop-target/);
+  await expect(target).toHaveAttribute('data-drop-label', '여기로 옮기기');
+  await expect(page.locator('[data-edge-to=b]')).toHaveAttribute('data-edge-from', 'a');
+  await expect(page.locator('.branch-region.displaced')).toHaveCount(0);
+  await page.mouse.up();
+  await expect(branch).toHaveAttribute('aria-level', '3');
+  await expect(page.locator('.drop-target')).toHaveCount(0);
+  await expect(page.locator('[data-edge-to=b]')).toHaveAttribute('data-edge-from', 'a');
+  await expect(branch).toBeFocused();
+  await page.getByRole('button', { name: '실행 취소', exact: true }).click();
+  await expect(branch).toHaveAttribute('aria-level', '2');
+  await expect(page.locator('[data-edge-to=b]')).toHaveAttribute('data-edge-from', 'root');
+});
+
+test('snaps to a node beside the dragged node, and Alt or Escape keeps the parent', async ({
+  page,
+}) => {
+  await openFixture(page);
+  await page.getByRole('button', { name: '화면에 맞추기', exact: true }).click();
+  const branch = page.getByRole('treeitem', { name: '둘째 가지', exact: true });
+  const target = page.getByRole('treeitem', { name: '첫 가지', exact: true });
+  const hint = page.locator('.drag-hint');
+  const before = (await branch.boundingBox())!;
+  const box = (await target.boundingBox())!;
+  await page.mouse.move(before.x + 4, before.y + before.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 8 });
+  await expect(target).toHaveClass(/drop-target/);
+  await expect(hint).toHaveText(
+    '노드에 붙여 놓으면 하위로 이동 · 점선은 놓을 때 비켜날 자리 · Alt(⌥): 위치만 이동',
+  );
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.drop-target')).toHaveCount(0);
+  await expect(hint).toHaveCount(0);
   await page.mouse.up();
   await expect(branch).toHaveAttribute('aria-level', '2');
-  expect((await branch.boundingBox())!.y).toBeCloseTo(target.y, 0);
+  // Just above the node still snaps to it; holding Alt moves the branch freely instead.
+  const start = (await branch.boundingBox())!;
+  const above = { x: box.x + 4, y: box.y - 10 - start.height / 2 };
+  await page.mouse.move(start.x + 4, start.y + start.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(above.x, above.y, { steps: 8 });
+  await expect(target).toHaveClass(/drop-target/);
+  await page.keyboard.down('Alt');
+  await expect(page.locator('.drop-target')).toHaveCount(0);
+  await expect(hint).toHaveText('위치만 옮기는 중 · Alt(⌥)를 떼면 부모 바꾸기');
+  await page.keyboard.up('Alt');
+  await expect(target).toHaveClass(/drop-target/);
+  await page.keyboard.down('Alt');
+  await page.mouse.move(above.x, above.y - 2);
+  await page.mouse.up();
+  await page.keyboard.up('Alt');
+  await expect(branch).toHaveAttribute('aria-level', '2');
   await expect
     .poll(() =>
       page.locator('[data-node-id=a], [data-node-id=b]').evaluateAll((elements) => {
-        if (elements.length !== 2) return false;
         const [box, other] = elements.map((element) => element.getBoundingClientRect());
         return (
           box.right <= other.x ||
