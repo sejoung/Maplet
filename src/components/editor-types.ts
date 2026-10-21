@@ -16,6 +16,10 @@ interface FileActions {
   onBackup(): void;
 }
 interface DriveIndicators {
+  driveConfigured: boolean;
+  onOpenDrive(): void;
+  onSaveCopy(): void;
+  canSaveCopy: boolean;
   saveToDrive: boolean;
   driveSync: DriveSyncStatus | null;
   onDrive(): void;

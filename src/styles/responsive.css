@@ -31,12 +31,14 @@
   .mobile-tools summary span,
   .mobile-tools summary > svg:last-child,
   .add-node > span,
+  .delete-node > span,
   .auto-layout-button > span {
     display: none;
   }
   .node-menu summary,
   .mobile-tools summary,
   .add-node,
+  .delete-node,
   .auto-layout-button {
     width: 34px;
     padding: 0;

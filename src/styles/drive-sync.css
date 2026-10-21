@@ -1,23 +1,65 @@
+/* Drive connection and sync state share one pill; only states that need action stand out. */
 .drive-control {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
+  display: inline-flex;
+  align-items: center;
   flex-shrink: 0;
-  gap: 2px;
+}
+.drive-control.has-status {
+  position: relative;
+  cursor: pointer;
+  min-height: 36px;
+  padding-right: 11px;
+  border: 1px solid #d6deda;
+  border-radius: 6px;
+  background: white;
 }
 .drive-control.has-status .drive-button {
-  min-height: 27px;
-  padding: 3px 10px;
+  min-height: 34px;
+  padding-right: 7px;
+  border-color: transparent;
+  background: transparent;
+}
+/* The status is a separate live region, so the button's hit area is stretched over the
+   whole pill instead of nesting the status inside the button. */
+.drive-control.has-status .drive-button::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 6px;
+}
+.drive-control.has-status:hover {
+  border-color: #b9c6bf;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 6%);
+}
+.drive-control.has-status .drive-button:focus-visible {
+  outline: none;
+}
+.drive-control.has-status:has(.drive-button:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.drive-control.has-status:has(.drive-button:disabled) {
+  cursor: default;
+}
+.drive-control.has-status.synced {
+  border-color: #a6c9b8;
+  background: #eff7f3;
+}
+.drive-control.needs-attention {
+  border-color: #dfb1b5;
+  background: #fbf1f1;
+}
+.drive-control.needs-attention .drive-button {
+  color: #97333b;
 }
 .drive-sync-state {
-  text-align: center;
-  font-size: 10px;
-  line-height: 12px;
-  color: #5d6864;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--muted);
   white-space: nowrap;
 }
 .drive-sync-state.synced {
-  color: #236b58;
+  color: var(--accent);
 }
 .drive-sync-state.pending {
   color: #886523;
@@ -25,6 +67,23 @@
 .drive-sync-state.error,
 .drive-sync-state.reconnect {
   color: #97333b;
+  font-weight: 600;
+}
+.drive-retry {
+  position: relative;
+  z-index: 1;
+  margin-left: 10px;
+  padding: 3px 8px;
+  border: 1px solid #c98a90;
+  border-radius: 4px;
+  background: white;
+  color: #97333b;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.drive-retry:hover {
+  background: #f6e3e4;
 }
 .sync-spinner {
   animation: drive-spin 1s linear infinite;
@@ -37,5 +96,27 @@
 @media (prefers-reduced-motion: reduce) {
   .sync-spinner {
     animation: none;
+  }
+}
+@media (max-width: 480px) {
+  /* Icon-only on phones; the state stays available to assistive technology. */
+  .drive-label-status {
+    display: none;
+  }
+  .drive-control.has-status {
+    padding-right: 0;
+    min-height: 32px;
+  }
+  .drive-control.has-status .drive-sync-state {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .drive-retry {
+    margin: 0 6px 0 0;
+    padding: 3px 6px;
+    font-size: 11px;
   }
 }

@@ -59,6 +59,10 @@ test('reparents, edits notes and safe links, deletes and restores a subtree', as
   await expect(page.getByRole('treeitem', { name: '세부', exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: '실행 취소', exact: true }).click();
   await expect(page.getByRole('treeitem', { name: '세부', exact: true })).toHaveCount(1);
+  // Deletion is also a visible toolbar action, not only a menu item or a key.
+  await page.getByRole('treeitem', { name: '세부', exact: true }).click();
+  await page.getByRole('toolbar').getByRole('button', { name: '선택한 노드 삭제' }).click();
+  await expect(page.getByRole('treeitem', { name: '세부', exact: true })).toHaveCount(0);
 });
 
 test('treats imported HTML as text and backs up the exact original', async ({ page }) => {

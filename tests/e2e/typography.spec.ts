@@ -80,7 +80,7 @@ test('fits large multiline text and restores typography from files and browser d
   await expect(root).toHaveCSS('text-align', 'center');
   await expect(root).toHaveCSS('font-family', /monospace/);
   const pending = page.waitForEvent('download');
-  await page.getByRole('button', { name: '.maplet 저장', exact: true }).click();
+  await page.getByRole('button', { name: '.maplet 다운로드', exact: true }).click();
   const path = (await (await pending).path())!;
   const document = JSON.parse(await readFile(path, 'utf8'));
   expect(document.nodes.root.style).toMatchObject({

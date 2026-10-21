@@ -286,6 +286,14 @@ export function App({
         }}
         onHelp={() => setDialog('help')}
         onDrive={driveState.showDrive}
+        driveConfigured={driveState.configured}
+        onOpenDrive={() =>
+          driveState.driveReady && driveState.saveFolder && !driveState.awaitingRestore
+            ? void driveState.openDrive()
+            : driveState.showDrive()
+        }
+        onSaveCopy={() => void driveState.saveDrive('copy')}
+        canSaveCopy={Boolean(driveState.driveFile)}
         driveConnected={driveState.connected}
         driveBusy={driveState.busy}
         driveSaveStatus={driveState.autoSaveStatus}

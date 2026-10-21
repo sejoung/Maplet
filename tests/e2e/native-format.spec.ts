@@ -12,11 +12,11 @@ test('uses native saving by default, restores it, and exports MindMup separately
   await page.getByRole('textbox', { name: '노드 제목' }).press('Enter');
   await page.getByRole('button', { name: '파일', exact: true }).click();
   let downloaded = page.waitForEvent('download');
-  await page.getByRole('button', { name: '.mup 내보내기', exact: true }).click();
+  await page.getByRole('button', { name: '.mup 다운로드 (MindMup 호환)', exact: true }).click();
   expect((await downloaded).suggestedFilename()).toBe('v2-rich.mup');
   await expect(page.getByLabel('저장하지 않은 변경', { exact: true })).toBeVisible();
   downloaded = page.waitForEvent('download');
-  await page.getByRole('button', { name: '.maplet 저장', exact: true }).click();
+  await page.getByRole('button', { name: '.maplet 다운로드', exact: true }).click();
   const download = await downloaded;
   expect(download.suggestedFilename()).toBe('v2-rich.maplet');
   const path = (await download.path())!;
@@ -30,7 +30,7 @@ test('uses native saving by default, restores it, and exports MindMup separately
   await expect(page.getByRole('treeitem', { name: 'Native document', exact: true })).toBeVisible();
   await page.getByRole('button', { name: '파일', exact: true }).click();
   downloaded = page.waitForEvent('download');
-  await page.getByRole('button', { name: '.mup 내보내기', exact: true }).click();
+  await page.getByRole('button', { name: '.mup 다운로드 (MindMup 호환)', exact: true }).click();
   const exported = JSON.parse(await readFile((await (await downloaded).path())!, 'utf8'));
   expect(exported.title).toBe('Native document');
   expect(exported.resources).toEqual({ image: 'base64-original' });
@@ -77,7 +77,7 @@ test('recovers an existing MUP draft and downloads it as a native document', asy
   await page.getByRole('button', { name: '초안 복구' }).click();
   await expect(page.getByRole('treeitem', { name: 'Legacy draft', exact: true })).toBeVisible();
   const downloaded = page.waitForEvent('download');
-  await page.getByRole('button', { name: '.maplet 저장', exact: true }).click();
+  await page.getByRole('button', { name: '.maplet 다운로드', exact: true }).click();
   const file = await downloaded;
   expect(file.suggestedFilename()).toBe('legacy.maplet');
   const raw = JSON.parse(await readFile((await file.path())!, 'utf8'));

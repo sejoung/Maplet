@@ -22,7 +22,7 @@ test('uses browser language and switches UI without changing document contents',
     await page.getByRole('banner').getByRole('button', { name: label, exact: true }).click();
     return JSON.parse(await readFile((await (await pending).path())!, 'utf8'));
   };
-  const before = await downloadDocument('Save .maplet');
+  const before = await downloadDocument('Download .maplet');
   await page
     .locator('input[type=file]')
     .setInputFiles({ name: 'bad.mup', mimeType: 'application/json', buffer: Buffer.from('{bad') });
@@ -46,7 +46,7 @@ test('uses browser language and switches UI without changing document contents',
   await expect(
     page.getByRole('treeitem', { name: '내 문서 — unchanged', exact: true }),
   ).toBeVisible();
-  expect(await downloadDocument('.maplet 저장')).toEqual(before);
+  expect(await downloadDocument('.maplet 다운로드')).toEqual(before);
   await page.reload();
   await expect(page.getByRole('button', { name: '파일', exact: true })).toBeVisible();
   await expect(page.getByRole('combobox', { name: '언어', exact: true })).toHaveValue('ko');

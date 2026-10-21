@@ -26,4 +26,10 @@ test('starts from an isolated connected workspace without opening the OAuth or P
   expect(
     await page.evaluate(() => JSON.stringify({ ...localStorage, ...sessionStorage })),
   ).not.toContain('browser-test-token');
+  // The whole status pill opens Drive, not just the icon and label at its start.
+  const status = await page
+    .getByRole('status', { name: 'Drive 동기화 상태', exact: true })
+    .boundingBox();
+  await page.mouse.click(status!.x + status!.width - 4, status!.y + status!.height / 2);
+  await expect(page.getByRole('dialog', { name: 'Google Drive', exact: true })).toBeVisible();
 });

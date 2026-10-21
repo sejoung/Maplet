@@ -15,7 +15,7 @@ export function InlineNodeEditor({
   lineHeight: number;
   onDraftChange(title: string): void;
   onCommit(title: string, restoreFocus: boolean): boolean;
-  onCancel(): void;
+  onCancel(restoreFocus: boolean): void;
   onAdd(): void;
 }) {
   const { t } = useI18n();
@@ -26,10 +26,17 @@ export function InlineNodeEditor({
     input.current?.focus({ preventScroll: true });
     input.current?.select();
   }, []);
+  // Read the element, not state: IME composition can end in the same task as a blur.
+  const current = () => input.current?.value ?? value;
+  const cancel = (restoreFocus: boolean) => {
+    if (finished.current) return;
+    finished.current = true;
+    onCancel(restoreFocus);
+  };
   const commit = (restoreFocus = true) => {
     if (finished.current) return true;
     finished.current = true;
-    if (!onCommit(value, restoreFocus)) {
+    if (!onCommit(current(), restoreFocus)) {
       finished.current = false;
       requestAnimationFrame(() => input.current?.focus({ preventScroll: true }));
       return false;
@@ -50,7 +57,12 @@ export function InlineNodeEditor({
         setValue(event.target.value);
         onDraftChange(event.target.value);
       }}
-      onBlur={() => commit(false)}
+      onBlur={() => {
+        // Leaving with an empty title keeps the previous one instead of leaving an editor
+        // behind on a node that is no longer selected.
+        if (!current().trim()) cancel(false);
+        else commit(false);
+      }}
       onClick={(event) => event.stopPropagation()}
       onDoubleClick={(event) => event.stopPropagation()}
       onPointerDown={(event) => event.stopPropagation()}
@@ -60,8 +72,7 @@ export function InlineNodeEditor({
         if (event.nativeEvent.isComposing || event.nativeEvent.keyCode === 229) return;
         if (event.key === 'Escape') {
           event.preventDefault();
-          finished.current = true;
-          onCancel();
+          cancel(true);
         } else if (event.key === 'Enter' && !event.shiftKey) {
           event.preventDefault();
           commit();

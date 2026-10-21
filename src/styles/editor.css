@@ -100,6 +100,9 @@
 .save-button {
   flex-shrink: 0;
 }
+.save-button:not(.primary) {
+  color: #34413b;
+}
 .button {
   min-height: 36px;
   display: inline-flex;
@@ -168,6 +171,9 @@
   white-space: nowrap;
   border-radius: 5px;
 }
+.delete-node:hover:not(:disabled) {
+  color: #a32d36;
+}
 .tool-divider {
   width: 1px;
   height: 18px;
@@ -233,6 +239,16 @@
 .menu-items kbd {
   margin-left: auto;
   font-size: 10px;
+}
+.file-menu .menu-items {
+  width: 250px;
+}
+.menu-items .menu-label {
+  display: block;
+  padding: 4px 10px 2px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--muted);
 }
 .menu-items hr {
   border: 0;

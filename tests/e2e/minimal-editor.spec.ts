@@ -88,3 +88,49 @@ test('keeps the current title when Tab continues inline editing into a child', a
     '2',
   );
 });
+
+test('leaving an emptied title for another node restores it instead of stranding the editor', async ({
+  page,
+}) => {
+  await page.goto('/');
+  const root = page.getByRole('treeitem', { name: '중심 주제', exact: true });
+  await root.click();
+  await root.press('Tab');
+  const input = page.getByRole('textbox', { name: '노드 제목' });
+  await expect(input).toBeFocused();
+  await input.fill('');
+  await root.click();
+  await expect(input).toHaveCount(0);
+  await expect(page.getByRole('treeitem', { name: '새 노드', exact: true })).toBeVisible();
+  await expect(root).toBeFocused();
+  await expect(root).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByRole('alert')).toHaveCount(0);
+  // An explicit Enter on an empty title still explains why it cannot be saved.
+  await page.getByRole('treeitem', { name: '새 노드', exact: true }).dblclick();
+  await input.fill('');
+  await input.press('Enter');
+  await expect(page.getByRole('alert')).toContainText('제목은');
+  await expect(input).toBeFocused();
+});
+
+test('keeps the composed Korean syllable when moving to another node mid-composition', async ({
+  page,
+}) => {
+  await page.goto('/');
+  const root = page.getByRole('treeitem', { name: '중심 주제', exact: true });
+  await root.click();
+  await root.press('Tab');
+  const input = page.getByRole('textbox', { name: '노드 제목' });
+  await input.fill('');
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send('Input.insertText', { text: '안' });
+  for (const text of ['ㄴ', '녀', '녕'])
+    await cdp.send('Input.imeSetComposition', {
+      text,
+      selectionStart: 1,
+      selectionEnd: 1,
+    });
+  await root.click();
+  await expect(input).toHaveCount(0);
+  await expect(page.getByRole('treeitem', { name: '안녕', exact: true })).toBeVisible();
+});

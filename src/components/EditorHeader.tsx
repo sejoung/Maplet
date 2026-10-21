@@ -1,6 +1,14 @@
 import { useI18n } from '../i18n/react';
 import { useRef } from 'react';
-import { ArrowDownToLine, CloudUpload, FilePlus2, FolderOpen, Settings } from 'lucide-react';
+import {
+  ArrowDownToLine,
+  Cloud,
+  CloudUpload,
+  Copy,
+  FilePlus2,
+  FolderOpen,
+  Settings,
+} from 'lucide-react';
 import { ToolbarMenu } from './ToolbarMenu';
 import { DocumentName } from './DocumentName';
 import { DriveConnectionButton } from './DriveConnectionButton';
@@ -12,14 +20,18 @@ interface HeaderProps {
   onFilenameChange(name: string): void;
   dirty: boolean;
   original: string | null;
+  driveConfigured: boolean;
   driveConnected: boolean;
   driveBusy: boolean;
   driveSync: DriveSyncStatus | null;
   saveToDrive: boolean;
+  canSaveCopy: boolean;
   editingText: boolean;
   onNew(): void;
   onOpen(file: File): void;
+  onOpenDrive(): void;
   onSave(): void;
+  onSaveCopy(): void;
   onDownload(): void;
   onExportMup(): void;
   onBackup(): void;
@@ -31,7 +43,7 @@ export function EditorHeader(props: HeaderProps) {
   const { t } = useI18n();
   const input = useRef<HTMLInputElement>(null);
   const { command } = props;
-  const saveLabel = t(props.saveToDrive ? 'Drive에 저장' : '.maplet 저장');
+  const download = t('.maplet 다운로드');
   return (
     <header className="app-header">
       <h1 className="visually-hidden">{t('Maplet 마인드맵 편집기')}</h1>
@@ -39,7 +51,7 @@ export function EditorHeader(props: HeaderProps) {
         <img src={`${import.meta.env.BASE_URL}icon.svg`} width="25" height="25" alt="" />
         <span>Maplet</span>
       </div>
-      <ToolbarMenu label={t('파일')}>
+      <ToolbarMenu label={t('파일')} className="file-menu">
         <button onClick={command(props.onNew)}>
           <FilePlus2 size={17} />
           {t('새 맵')}
@@ -48,13 +60,39 @@ export function EditorHeader(props: HeaderProps) {
           <FolderOpen size={17} />
           {t('열기')}
         </button>
+        {props.driveConfigured && (
+          <button onClick={command(props.onOpenDrive)}>
+            <Cloud size={17} />
+            {t('Drive에서 열기')}
+          </button>
+        )}
+        {props.saveToDrive && (
+          <>
+            <hr />
+            <button onClick={command(props.onSave)} aria-keyshortcuts="Control+S Meta+S">
+              <CloudUpload size={17} />
+              {t('지금 저장')}
+              <kbd aria-hidden="true">Ctrl/⌘ S</kbd>
+            </button>
+            {props.canSaveCopy && (
+              <button onClick={command(props.onSaveCopy)}>
+                <Copy size={17} />
+                {t('다른 위치에 사본 저장')}
+              </button>
+            )}
+          </>
+        )}
+        <hr />
+        <span className="menu-label" aria-hidden="true">
+          {t('다운로드')}
+        </span>
         <button onClick={command(props.onDownload)}>
           <ArrowDownToLine size={17} />
-          {t('.maplet 다운로드')}
+          {download}
         </button>
         <button onClick={command(props.onExportMup)}>
           <ArrowDownToLine size={17} />
-          {t('.mup 내보내기')}
+          {t('.mup 다운로드 (MindMup 호환)')}
         </button>
         {props.original && (
           <button onClick={command(props.onBackup)}>
@@ -76,23 +114,28 @@ export function EditorHeader(props: HeaderProps) {
         )}
       </div>
       <div className="header-actions">
-        <DriveConnectionButton
-          connected={props.driveConnected}
-          busy={props.driveBusy}
-          sync={props.driveSync}
-          editing={props.editingText}
-          onClick={command(props.onDrive)}
-        />
-        <button
-          className="button primary save-button"
-          aria-label={saveLabel}
-          title={`${saveLabel} (Ctrl/Cmd+S)`}
-          disabled={props.saveToDrive && props.driveBusy}
-          onClick={props.onSave}
-        >
-          {props.saveToDrive ? <CloudUpload size={16} /> : <ArrowDownToLine size={16} />}
-          <span>{saveLabel}</span>
-        </button>
+        {props.driveConfigured && (
+          <DriveConnectionButton
+            connected={props.driveConnected}
+            busy={props.driveBusy}
+            sync={props.driveSync}
+            editing={props.editingText}
+            onClick={command(props.onDrive)}
+            onRetry={props.onSave}
+          />
+        )}
+        {!props.saveToDrive && (
+          // Without Drive autosave, saving means downloading; it stands out only when needed.
+          <button
+            className={`button save-button${props.dirty ? ' primary' : ''}`}
+            aria-label={download}
+            title={`${download} (Ctrl/Cmd+S)`}
+            onClick={props.onSave}
+          >
+            <ArrowDownToLine size={16} />
+            <span>{t('다운로드')}</span>
+          </button>
+        )}
         <button
           className="button settings-button"
           aria-label={t('설정')}

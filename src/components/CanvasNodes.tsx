@@ -148,9 +148,9 @@ export function CanvasNodes(props: CanvasNodesProps) {
                   if (saved && restoreFocus) restoreNodeFocus(node.id);
                   return saved;
                 }}
-                onCancel={() => {
+                onCancel={(restoreFocus) => {
                   onCancelEdit();
-                  restoreNodeFocus(node.id);
+                  if (restoreFocus) restoreNodeFocus(node.id);
                 }}
                 onAdd={() => requestAnimationFrame(() => latestAdd.current())}
               />

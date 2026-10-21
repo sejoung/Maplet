@@ -143,7 +143,7 @@ test('arranges, restores history and drafts, reopens native files and keeps the 
     await page.getByRole('button', { name: '초안 복구', exact: true }).click();
     expect(await boxes(page)).toEqual(after);
     const pending = page.waitForEvent('download');
-    await page.getByRole('button', { name: '.maplet 저장', exact: true }).click();
+    await page.getByRole('button', { name: '.maplet 다운로드', exact: true }).click();
     const path = (await (await pending).path())!;
     const content = await readFile(path);
     const saved = JSON.parse(content.toString('utf8'));

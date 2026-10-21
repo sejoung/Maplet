@@ -18,7 +18,6 @@
   "파일": "File",
   "새 맵": "New map",
   "열기": "Open",
-  ".maplet 저장": "Save .maplet",
   ".maplet 다운로드": "Download .maplet",
   "Drive 동기화 상태": "Drive sync status",
   "연결 복원 중": "Restoring connection",
@@ -31,7 +30,6 @@
   "저장 준비됨": "Ready to save",
   "동기화 완료": "Synced",
   "편집 중": "Editing",
-  ".mup 내보내기": "Export .mup",
   "원본 백업 다운로드": "Download original backup",
   "저장하지 않은 변경": "Unsaved changes",
   "파일 변경 없음": "No file changes",
@@ -298,5 +296,14 @@
   "전체 맵 자동 배치": "Auto arrange entire map",
   "안전하지 않은 링크는 열 수 없도록 제외했습니다.": "Unsafe links were removed so they cannot be opened.",
   "중심 노드는 방향을 바꿀 수 없습니다.": "The central topic's direction cannot be changed.",
-  "Maplet은 다른 사이트 안에서 열 수 없습니다.": "Maplet can't be opened inside another site."
+  "Maplet은 다른 사이트 안에서 열 수 없습니다.": "Maplet can't be opened inside another site.",
+  "Drive 저장 다시 시도": "Retry saving to Drive",
+  "다시 시도": "Retry",
+  "지금 저장": "Save now",
+  "다른 위치에 사본 저장": "Save a copy elsewhere",
+  "다운로드": "Download",
+  ".mup 다운로드 (MindMup 호환)": "Download .mup (MindMup compatible)",
+  "선택한 노드 삭제": "Delete selected node",
+  "선택한 노드 삭제 (Delete)": "Delete selected node (Delete)",
+  "삭제": "Delete"
 }

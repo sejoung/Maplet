@@ -5,7 +5,7 @@ import { seedDriveWorkspace } from './support/drive-seed';
 
 const shortcut = `${process.platform === 'darwin' ? 'Meta' : 'Control'}+s`;
 
-test('saves committed edits with the shortcut and primary button while keeping local downloads in the File menu', async ({
+test('saves committed edits with the shortcut and File menu while keeping local downloads there too', async ({
   page,
 }) => {
   const { state, root } = await setupDriveWorkspace(page);
@@ -39,7 +39,10 @@ test('saves committed edits with the shortcut and primary button while keeping l
   await expect(page.getByRole('status', { name: 'Drive 동기화 상태', exact: true })).toHaveText(
     '편집 중',
   );
-  await page.locator('.save-button').click();
+  // Autosave replaces a header save button; an explicit save lives in the File menu.
+  await expect(page.locator('.save-button')).toHaveCount(0);
+  await page.getByRole('button', { name: '파일', exact: true }).click();
+  await page.getByRole('button', { name: '지금 저장', exact: true }).click();
   await expect.poll(() => state.updates.length).toBe(3);
   expect(JSON.parse(state.content).nodes[root].title).toBe('Saved by button');
   await expect(page.getByRole('status', { name: 'Drive 동기화 상태', exact: true })).toHaveText(
@@ -47,7 +50,7 @@ test('saves committed edits with the shortcut and primary button while keeping l
   );
 });
 
-test('shows sync errors and retries the same file with the shortcut after a network failure', async ({
+test('shows sync errors and retries the same file from the status control after a network failure', async ({
   page,
 }) => {
   const { state } = await setupDriveWorkspace(page);
@@ -60,9 +63,12 @@ test('shows sync errors and retries the same file with the shortcut after a netw
   expect(state.updates).toHaveLength(0);
   await page.getByRole('button', { name: '대화상자 닫기', exact: true }).click();
   state.authStatus = 200;
-  await page.keyboard.press(shortcut);
+  // The error state offers a retry right where the failure is shown, above the pill's hit area.
+  await page.getByRole('button', { name: 'Drive 저장 다시 시도', exact: true }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect.poll(() => state.updates.length).toBe(1);
   await expect(sync).toHaveText('동기화 완료');
+  await expect(page.getByRole('button', { name: 'Drive 저장 다시 시도' })).toHaveCount(0);
 });
 
 test('shows conflicts and keeps local work when the shortcut encounters a changed remote version', async ({

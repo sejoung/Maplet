@@ -115,7 +115,7 @@ test('moves the other branch live and commits exactly the visible arrangement on
   await page.getByRole('button', { name: '다시 실행', exact: true }).click();
   expect(await positions(page)).toEqual(preview);
   const downloaded = page.waitForEvent('download');
-  await page.getByRole('button', { name: '.maplet 저장', exact: true }).click();
+  await page.getByRole('button', { name: '.maplet 다운로드', exact: true }).click();
   await page.locator('input[type=file]').setInputFiles((await (await downloaded).path())!);
   expect(await positions(page)).toEqual(preview);
 });

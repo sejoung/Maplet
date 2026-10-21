@@ -49,7 +49,7 @@ npm ci
 npm run dev
 ```
 
-Open [http://127.0.0.1:5173](http://127.0.0.1:5173). Start from the central topic or open a file through **파일 → 열기** (File → Open). Double-click a node to edit it, drag it to move its branch, and use **.maplet 저장** to download the document. Use **파일 → .mup 내보내기** for a MindMup-compatible copy.
+Open [http://127.0.0.1:5173](http://127.0.0.1:5173). Start from the central topic or open a file through **파일 → 열기** (File → Open). Double-click a node to edit it, drag it to move its branch, and use **다운로드** (Download, Ctrl/Cmd+S) in the header to download the document. Use **파일 → .mup 다운로드 (MindMup 호환)** for a MindMup-compatible copy.
 
 When Drive is connected, the primary Save button and Ctrl/Cmd+S save to Drive. Use **File → Download .maplet** for a local copy. The header shows editing, pending, saving, synced, error and reconnect states beneath the Drive button.
 

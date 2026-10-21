@@ -51,7 +51,7 @@ test('resizes at the current zoom with live connectors, stable positions and one
   await page.getByRole('button', { name: '초안 복구', exact: true }).click();
   const savedWidth = await root.evaluate((node) => (node as HTMLElement).style.width);
   const pending = page.waitForEvent('download');
-  await page.getByRole('button', { name: '.maplet 저장', exact: true }).click();
+  await page.getByRole('button', { name: '.maplet 다운로드', exact: true }).click();
   await page.locator('input[type=file]').setInputFiles((await (await pending).path())!);
   await expect(root).toHaveCSS('width', savedWidth);
 });

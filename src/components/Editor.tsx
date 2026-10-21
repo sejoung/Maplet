@@ -92,14 +92,18 @@ export function Editor(props: EditorProps) {
         onFilenameChange={props.onFilenameChange}
         dirty={props.dirty}
         original={map.original}
+        driveConfigured={props.driveConfigured}
         driveConnected={props.driveConnected}
         driveBusy={props.driveBusy}
         driveSync={props.driveSync}
         saveToDrive={props.saveToDrive}
+        canSaveCopy={props.canSaveCopy}
         editingText={editingText || Boolean(props.editingId)}
         onNew={props.onNew}
         onOpen={props.onOpen}
+        onOpenDrive={props.onOpenDrive}
         onSave={props.onSave}
+        onSaveCopy={props.onSaveCopy}
         onDownload={props.onDownload}
         onExportMup={props.onExportMup}
         onBackup={props.onBackup}
@@ -138,6 +142,16 @@ export function Editor(props: EditorProps) {
           >
             <Plus size={17} />
             <span>{t('하위 노드')}</span>
+          </button>
+          <button
+            className="tool-button delete-node"
+            aria-label={t('선택한 노드 삭제')}
+            title={t('선택한 노드 삭제 (Delete)')}
+            disabled={node.parentId === null && map.roots.length === 1}
+            onClick={() => props.onDelete()}
+          >
+            <Trash2 size={17} />
+            <span>{t('삭제')}</span>
           </button>
           <ToolbarMenu label={t('노드 작업')} icon={<SquarePen size={18} />} className="node-menu">
             <button onClick={command(() => props.onEdit())}>

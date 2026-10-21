@@ -43,7 +43,7 @@ test('opens, edits inline, undoes, exports and reimports without losing metadata
   await page.getByRole('button', { name: '다시 실행', exact: true }).click();
   const downloaded = page.waitForEvent('download');
   await page.getByRole('button', { name: '파일', exact: true }).click();
-  await page.getByRole('button', { name: '.mup 내보내기', exact: true }).click();
+  await page.getByRole('button', { name: '.mup 다운로드 (MindMup 호환)', exact: true }).click();
   const path = await (await downloaded).path();
   const exported = await readFile(path!, 'utf8');
   const raw = JSON.parse(exported);
