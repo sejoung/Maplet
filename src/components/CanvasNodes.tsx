@@ -8,11 +8,13 @@ import {
   type ButtonHTMLAttributes,
   type CSSProperties,
 } from 'react';
-import { Minus, Plus } from 'lucide-react';
+import { ExternalLink, Minus, Plus, StickyNote } from 'lucide-react';
+import { safeUrl } from '../domain/commands';
 import { InlineNodeEditor } from './InlineNodeEditor';
 import type { CanvasProps } from './canvas-types';
 import { FONT_FAMILIES, nodeTypography } from '../domain/typography';
 import { NODE_PADDING_X, NODE_PADDING_Y } from '../domain/node-size';
+import { nodeBackground } from '../domain/node-colors';
 import type { Layout } from '../engine/layout';
 
 type CanvasNodesProps = Pick<
@@ -26,6 +28,7 @@ type CanvasNodesProps = Pick<
   | 'onCancelEdit'
   | 'onAdd'
   | 'onToggle'
+  | 'onContextMenu'
 > & {
   layout: Layout;
   onDraftChange(id: string, title: string): void;
@@ -34,14 +37,6 @@ type CanvasNodesProps = Pick<
   viewport: RefObject<HTMLDivElement | null>;
   onKeyDown(event: KeyboardEvent): void;
 };
-
-export function readableBackground(value: unknown, fallback: string): string {
-  if (typeof value !== 'string' || !/^#[0-9a-f]{6}$/i.test(value)) return fallback;
-  const rgb = [1, 3, 5]
-    .map((offset) => parseInt(value.slice(offset, offset + 2), 16) / 255)
-    .map((v) => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
-  return rgb[0] * 0.2126 + rgb[1] * 0.7152 + rgb[2] * 0.0722 > 0.5 ? value : fallback;
-}
 
 export function CanvasNodes(props: CanvasNodesProps) {
   const { t } = useI18n();
@@ -56,6 +51,7 @@ export function CanvasNodes(props: CanvasNodesProps) {
     onCancelEdit,
     onAdd,
     onToggle,
+    onContextMenu,
     layout,
     onDraftChange,
     resizeHandlers,
@@ -119,10 +115,7 @@ export function CanvasNodes(props: CanvasNodesProps) {
                 top: placed.y,
                 width: placed.width,
                 minHeight: placed.height,
-                background: readableBackground(
-                  node.style.background,
-                  node.parentId === null ? '#e4f0ea' : '#ffffff',
-                ),
+                background: nodeBackground(node.style, node.parentId === null),
               } as CSSProperties
             }
             onFocus={() => onSelect(node.id)}
@@ -135,6 +128,19 @@ export function CanvasNodes(props: CanvasNodesProps) {
               }
             }}
             onDragStart={(event) => event.preventDefault()}
+            onContextMenu={(event) => {
+              if (editingId === node.id) return;
+              event.preventDefault();
+              // A keyboard-opened menu reports no pointer; anchor it below the node instead.
+              const rect = event.currentTarget.getBoundingClientRect();
+              const keyboard = event.clientX === 0 && event.clientY === 0;
+              onContextMenu(
+                node.id,
+                keyboard
+                  ? { x: rect.left + 8, y: rect.bottom + 4 }
+                  : { x: event.clientX, y: event.clientY },
+              );
+            }}
           >
             {editingId === node.id ? (
               <InlineNodeEditor
@@ -161,7 +167,34 @@ export function CanvasNodes(props: CanvasNodesProps) {
                 ))}
               </span>
             )}
-            {node.notes && <span className="note-indicator" aria-label={t('메모 있음')} />}
+            {(node.notes || node.links[0]) && (
+              <span className="node-badges">
+                {node.notes && (
+                  <span
+                    className="node-badge"
+                    role="img"
+                    aria-label={t('메모 있음')}
+                    title={node.notes.length > 200 ? `${node.notes.slice(0, 200)}…` : node.notes}
+                  >
+                    <StickyNote size={11} aria-hidden="true" />
+                  </span>
+                )}
+                {node.links[0] && safeUrl(node.links[0]) && (
+                  <a
+                    className="node-badge"
+                    href={node.links[0]}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    tabIndex={-1}
+                    aria-label={`${t('링크 열기')}: ${node.links[0]}`}
+                    title={node.links[0]}
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    <ExternalLink size={11} aria-hidden="true" />
+                  </a>
+                )}
+              </span>
+            )}
             {node.children.length > 0 && (
               <button
                 className={`collapse-node ${placed.side}`}

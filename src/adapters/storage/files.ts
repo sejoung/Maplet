@@ -8,12 +8,18 @@ export async function readMapFile(file: File): Promise<string> {
 }
 
 export function downloadFile(content: string, name: string): void {
-  const blob = new Blob([content], { type: 'application/json;charset=utf-8' });
+  const sanitized = sanitizeFilename(name);
+  downloadBlob(
+    new Blob([content], { type: 'application/json;charset=utf-8' }),
+    /\.(maplet|mup)$/i.test(sanitized) ? sanitized : sanitized + '.maplet',
+  );
+}
+
+export function downloadBlob(blob: Blob, name: string): void {
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
   anchor.href = url;
-  const sanitized = sanitizeFilename(name);
-  anchor.download = /\.(maplet|mup)$/i.test(sanitized) ? sanitized : sanitized + '.maplet';
+  anchor.download = sanitizeFilename(name);
   document.body.append(anchor);
   anchor.click();
   anchor.remove();

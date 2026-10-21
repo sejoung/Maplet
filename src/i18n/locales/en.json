@@ -305,5 +305,22 @@
   ".mup 다운로드 (MindMup 호환)": "Download .mup (MindMup compatible)",
   "선택한 노드 삭제": "Delete selected node",
   "선택한 노드 삭제 (Delete)": "Delete selected node (Delete)",
-  "삭제": "Delete"
+  "삭제": "Delete",
+  "이미지를 만들지 못했습니다.": "Could not create the image.",
+  "링크 열기": "Open link",
+  "PNG 이미지 다운로드": "Download PNG image",
+  "SVG 이미지 다운로드": "Download SVG image",
+  "노드 메뉴": "Node menu",
+  "복사": "Copy",
+  "잘라내기": "Cut",
+  "붙여넣기": "Paste",
+  "복제": "Duplicate",
+  "위로 이동": "Move up",
+  "아래로 이동": "Move down",
+  "가지 복사 · 잘라내기 · 붙여넣기": "Copy · cut · paste a branch",
+  "가지 복제": "Duplicate a branch",
+  "형제 사이 순서 변경": "Reorder among siblings",
+  "우클릭 / Shift + F10": "Right-click / Shift + F10",
+  "노드 메뉴 열기": "Open the node menu",
+  "확대 · 축소 · 화면에 맞추기": "Zoom in · zoom out · fit to screen"
 }

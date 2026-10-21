@@ -1,11 +1,11 @@
-import type { KeyboardEvent, RefObject } from 'react';
+import type { ClipboardEvent, KeyboardEvent, RefObject } from 'react';
 import type { CanvasProps } from './canvas-types';
 
 export function canvasKeydown(
   event: KeyboardEvent,
   props: CanvasProps,
   viewport: RefObject<HTMLDivElement | null>,
-  actions: { isDragging(): boolean; cancelDrag(): void; pan(): void },
+  actions: { isDragging(): boolean; cancelDrag(): void; pan(): void; openMenu(): void },
 ) {
   if ((event.target as HTMLElement).closest('button,input,textarea,select')) return;
   if (event.nativeEvent.isComposing) return;
@@ -14,6 +14,21 @@ export function canvasKeydown(
   if (event.key === 'Escape' && actions.isDragging()) {
     event.preventDefault();
     actions.cancelDrag();
+    return;
+  }
+  if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'd') {
+    event.preventDefault();
+    if (node.parentId !== null) props.onDuplicate(selected);
+    return;
+  }
+  if (event.altKey && (event.key === 'ArrowUp' || event.key === 'ArrowDown')) {
+    event.preventDefault();
+    props.onReorder(selected, event.key === 'ArrowUp' ? -1 : 1);
+    return;
+  }
+  if (event.key === 'F10' && event.shiftKey) {
+    event.preventDefault();
+    actions.openMenu();
     return;
   }
   if (event.key === 'Tab' && !event.shiftKey) {
@@ -52,4 +67,27 @@ export function canvasKeydown(
     event.preventDefault();
     actions.pan();
   }
+}
+
+const isEditable = (target: EventTarget | null) =>
+  target instanceof Element && Boolean(target.closest('input,textarea,select'));
+
+/** Copy and cut share the selected branch with other apps as an indented outline. */
+export function canvasClipboard(props: CanvasProps, selected: string, editingId: string | null) {
+  const take = (event: ClipboardEvent, action: (id: string) => string | null) => {
+    if (editingId || isEditable(event.target)) return;
+    const text = action(selected);
+    if (text === null) return;
+    event.preventDefault();
+    event.clipboardData.setData('text/plain', text);
+  };
+  return {
+    onCopy: (event: ClipboardEvent) => take(event, props.onCopy),
+    onCut: (event: ClipboardEvent) => take(event, props.onCut),
+    onPaste: (event: ClipboardEvent) => {
+      if (editingId || isEditable(event.target)) return;
+      event.preventDefault();
+      props.onPaste(selected, event.clipboardData.getData('text/plain'));
+    },
+  };
 }

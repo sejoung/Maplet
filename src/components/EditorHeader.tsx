@@ -7,6 +7,7 @@ import {
   Copy,
   FilePlus2,
   FolderOpen,
+  Image,
   Settings,
 } from 'lucide-react';
 import { ToolbarMenu } from './ToolbarMenu';
@@ -35,6 +36,7 @@ interface HeaderProps {
   onDownload(): void;
   onExportMup(): void;
   onBackup(): void;
+  onExportImage(format: 'png' | 'svg'): void;
   onDrive(): void;
   onSettings(): void;
   command(action: () => void): () => void;
@@ -93,6 +95,14 @@ export function EditorHeader(props: HeaderProps) {
         <button onClick={command(props.onExportMup)}>
           <ArrowDownToLine size={17} />
           {t('.mup 다운로드 (MindMup 호환)')}
+        </button>
+        <button onClick={command(() => props.onExportImage('png'))}>
+          <Image size={17} />
+          {t('PNG 이미지 다운로드')}
+        </button>
+        <button onClick={command(() => props.onExportImage('svg'))}>
+          <Image size={17} />
+          {t('SVG 이미지 다운로드')}
         </button>
         {props.original && (
           <button onClick={command(props.onBackup)}>

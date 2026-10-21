@@ -76,7 +76,25 @@ export function depthOf(map: MindMap, id: string): number {
   return depth;
 }
 
-const depthLimit = () => new AppError('최대 노드 깊이는 {max}입니다.', { max: MAX_DEPTH });
+export const depthLimit = () => new AppError('최대 노드 깊이는 {max}입니다.', { max: MAX_DEPTH });
+
+/**
+ * Splice a node that already exists in `result` (a clone of `map`) under `parentId`, after
+ * `afterId` or last, and rank it among its new siblings.
+ */
+export function attachChild(
+  result: MindMap,
+  map: MindMap,
+  parentId: string,
+  id: string,
+  afterId?: string,
+) {
+  const siblings = result.nodes[parentId].children;
+  result.nodes[id].rank = nextRank(map, map.nodes[parentId].children, result.nodes[id].side);
+  siblings.splice(afterId ? siblings.indexOf(afterId) + 1 : siblings.length, 0, id);
+  if (afterId) placeRank(result, siblings, id);
+  result.nodes[parentId].collapsed = false;
+}
 
 export function addNode(
   map: MindMap,
@@ -90,19 +108,12 @@ export function addNode(
     throw new AppError('같은 부모 아래의 형제 노드를 선택해 주세요.');
   if (Object.hasOwn(map.nodes, id) || isReservedId(id))
     throw new AppError('중복되거나 사용할 수 없는 노드 ID입니다.');
-  if (Object.keys(map.nodes).length >= MAX_NODE_COUNT)
-    throw new AppError('최대 {max}개 노드까지 편집할 수 있습니다.', {
-      max: formatCount(MAX_NODE_COUNT),
-    });
+  if (Object.keys(map.nodes).length >= MAX_NODE_COUNT) throw nodeLimit();
   if (depthOf(map, parentId) >= MAX_DEPTH) throw depthLimit();
   const result = structuredClone(map);
   const side = afterId ? nodeOf(map, afterId).side : parent.side;
-  const siblings = result.nodes[parentId].children;
-  result.nodes[id] = createNode(id, title, parentId, side, nextRank(map, siblings, side));
-  const index = afterId ? siblings.indexOf(afterId) + 1 : siblings.length;
-  siblings.splice(index, 0, id);
-  if (afterId) placeRank(result, siblings, id);
-  result.nodes[parentId].collapsed = false;
+  result.nodes[id] = createNode(id, title, parentId, side, '1');
+  attachChild(result, map, parentId, id, afterId);
   return result;
 }
 
@@ -197,5 +208,33 @@ export function updateNode(
     );
     setSide(result, branch, patch.side);
   }
+  return result;
+}
+
+export const nodeLimit = () =>
+  new AppError('최대 {max}개 노드까지 편집할 수 있습니다.', { max: formatCount(MAX_NODE_COUNT) });
+
+/** Swap a node with its previous (-1) or next (1) sibling on the same side. */
+export function moveSibling(map: MindMap, id: string, offset: -1 | 1): MindMap {
+  const node = nodeOf(map, id);
+  if (node.parentId === null) return map;
+  const siblings = map.nodes[node.parentId].children;
+  const sameSide = siblings.filter((key) => map.nodes[key].side === node.side);
+  const neighbor = sameSide[sameSide.indexOf(id) + offset];
+  if (!neighbor) return map;
+  const result = structuredClone(map);
+  const children = result.nodes[node.parentId].children;
+  const [a, b] = [children.indexOf(id), children.indexOf(neighbor)];
+  [children[a], children[b]] = [children[b], children[a]];
+  const rank = result.nodes[id].rank;
+  result.nodes[id].rank = result.nodes[neighbor].rank;
+  result.nodes[neighbor].rank = rank;
+  // Manually placed branches would otherwise keep their old spots and hide the new order.
+  const release = (key: string) => {
+    result.nodes[key].position = null;
+    result.nodes[key].children.forEach(release);
+  };
+  release(id);
+  release(neighbor);
   return result;
 }

@@ -31,4 +31,10 @@ export interface CanvasProps {
   onToggle(id: string): void;
   onResize: ResizeAction;
   onReposition(positions: Record<string, NodePosition>): boolean;
+  onContextMenu(id: string, at: { x: number; y: number }): void;
+  onCopy(id: string): string | null;
+  onCut(id: string): string | null;
+  onPaste(id: string, text?: string): void;
+  onDuplicate(id: string): void;
+  onReorder(id: string, offset: -1 | 1): void;
 }

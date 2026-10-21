@@ -83,8 +83,9 @@
   .drive-label-full {
     display: none;
   }
+  /* Icon-only Drive control leaves room for the document name on phones. */
   .drive-label-short {
-    display: inline;
+    display: none;
   }
   .editor-toolbar {
     height: 44px;

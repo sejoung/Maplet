@@ -166,14 +166,27 @@
     opacity: 1;
   }
 }
-.note-indicator {
+.node-badges {
   position: absolute;
-  left: 8px;
-  bottom: 8px;
-  width: 4px;
-  height: 4px;
+  top: -8px;
+  right: 8px;
+  display: flex;
+  gap: 3px;
+}
+.node-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 17px;
+  height: 17px;
+  border: 1px solid #c9d4ce;
   border-radius: 50%;
-  background: #607c6a;
+  background: white;
+  color: #4d6a5b;
+}
+a.node-badge:hover {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .mind-node {

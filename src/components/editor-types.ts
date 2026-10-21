@@ -3,7 +3,27 @@ import type { Translatable } from '../i18n/core';
 import type { CanvasProps } from './canvas-types';
 import type { NodeToolActions } from './NodeToolsDialog';
 
-export type EditorCanvasProps = Omit<CanvasProps, 'controlsRef' | 'onZoomChange'>;
+export type EditorCanvasProps = Omit<
+  CanvasProps,
+  | 'controlsRef'
+  | 'onZoomChange'
+  | 'onContextMenu'
+  | 'onCopy'
+  | 'onCut'
+  | 'onPaste'
+  | 'onDuplicate'
+  | 'onReorder'
+>;
+interface ClipboardActions {
+  /** Each returns the plain-text outline handed to other apps, or null when nothing was copied. */
+  onCopyNode(id: string): string | null;
+  onCutNode(id: string): string | null;
+  /** Pastes `text` from another app, or this editor's last copied branch when omitted. */
+  onPasteNode(id: string, text?: string): void;
+  onDuplicateNode(id: string): void;
+  onReorder(id: string, offset: -1 | 1): void;
+  canPaste: boolean;
+}
 interface FileActions {
   filename: string;
   onFilenameChange(name: string): void;
@@ -14,6 +34,7 @@ interface FileActions {
   onDownload(): void;
   onExportMup(): void;
   onBackup(): void;
+  onExportImage(format: 'png' | 'svg'): void;
 }
 interface DriveIndicators {
   driveConfigured: boolean;
@@ -47,6 +68,7 @@ export interface EditorProps
   extends
     EditorCanvasProps,
     NodeToolActions,
+    ClipboardActions,
     FileActions,
     DriveIndicators,
     HistoryActions,

@@ -27,6 +27,7 @@ function header(overrides: Partial<Parameters<typeof EditorHeader>[0]> = {}) {
     onDownload: vi.fn(),
     onExportMup: vi.fn(),
     onBackup: vi.fn(),
+    onExportImage: vi.fn(),
     onDrive: vi.fn(),
     onSettings: vi.fn(),
     command: (action: () => void) => action,

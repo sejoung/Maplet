@@ -19,7 +19,7 @@ import { serializeMaplet } from '../adapters/maplet/codec';
 import { parseDocument, nativeFilename, mupFilename } from '../adapters/documents';
 import { restoreDraft, draftHasChanges } from '../adapters/storage/recovery';
 import { DraftStore, type Draft } from '../adapters/storage/drafts';
-import { downloadFile, readMapFile } from '../adapters/storage/files';
+import { downloadBlob, downloadFile, readMapFile } from '../adapters/storage/files';
 import { stripMapExtension } from '../domain/filename';
 import { Editor } from '../components/Editor';
 import { Dialog } from '../components/Dialog';
@@ -34,6 +34,10 @@ import { usePrimarySave } from './usePrimarySave';
 import { useEditorShortcuts } from './useEditorShortcuts';
 import { useDraftPrivacy } from './useDraftPrivacy';
 import { useDocument } from './useDocument';
+import { useNodeClipboard } from './useNodeClipboard';
+import { layoutMap } from '../engine/layout';
+import { renderSvg } from '../engine/svg-export';
+import { svgToPng } from '../adapters/storage/image';
 
 const defaultDrafts = new DraftStore();
 
@@ -102,6 +106,20 @@ export function App({
       report(reason);
     }
   }, [content, filename, markDownloaded, report]);
+
+  const clipboard = useNodeClipboard(doc, report);
+  const exportImage = async (format: 'png' | 'svg') => {
+    try {
+      const image = renderSvg(map, layoutMap(map, measureNodeText));
+      const blob =
+        format === 'svg'
+          ? new Blob([image.svg], { type: 'image/svg+xml' })
+          : await svgToPng(image.svg, image.width, image.height);
+      downloadBlob(blob, `${stripMapExtension(filename)}.${format}`);
+    } catch (reason) {
+      report(reason);
+    }
+  };
 
   const replace: typeof doc.replace = (next, ...rest) => {
     doc.replace(next, ...rest);
@@ -280,6 +298,13 @@ export function App({
             report(reason);
           }
         }}
+        onExportImage={(format) => void exportImage(format)}
+        onCopyNode={clipboard.copy}
+        onCutNode={clipboard.cut}
+        onPasteNode={clipboard.paste}
+        onDuplicateNode={clipboard.duplicate}
+        onReorder={clipboard.reorder}
+        canPaste={clipboard.canPaste}
         onBackup={() => {
           if (map.original)
             downloadFile(map.original, `${stripMapExtension(filename)}.original.mup`);

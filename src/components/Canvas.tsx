@@ -10,7 +10,7 @@ import {
 } from 'react';
 import { useEditingLayout } from './useEditingLayout';
 import { useNodeResize } from './useNodeResize';
-import { canvasKeydown } from './canvas-keyboard';
+import { canvasClipboard, canvasKeydown } from './canvas-keyboard';
 import { CanvasNodes } from './CanvasNodes';
 import type { CanvasProps } from './canvas-types';
 export type { CanvasControls, CanvasProps } from './canvas-types';
@@ -163,6 +163,13 @@ export function Canvas(props: CanvasProps) {
         gesture.current = null;
       },
       pan: () => setPanMode(true),
+      openMenu: () => {
+        const element = viewport.current?.querySelector<HTMLElement>(
+          `[data-node-id="${CSS.escape(selected)}"]`,
+        );
+        const rect = element?.getBoundingClientRect();
+        if (rect) props.onContextMenu(selected, { x: rect.left + 8, y: rect.bottom + 4 });
+      },
     });
   // A spatial canvas owns keyboard gestures; individual treeitems expose navigation to assistive tools.
   return (
@@ -174,6 +181,7 @@ export function Canvas(props: CanvasProps) {
       tabIndex={0}
       className={`canvas ${panning || panMode ? 'is-panning' : ''} ${dragPreview ? 'is-dragging' : ''}`}
       onKeyDown={keydown}
+      {...canvasClipboard(props, selected, editingId)}
       onKeyUp={(event) => {
         if (event.key === ' ') setPanMode(false);
       }}
@@ -367,6 +375,7 @@ export function Canvas(props: CanvasProps) {
           onCancelEdit={props.onCancelEdit}
           onAdd={props.onAdd}
           onToggle={props.onToggle}
+          onContextMenu={props.onContextMenu}
           layout={layout}
           onDraftChange={onDraftChange}
           resizeHandlers={resizing.handlers}

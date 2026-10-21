@@ -53,6 +53,12 @@ function setup(map = parseMup(branchSpacingSource())) {
     onToggle: vi.fn(),
     onResize: vi.fn(() => true),
     onReposition: vi.fn(() => true),
+    onContextMenu: vi.fn(),
+    onCopy: vi.fn(() => null),
+    onCut: vi.fn(() => null),
+    onPaste: vi.fn(),
+    onDuplicate: vi.fn(),
+    onReorder: vi.fn(),
   };
   const view = render(<Canvas {...props} />);
   // jsdom supplies event plumbing; deterministic font metrics and pointer capture are doubles.
