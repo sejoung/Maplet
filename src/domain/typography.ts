@@ -13,7 +13,14 @@ export function nodeTypography(style: JsonObject) {
   const fontSize = style.fontSize === 12 || style.fontSize === 20 ? style.fontSize : 15;
   const fontFamily =
     style.fontFamily === 'serif' || style.fontFamily === 'mono' ? style.fontFamily : 'sans';
-  return { textAlign, fontSize, fontFamily, lineHeight: Math.round(fontSize * 1.5) } as const;
+  return {
+    textAlign,
+    fontSize,
+    fontFamily,
+    bold: style.fontWeight === 'bold',
+    italic: style.fontStyle === 'italic',
+    lineHeight: Math.round(fontSize * 1.5),
+  } as const;
 }
 
 // Conservative glyph widths keep wrapping deterministic without browser APIs.
@@ -28,5 +35,5 @@ export function characterWidth(char: string, typography: ReturnType<typeof nodeT
           : /[A-Z]/.test(char)
             ? 0.85
             : 0.65;
-  return units * typography.fontSize;
+  return units * typography.fontSize * (typography.bold ? 1.08 : 1);
 }

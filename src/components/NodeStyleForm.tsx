@@ -3,6 +3,7 @@ import { AlignCenter, AlignLeft, AlignRight, Check } from 'lucide-react';
 import type { JsonObject } from '../domain/model';
 import { FONT_SIZES, nodeTypography } from '../domain/typography';
 import { useI18n } from '../i18n/react';
+import { NodeStyleExtras } from './NodeStyleExtras';
 
 const colors = [
   ['세이지', '#e9f1e8'],
@@ -124,6 +125,7 @@ export function NodeStyleForm({
           {t('기본 색상')}
         </button>
       </fieldset>
+      <NodeStyleExtras style={style} onChange={setStyle} />
       <div className="dialog-actions">
         <button className="button" type="button" onClick={onClose}>
           {t('취소')}

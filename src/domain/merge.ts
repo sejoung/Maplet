@@ -9,6 +9,7 @@ import {
 } from './merge-values';
 import { rebuildTree, resolveTree } from './merge-tree';
 import { mergeLayout } from './merge-layout';
+import { pruneConnections } from './connections';
 export type { MergeChoices, MergeConflict, MergeChoice } from './merge-values';
 
 const withoutTree = (node: MindNode) => {
@@ -94,7 +95,8 @@ export function mergeMaps(
     roots: [],
   };
   if (!rebuildTree(merged)) resolveTree(merged, base, local, remote, resolution);
-  return { map: merged, conflicts };
+  // Cross-links merge as one value; drop any whose ends the merged tree no longer has.
+  return { map: pruneConnections(merged), conflicts };
 }
 
 export const equalMaps = (a: MindMap, b: MindMap) => equalValue(a, b);

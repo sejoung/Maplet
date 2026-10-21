@@ -9,6 +9,7 @@ import {
   type Side,
 } from '../../domain/model';
 import { isNodePosition } from '../../domain/positions';
+import { cleanConnections } from '../../domain/connections';
 import { safeUrl } from '../../domain/commands';
 import { AppError, formatCount } from '../../domain/errors';
 import { isReservedId } from '../../domain/ids';
@@ -80,8 +81,8 @@ export function mupFromJson(raw: unknown, source: string): MindMap {
     const attachment = obj(attr.attachment);
     if (attachment.contentType && attachment.contentType !== 'text/plain')
       warnings.add('일부 첨부 콘텐츠는 화면에 표시하지 않고 원본 그대로 보존합니다.');
-    if (value.links || value.resources || value.icon || attr.icon)
-      warnings.add('교차 연결·아이콘·리소스는 원본에 보존되며 화면 표현이 제한될 수 있습니다.');
+    if (value.resources || value.icon || attr.icon)
+      warnings.add('아이콘·리소스는 원본에 보존되며 화면 표현이 제한될 수 있습니다.');
     const links = safeLinks(attr);
     if (typeof attr.hyperlink === 'string' && !links.length) warnings.add(UNSAFE_LINK_WARNING);
     const side =
@@ -139,9 +140,8 @@ export function mupFromJson(raw: unknown, source: string): MindMap {
       .map(([rank, child]) => visit(child, null, rank, 'right', 1));
     delete extensions.ideas;
   } else roots = [visit(raw, null, '1', 'right', 1)];
-  if (raw.links || raw.resources)
-    warnings.add('교차 연결·리소스는 원본에 보존되며 화면 표현이 제한될 수 있습니다.');
-  return {
+  if (raw.resources) warnings.add('리소스는 원본에 보존되며 화면 표현이 제한될 수 있습니다.');
+  const map: MindMap = {
     formatVersion: version,
     roots,
     nodes,
@@ -149,6 +149,35 @@ export function mupFromJson(raw: unknown, source: string): MindMap {
     original: source,
     warnings: [...warnings],
   };
+  // Version 3 keeps cross-links beside the roots; older versions on the root idea.
+  if (Array.isArray(raw.links)) {
+    const links = raw.links.filter(object).map((link) => ({
+      from: String(link.ideaIdFrom),
+      to: String(link.ideaIdTo),
+    }));
+    const connections = cleanConnections(map, links);
+    if (connections.length < raw.links.length)
+      warnings.add('연결할 노드가 없는 교차 연결은 원본에만 보존합니다.');
+    map.connections = connections;
+    map.warnings = [...warnings];
+  }
+  return map;
+}
+
+/** Cross-links in MindMup form, keeping the attributes of links that still exist. */
+function mupLinks(map: MindMap, previous: unknown): Json[] {
+  const old = Array.isArray(previous) ? previous.filter(object) : [];
+  return (map.connections ?? []).map(({ from, to }) => {
+    const ideaIdFrom = map.nodes[from].originalId;
+    const ideaIdTo = map.nodes[to].originalId;
+    return (
+      old.find(
+        (link) =>
+          String(link.ideaIdFrom) === String(ideaIdFrom) &&
+          String(link.ideaIdTo) === String(ideaIdTo),
+      ) ?? { ideaIdFrom, ideaIdTo }
+    );
+  });
 }
 
 export function serializeMup(map: MindMap): string {
@@ -214,6 +243,11 @@ export function serializeMup(map: MindMap): string {
           ideas: Object.fromEntries(map.roots.map((id) => [map.nodes[id].rank, visit(id)])),
         }
       : visit(map.roots[0]);
+  if (map.connections) {
+    const links = mupLinks(map, raw.links);
+    if (links.length) raw.links = links;
+    else delete raw.links;
+  }
   if (map.formatVersion === 2) raw.formatVersion = 2;
   return JSON.stringify(raw, null, 2) + '\n';
 }

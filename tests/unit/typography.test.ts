@@ -13,6 +13,8 @@ describe('node typography and layout', () => {
       textAlign: 'left',
       fontSize: 15,
       fontFamily: 'sans',
+      bold: false,
+      italic: false,
       lineHeight: 23,
     });
     expect(layoutMap(map)).toEqual(layoutMap(createMap()));

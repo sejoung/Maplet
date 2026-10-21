@@ -53,6 +53,7 @@ function setup() {
     onReparent: vi.fn(() => true),
     onContextMenu: vi.fn(),
     onCanvasMenu: vi.fn(),
+    onToggleTask: vi.fn(),
     onCopy: vi.fn(() => null),
     onCut: vi.fn(() => null),
     onPaste: vi.fn(),

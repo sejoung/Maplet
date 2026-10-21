@@ -1,4 +1,5 @@
-import { useId } from 'react';
+import { useId, useState } from 'react';
+import { readTheme, saveTheme, type Theme } from './theme';
 import { useI18n } from '../i18n/react';
 import { Dialog } from './Dialog';
 import { LanguageSwitcher } from './LanguageSwitcher';
@@ -13,6 +14,8 @@ export function SettingsDialog({
   const { t } = useI18n();
   const languageId = useId();
   const descriptionId = useId();
+  const themeId = useId();
+  const [theme, setTheme] = useState(readTheme);
   return (
     <Dialog title={t('설정')} onClose={onClose}>
       <label htmlFor={languageId}>{t('언어')}</label>
@@ -20,6 +23,20 @@ export function SettingsDialog({
       <p className="muted settings-hint" id={descriptionId}>
         {t('변경 즉시 적용되며 다음 방문에도 유지됩니다.')}
       </p>
+      <label htmlFor={themeId}>{t('화면 테마')}</label>
+      <select
+        id={themeId}
+        value={theme}
+        onChange={(event) => {
+          const next = event.target.value as Theme;
+          setTheme(next);
+          saveTheme(next);
+        }}
+      >
+        <option value="system">{t('시스템 설정 따르기')}</option>
+        <option value="light">{t('밝게')}</option>
+        <option value="dark">{t('어둡게')}</option>
+      </select>
       {draftPrivacy && (
         <div className="draft-privacy">
           <label>

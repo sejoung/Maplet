@@ -2,6 +2,7 @@ import { useI18n } from '../i18n/react';
 import type { RefObject } from 'react';
 import {
   CircleHelp,
+  Eye,
   Focus,
   Link2,
   MessageSquare,
@@ -20,7 +21,7 @@ import type { MindMap } from '../domain/model';
 import { canDeleteNodes } from '../domain/selection';
 import { ToolbarMenu } from './ToolbarMenu';
 import type { CanvasControls } from './canvas-types';
-import { NodeActionItems, type NodeActionGroups } from './node-actions';
+import { NodeActionItems, type NodeAction, type NodeActionGroups } from './node-actions';
 import type { NodeTool } from './NodeToolsDialog';
 
 export function EditorToolbar({
@@ -37,6 +38,8 @@ export function EditorToolbar({
   onHelp,
   onArrange,
   openTool,
+  onFind,
+  viewActions,
   command,
   controls,
   zoom,
@@ -54,6 +57,8 @@ export function EditorToolbar({
   onHelp(): void;
   onArrange(): void;
   openTool(tool: NodeTool): void;
+  onFind(): void;
+  viewActions: NodeAction[][];
   command(action: () => void): () => void;
   controls: RefObject<CanvasControls | null>;
   zoom: number;
@@ -105,7 +110,13 @@ export function EditorToolbar({
         </button>
         <ToolbarMenu label={t('노드 작업')} icon={<SquarePen size={18} />} className="node-menu">
           <NodeActionItems
-            groups={[actions.create, actions.clipboard, actions.arrange, actions.remove]}
+            groups={[
+              actions.create,
+              actions.clipboard,
+              actions.arrange,
+              actions.view,
+              actions.remove,
+            ]}
             wrap={command}
           />
         </ToolbarMenu>
@@ -138,7 +149,7 @@ export function EditorToolbar({
         <button
           className="tool-button desktop-tool"
           aria-label={t('찾기')}
-          onClick={command(() => openTool('search'))}
+          onClick={command(onFind)}
         >
           <Search size={16} />
           <span>{t('찾기')}</span>
@@ -160,7 +171,7 @@ export function EditorToolbar({
             <Palette size={16} />
             {t('서식')}
           </button>
-          <button onClick={command(() => openTool('search'))}>
+          <button onClick={command(onFind)}>
             <Search size={16} />
             {t('찾기')}
           </button>
@@ -169,6 +180,9 @@ export function EditorToolbar({
             <CircleHelp size={16} />
             {t('단축키 도움말')}
           </button>
+        </ToolbarMenu>
+        <ToolbarMenu label={t('보기')} icon={<Eye size={18} />} className="view-menu">
+          <NodeActionItems groups={viewActions} wrap={command} />
         </ToolbarMenu>
         <button
           className="tool-button auto-layout-button"

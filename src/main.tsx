@@ -5,8 +5,10 @@ import './styles.css';
 import { getLanguage, initializeLanguage } from './i18n/locale';
 import { translate } from './i18n/core';
 import { clearDriveSession } from './adapters/drive/session';
+import { applyTheme, readTheme } from './components/theme';
 
 initializeLanguage();
+applyTheme(readTheme());
 // Migration: older releases stored Drive credentials; none are ever restored.
 clearDriveSession();
 

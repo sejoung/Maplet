@@ -1,25 +1,27 @@
 import { useI18n } from '../i18n/react';
-import { useMemo, useState } from 'react';
-import { Search } from 'lucide-react';
+import { useState } from 'react';
 import type { MindMap, MindNode } from '../domain/model';
 import { isDescendant, safeUrl } from '../domain/commands';
 import { Dialog } from './Dialog';
 import { NodeStyleForm } from './NodeStyleForm';
+import { ConnectionsForm } from './ConnectionsForm';
 
-export type NodeTool = 'notes' | 'link' | 'style' | 'move' | 'search';
+export type NodeTool = 'notes' | 'link' | 'style' | 'move' | 'connections';
 export interface NodeToolActions {
   onUpdate(
     id: string,
     patch: Partial<Pick<MindNode, 'notes' | 'links' | 'style' | 'side' | 'collapsed'>>,
   ): boolean;
   onMove(id: string, parent: string): boolean;
+  onConnect(from: string, to: string): boolean;
+  onDisconnect(from: string, to: string): boolean;
 }
 const titles: Record<NodeTool, string> = {
   notes: '메모',
   link: '링크',
   style: '노드 서식',
   move: '노드 이동',
-  search: '찾기',
+  connections: '연결선',
 };
 
 export function NodeToolsDialog({
@@ -29,7 +31,8 @@ export function NodeToolsDialog({
   selection = [selected],
   onUpdate,
   onMove,
-  onSelect,
+  onConnect,
+  onDisconnect,
   onClose,
 }: NodeToolActions & {
   tool: NodeTool;
@@ -37,7 +40,6 @@ export function NodeToolsDialog({
   selected: string;
   /** Style and move apply to every selected node; notes and links to `selected` only. */
   selection?: string[];
-  onSelect(id: string): void;
   onClose(): void;
 }) {
   const { t } = useI18n();
@@ -54,25 +56,14 @@ export function NodeToolsDialog({
       ? node.parentId!
       : (parents[0]?.id ?? ''),
   );
-  const [query, setQuery] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const matches = useMemo(() => {
-    const term = query.trim().toLocaleLowerCase();
-    return term
-      ? Object.values(map.nodes).filter((candidate) =>
-          candidate.title.toLocaleLowerCase().includes(term),
-        )
-      : null;
-  }, [map, query]);
   return (
     <Dialog title={t(titles[tool])} onClose={onClose}>
-      {tool !== 'search' && (
-        <p className="tool-selection" title={node.title}>
-          {group
-            ? t('{title} 외 {count}개', { title: node.title, count: selection.length - 1 })
-            : node.title}
-        </p>
-      )}
+      <p className="tool-selection" title={node.title}>
+        {group
+          ? t('{title} 외 {count}개', { title: node.title, count: selection.length - 1 })
+          : node.title}
+      </p>
       {error && (
         <p className="form-error" role="alert">
           {t(error)}
@@ -183,39 +174,13 @@ export function NodeToolsDialog({
           </div>
         </form>
       )}
-      {tool === 'search' && (
-        <>
-          <label htmlFor="node-search">{t('노드 검색')}</label>
-          <div className="search-field">
-            <Search size={17} />
-            <input
-              id="node-search"
-              data-autofocus
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder={t('검색어 입력')}
-            />
-          </div>
-          <div className="search-results" aria-live="polite">
-            {matches ? (
-              matches.map((candidate) => (
-                <button
-                  className="search-result"
-                  key={candidate.id}
-                  onClick={() => {
-                    onSelect(candidate.id);
-                    onClose();
-                  }}
-                >
-                  {candidate.title}
-                </button>
-              ))
-            ) : (
-              <p className="muted">{t('제목으로 노드를 검색합니다.')}</p>
-            )}
-            {matches?.length === 0 && <p className="muted">{t('검색 결과가 없습니다.')}</p>}
-          </div>
-        </>
+      {tool === 'connections' && (
+        <ConnectionsForm
+          map={map}
+          id={selected}
+          onConnect={onConnect}
+          onDisconnect={onDisconnect}
+        />
       )}
     </Dialog>
   );

@@ -1,22 +1,17 @@
 import { useI18n } from '../i18n/react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { FolderOpen, X } from 'lucide-react';
 import { EditorHeader } from './EditorHeader';
 import { EditorToolbar } from './EditorToolbar';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { SettingsDialog } from './SettingsDialog';
-import { useAutoArrange } from './useAutoArrange';
 import { Canvas, type CanvasControls } from './Canvas';
 import { NodeToolsDialog, type NodeTool } from './NodeToolsDialog';
 import { NodeContextMenu } from './NodeContextMenu';
-import { canvasActionGroups, nodeActionGroups } from './node-actions';
-import { visibleSelection } from '../domain/selection';
+import { FindBar } from './FindBar';
+import { useEditorView } from './useEditorView';
 import type { EditorProps } from './editor-types';
 export type { EditorProps } from './editor-types';
-
-const editable = (target: EventTarget | null) =>
-  target instanceof Element &&
-  Boolean(target.closest('input,textarea,select,[contenteditable=true]'));
 
 export function Editor(props: EditorProps) {
   const { t } = useI18n();
@@ -30,6 +25,9 @@ export function Editor(props: EditorProps) {
   const [menu, setMenu] = useState<{ x: number; y: number; canvas?: boolean } | null>(null);
   const closeSettings = useCallback(() => setSettingsOpen(false), []);
   const closeTool = useCallback(() => setTool(null), []);
+  const view = useEditorView(props, controls, setTool);
+  const { actions, find } = view;
+  const viewActions = view.canvasActions();
   const command = (action: () => void) => () => {
     document
       .querySelectorAll<HTMLDetailsElement>('.toolbar-menu[open]')
@@ -47,64 +45,10 @@ export function Editor(props: EditorProps) {
     },
     [selected],
   );
-  // Menu commands have no clipboard event, so they also offer the text to other apps.
-  const share = (text: string | null) => {
-    if (text) void navigator.clipboard?.writeText(text).catch(() => {});
+  const menuGroups = (at: { x: number; y: number }) => {
+    const groups = view.canvasActions(at);
+    return [groups.history, groups.edit, groups.levels, groups.display, groups.layout];
   };
-  const actions = nodeActionGroups(
-    map,
-    selected,
-    {
-      onAdd: props.onAdd,
-      onEdit: (id) => props.onEdit(id),
-      onDelete: props.onDelete,
-      onToggle: props.onToggle,
-      onSide: (id, side) => props.onUpdate(id, { side }),
-      onCopy: (id) => share(props.onCopyNode(id)),
-      onCut: (id) => share(props.onCutNode(id)),
-      onPaste: (id) => props.onPasteNode(id),
-      onDuplicate: props.onDuplicateNode,
-      onReorder: props.onReorder,
-      openTool: setTool,
-      canPaste: props.canPaste,
-    },
-    t,
-    props.selection,
-  );
-  const arrangeMap = useAutoArrange(map, props.onAutoLayout, controls);
-  const canvasActions = canvasActionGroups(
-    {
-      onUndo: props.onUndo,
-      onRedo: props.onRedo,
-      canUndo: props.canUndo,
-      canRedo: props.canRedo,
-      onPaste: () => props.onPasteNode(selected),
-      canPaste: props.canPaste,
-      onSelectAll: () =>
-        props.onSelectNodes(visibleSelection(map, Object.keys(map.nodes)), selected),
-      onSearch: () => setTool('search'),
-      onArrange: arrangeMap,
-      onFit: () => controls.current?.fit(),
-      onZoomIn: () => controls.current?.zoomIn(),
-      onZoomOut: () => controls.current?.zoomOut(),
-    },
-    t,
-  );
-  // Canvas apps zoom the document, not the browser page, with Ctrl/⌘ +, − and 0.
-  useEffect(() => {
-    const zoomKeys = (event: KeyboardEvent) => {
-      if (!(event.ctrlKey || event.metaKey) || event.altKey || editable(event.target)) return;
-      const view = controls.current;
-      const run = { '=': view?.zoomIn, '+': view?.zoomIn, '-': view?.zoomOut, '0': view?.fit }[
-        event.key
-      ];
-      if (!run) return;
-      event.preventDefault();
-      run();
-    };
-    window.addEventListener('keydown', zoomKeys);
-    return () => window.removeEventListener('keydown', zoomKeys);
-  }, []);
   return (
     <div
       className="editor-shell"
@@ -157,6 +101,8 @@ export function Editor(props: EditorProps) {
         onExportMup={props.onExportMup}
         onBackup={props.onBackup}
         onExportImage={props.onExportImage}
+        onExportOutline={props.onExportOutline}
+        onPrint={props.onPrint}
         onDrive={props.onDrive}
         onSettings={() => setSettingsOpen(true)}
         command={command}
@@ -173,8 +119,10 @@ export function Editor(props: EditorProps) {
         onAdd={props.onAdd}
         onDelete={props.onDelete}
         onHelp={props.onHelp}
-        onArrange={command(arrangeMap)}
+        onArrange={command(view.arrangeMap)}
         openTool={setTool}
+        onFind={find.show}
+        viewActions={[viewActions.levels, viewActions.display]}
         command={command}
         controls={controls}
         zoom={zoom}
@@ -204,6 +152,25 @@ export function Editor(props: EditorProps) {
         </div>
       )}
       <main className="workspace" id="workspace" tabIndex={-1}>
+        {view.focus && (
+          <div className="focus-banner" role="status">
+            <span>
+              {t('‘{title}’ 가지만 보는 중', { title: map.nodes[view.focus].title.split('\n')[0] })}
+            </span>
+            <button type="button" className="text-button" onClick={view.exitFocus}>
+              {t('전체 맵 보기')}
+            </button>
+          </div>
+        )}
+        {find.open && (
+          <FindBar
+            find={find}
+            onClose={() => {
+              find.close();
+              focusNode(selected);
+            }}
+          />
+        )}
         <Canvas
           map={map}
           selected={selected}
@@ -222,6 +189,10 @@ export function Editor(props: EditorProps) {
           onResize={props.onResize}
           onReposition={props.onReposition}
           onReparent={props.onReparent}
+          onToggleTask={props.onToggleTask}
+          focusId={view.focus}
+          matches={find.open ? find.matches : undefined}
+          minimap={view.minimap}
           onContextMenu={(id, at) => {
             // Right-clicking inside a group keeps it, so menu commands act on every node.
             if (!props.selection.includes(id)) props.onSelect(id);
@@ -270,10 +241,8 @@ export function Editor(props: EditorProps) {
           selection={props.selection}
           onUpdate={props.onUpdate}
           onMove={props.onMove}
-          onSelect={(id) => {
-            props.onSelect(id);
-            focusNode(id);
-          }}
+          onConnect={props.onConnect}
+          onDisconnect={props.onDisconnect}
           onClose={closeTool}
         />
       )}
@@ -281,8 +250,15 @@ export function Editor(props: EditorProps) {
         <NodeContextMenu
           groups={
             menu.canvas
-              ? canvasActions
-              : [actions.create, actions.tools, actions.clipboard, actions.arrange, actions.remove]
+              ? menuGroups(menu)
+              : [
+                  actions.create,
+                  actions.tools,
+                  actions.clipboard,
+                  actions.arrange,
+                  actions.view,
+                  actions.remove,
+                ]
           }
           label={menu.canvas ? '캔버스 메뉴' : '노드 메뉴'}
           at={menu}
@@ -292,7 +268,7 @@ export function Editor(props: EditorProps) {
       {dragging && (
         <div className="file-drop-overlay">
           <FolderOpen size={36} />
-          <p>{t('.maplet 또는 .mup 파일을 놓아 열기')}</p>
+          <p>{t('.maplet·.mup·Markdown·OPML 파일을 놓아 열기')}</p>
         </div>
       )}
     </div>

@@ -2,6 +2,7 @@ import { useI18n } from '../i18n/react';
 import {
   useCallback,
   useEffect,
+  useMemo,
   useLayoutEffect,
   useImperativeHandle,
   useRef,
@@ -18,14 +19,22 @@ import { BranchRegions } from './BranchRegions';
 import { clampZoom } from '../engine/fit-layout';
 import { useCanvasPointer } from './useCanvasPointer';
 import { useViewportFit } from './useViewportFit';
+import { focusLayout } from '../engine/focus';
+import { CanvasLines } from './CanvasLines';
+import { Minimap } from './Minimap';
 
 export function Canvas(props: CanvasProps) {
   const { t } = useI18n();
   const { map, selected, documentKey, onSelect, editingId, controlsRef, onZoomChange } = props;
-  const { layout: baseLayout, onDraftChange } = useEditingLayout(map, editingId, documentKey);
+  const { layout: fullLayout, onDraftChange } = useEditingLayout(map, editingId, documentKey);
+  const focusId = props.focusId && Object.hasOwn(map.nodes, props.focusId) ? props.focusId : null;
   const viewport = useRef<HTMLDivElement>(null);
   const [view, setView] = useState({ x: 0, y: 0, zoom: 0.85 });
-  const resizing = useNodeResize(map, baseLayout, view.zoom, props.onResize);
+  const resizing = useNodeResize(map, fullLayout, view.zoom, props.onResize);
+  const baseLayout = useMemo(
+    () => (focusId ? focusLayout(map, resizing.layout, focusId) : resizing.layout),
+    [map, resizing.layout, focusId],
+  );
   const [panMode, setPanMode] = useState(false);
   const viewRef = useRef(view);
   useLayoutEffect(() => {
@@ -33,7 +42,7 @@ export function Canvas(props: CanvasProps) {
   }, [view]);
   const pointer = useCanvasPointer({
     ...props,
-    layout: resizing.layout,
+    layout: baseLayout,
     view,
     viewRef,
     setView,
@@ -42,12 +51,19 @@ export function Canvas(props: CanvasProps) {
     resizing: resizing.active,
   });
   const { dragPreview, isDragging } = pointer;
-  const layout = dragPreview?.layout ?? resizing.layout;
+  const layout = dragPreview?.layout ?? baseLayout;
   const layoutRef = useRef(layout);
   useLayoutEffect(() => {
     layoutRef.current = layout;
   }, [layout]);
   const { size, fit } = useViewportFit(viewport, layoutRef, documentKey, setView);
+  // Entering or leaving a focused branch frames what is now shown.
+  const framedFocus = useRef(focusId);
+  useLayoutEffect(() => {
+    if (framedFocus.current === focusId) return;
+    framedFocus.current = focusId;
+    fit();
+  }, [focusId, fit]);
   useEffect(() => {
     if (isDragging()) return;
     const node = layoutRef.current.nodes.find((n) => n.id === selected);
@@ -84,6 +100,14 @@ export function Canvas(props: CanvasProps) {
       fit: () => fit(),
       getView: () => viewRef.current,
       restoreView: setView,
+      toMap: (clientX: number, clientY: number) => {
+        const rect = viewport.current!.getBoundingClientRect();
+        const current = viewRef.current;
+        return {
+          x: (clientX - rect.left - current.x) / current.zoom,
+          y: (clientY - rect.top - current.y) / current.zoom,
+        };
+      },
     }),
     [zoomAt, fit],
   );
@@ -112,6 +136,14 @@ export function Canvas(props: CanvasProps) {
     element.addEventListener('wheel', wheel, { passive: false });
     return () => element.removeEventListener('wheel', wheel);
   }, [zoomAt, resizing.active, isDragging]);
+  const target = dragPreview?.target;
+  const beside =
+    target && target.place !== 'child' && layout.nodes.find((n) => n.id === target.node);
+  const dropLine = beside && {
+    x: beside.x,
+    y: target.place === 'before' ? beside.y - 9 : beside.y + beside.height + 6,
+    width: beside.width,
+  };
   const keydown = (event: KeyboardEvent) =>
     canvasKeydown(event, props, viewport, {
       isDragging,
@@ -168,19 +200,14 @@ export function Canvas(props: CanvasProps) {
         }}
       >
         <BranchRegions regions={dragPreview?.regions} />
-        <svg className="connections" width={layout.width} height={layout.height} aria-hidden="true">
-          {layout.edges.map((edge) => (
-            <path
-              key={edge.to}
-              data-edge-to={edge.to}
-              data-edge-from={edge.from}
-              d={edge.path}
-              stroke="#c4ccd0"
-              fill="none"
-              strokeWidth="2"
-            />
-          ))}
-        </svg>
+        <CanvasLines map={map} layout={layout} />
+        {dropLine && (
+          <div
+            className="drop-line"
+            data-drop-label={t('여기에 넣기')}
+            style={{ left: dropLine.x, top: dropLine.y, width: dropLine.width }}
+          />
+        )}
         <CanvasNodes
           map={map}
           selected={selected}
@@ -199,7 +226,9 @@ export function Canvas(props: CanvasProps) {
           onDraftChange={onDraftChange}
           resizeHandlers={resizing.handlers}
           dragging={dragPreview?.ids}
-          dropTarget={dragPreview?.target?.id}
+          dropTarget={dragPreview?.target}
+          matches={props.matches}
+          onToggleTask={props.onToggleTask}
           viewport={viewport}
           onKeyDown={keydown}
         />
@@ -212,6 +241,20 @@ export function Canvas(props: CanvasProps) {
                 '노드에 붙여 놓으면 하위로 이동 · 점선은 놓을 때 비켜날 자리 · Alt(⌥): 위치만 이동',
               )}
         </p>
+      )}
+      {props.minimap && !dragPreview && (
+        <Minimap
+          layout={layout}
+          view={view}
+          size={size}
+          onCenter={(point) =>
+            setView((current) => ({
+              ...current,
+              x: size.width / 2 - point.x * current.zoom,
+              y: size.height / 2 - point.y * current.zoom,
+            }))
+          }
+        />
       )}
       {pointer.marquee && (
         <div

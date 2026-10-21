@@ -9,9 +9,9 @@
   cursor: pointer;
   min-height: 36px;
   padding-right: 11px;
-  border: 1px solid #d6deda;
+  border: 1px solid var(--border);
   border-radius: 6px;
-  background: white;
+  background: var(--surface);
 }
 .drive-control.has-status .drive-button {
   min-height: 34px;
@@ -28,7 +28,7 @@
   border-radius: 6px;
 }
 .drive-control.has-status:hover {
-  border-color: #b9c6bf;
+  border-color: var(--border-accent);
   box-shadow: 0 1px 2px rgb(0 0 0 / 6%);
 }
 .drive-control.has-status .drive-button:focus-visible {
@@ -42,15 +42,15 @@
   cursor: default;
 }
 .drive-control.has-status.synced {
-  border-color: #a6c9b8;
-  background: #eff7f3;
+  border-color: var(--border-accent);
+  background: var(--accent-soft);
 }
 .drive-control.needs-attention {
-  border-color: #dfb1b5;
-  background: #fbf1f1;
+  border-color: var(--danger-border);
+  background: var(--danger-soft);
 }
 .drive-control.needs-attention .drive-button {
-  color: #97333b;
+  color: var(--danger);
 }
 .drive-sync-state {
   font-size: 12px;
@@ -62,11 +62,11 @@
   color: var(--accent);
 }
 .drive-sync-state.pending {
-  color: #886523;
+  color: var(--warning);
 }
 .drive-sync-state.error,
 .drive-sync-state.reconnect {
-  color: #97333b;
+  color: var(--danger);
   font-weight: 600;
 }
 .drive-retry {
@@ -74,16 +74,16 @@
   z-index: 1;
   margin-left: 10px;
   padding: 3px 8px;
-  border: 1px solid #c98a90;
+  border: 1px solid var(--danger-border);
   border-radius: 4px;
-  background: white;
-  color: #97333b;
+  background: var(--surface);
+  color: var(--danger);
   font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
 }
 .drive-retry:hover {
-  background: #f6e3e4;
+  background: var(--danger-soft);
 }
 .sync-spinner {
   animation: drive-spin 1s linear infinite;

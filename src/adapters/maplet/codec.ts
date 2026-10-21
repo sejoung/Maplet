@@ -12,6 +12,7 @@ import { AppError, formatCount } from '../../domain/errors';
 import { isNodeId } from '../../domain/ids';
 import { isJsonObject, parseFiniteJson } from '../../domain/json';
 import { hasDuplicateRanks, renumberRanks } from '../../domain/ranks';
+import { cleanConnections } from '../../domain/connections';
 import { assertSize, MAX_MAPLET_BYTES, utf8Length } from '../limits';
 
 export { MAX_MAPLET_BYTES } from '../limits';
@@ -29,7 +30,7 @@ const nodeFields = [
   'notes',
   'links',
 ];
-const documentFields = ['format', 'version', 'roots', 'nodes'];
+const documentFields = ['format', 'version', 'roots', 'nodes', 'connections'];
 
 const object = isJsonObject;
 const obj = (value: unknown): JsonObject => (object(value) ? value : {});
@@ -182,6 +183,23 @@ export function mapletFromJson(raw: unknown): MindMap {
   if (unsafeLinks && !map.warnings.includes(UNSAFE_LINK_WARNING))
     map.warnings.push(UNSAFE_LINK_WARNING);
   validateTree(map);
+  if (raw.connections !== undefined) {
+    if (
+      !Array.isArray(raw.connections) ||
+      !raw.connections.every(
+        (link) => object(link) && validId(link.from) && validId(link.to) && link.from !== link.to,
+      )
+    )
+      invalid();
+    // Links to missing nodes or repeats are dropped rather than rejecting the document.
+    map.connections = cleanConnections(
+      map,
+      (raw.connections as JsonObject[]).map((link) => ({
+        from: link.from as string,
+        to: link.to as string,
+      })),
+    );
+  }
   return map;
 }
 
@@ -212,6 +230,8 @@ export function serializeMaplet(map: MindMap): string {
       ]),
     ),
   };
+  if (map.connections?.length)
+    raw.connections = map.connections.map(({ from, to }) => ({ from, to }));
   if (map.nativeExtensions?.compatibility !== undefined) raw.compatibility = previous;
   const legacy = obj(previous.mindmup);
   const preserveLegacy =

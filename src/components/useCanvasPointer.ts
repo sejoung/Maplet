@@ -292,7 +292,14 @@ export function useCanvasPointer(options: Options) {
     cancelDrag();
     if (!drag.moved) return;
     suppressNextClick();
-    if (drag.target) options.onReparent(drag.ids, drag.target.id, drag.target.side);
+    const target = drag.target;
+    if (target)
+      options.onReparent(
+        drag.ids,
+        target.id,
+        target.side,
+        target.place === 'child' ? undefined : { id: target.node, after: target.place === 'after' },
+      );
     else if (
       drag.proposal &&
       (drag.delta.x !== 0 || drag.delta.y !== 0 || drag.proposal.displacedIds.length > 0)

@@ -6,8 +6,11 @@ import {
   CloudUpload,
   Copy,
   FilePlus2,
+  FileText,
   FolderOpen,
   Image,
+  ListTree,
+  Printer,
   Settings,
 } from 'lucide-react';
 import { ToolbarMenu } from './ToolbarMenu';
@@ -37,6 +40,8 @@ interface HeaderProps {
   onExportMup(): void;
   onBackup(): void;
   onExportImage(format: 'png' | 'svg'): void;
+  onExportOutline(format: 'md' | 'opml'): void;
+  onPrint(): void;
   onDrive(): void;
   onSettings(): void;
   command(action: () => void): () => void;
@@ -104,6 +109,18 @@ export function EditorHeader(props: HeaderProps) {
           <Image size={17} />
           {t('SVG 이미지 다운로드')}
         </button>
+        <button onClick={command(() => props.onExportOutline('md'))}>
+          <FileText size={17} />
+          {t('Markdown 다운로드 (.md)')}
+        </button>
+        <button onClick={command(() => props.onExportOutline('opml'))}>
+          <ListTree size={17} />
+          {t('OPML 다운로드 (.opml)')}
+        </button>
+        <button onClick={command(props.onPrint)}>
+          <Printer size={17} />
+          {t('인쇄 / PDF로 저장')}
+        </button>
         {props.original && (
           <button onClick={command(props.onBackup)}>
             <ArrowDownToLine size={17} />
@@ -160,7 +177,7 @@ export function EditorHeader(props: HeaderProps) {
       <input
         ref={input}
         type="file"
-        accept=".maplet,.mup,.json,application/json"
+        accept=".maplet,.mup,.json,.md,.markdown,.opml,.txt,application/json"
         aria-label={t('마인드맵 파일 열기')}
         className="visually-hidden"
         tabIndex={-1}

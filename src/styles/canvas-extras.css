@@ -1,0 +1,164 @@
+/* Chosen pastel backgrounds keep dark text in every theme. */
+.mind-node.custom-bg,
+.mind-node.custom-bg .inline-node-editor {
+  color: #25352d;
+}
+.connections .edge {
+  stroke: var(--edge);
+}
+.connections .cross-link {
+  stroke: var(--link);
+}
+.connections .cross-link-head {
+  fill: var(--link);
+}
+.node-markers {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 6px;
+  align-self: center;
+}
+.node-task {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 1.5px solid var(--accent-2);
+  border-radius: 4px;
+  background: var(--surface);
+  color: #fff;
+}
+.node-task[aria-checked='true'] {
+  background: var(--accent-2);
+}
+.node-task:hover:not(:disabled) {
+  background-color: var(--accent-soft);
+}
+.node-task[aria-checked='true']:hover {
+  background: var(--accent-strong);
+}
+.mind-node.task-done .node-text > span {
+  text-decoration: line-through;
+  opacity: 0.7;
+}
+.node-icon {
+  display: inline-block;
+  text-align: center;
+  line-height: 1;
+}
+.mind-node.search-match {
+  box-shadow: 0 0 0 3px #e2b96599;
+}
+.mind-node.search-match.selected {
+  box-shadow: 0 0 0 4px #e2b965;
+}
+.mind-node.drop-sibling {
+  z-index: 2;
+}
+.drop-line {
+  position: absolute;
+  z-index: 4;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--accent-fill);
+  pointer-events: none;
+}
+.drop-line::after {
+  content: attr(data-drop-label);
+  position: absolute;
+  right: 0;
+  bottom: 6px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--accent-fill);
+  color: #fff;
+  font:
+    600 12px/18px system-ui,
+    sans-serif;
+  white-space: nowrap;
+}
+.find-bar {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: min(380px, calc(100% - 32px));
+  padding: 4px 6px 4px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: 0 6px 20px #26362b1f;
+  color: var(--text-soft);
+}
+.find-bar input {
+  flex: 1;
+  padding: 6px 8px;
+  border: 0;
+  background: transparent;
+}
+.find-bar input::-webkit-search-cancel-button {
+  display: none;
+}
+.find-bar input:focus-visible {
+  outline: none;
+}
+.find-bar:focus-within {
+  border-color: var(--accent);
+}
+.find-count {
+  min-width: 52px;
+  font-size: 12px;
+  text-align: right;
+  white-space: nowrap;
+}
+.focus-banner {
+  position: absolute;
+  top: 12px;
+  left: 16px;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: calc(100% - 32px);
+  padding: 6px 8px 6px 14px;
+  border: 1px solid var(--border-accent);
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--text);
+  font-size: 13px;
+}
+.focus-banner span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.minimap {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  z-index: 5;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--canvas-translucent);
+  box-shadow: 0 4px 14px #26362b1a;
+  cursor: pointer;
+  touch-action: none;
+}
+.minimap rect {
+  fill: var(--border-strong);
+}
+.minimap .minimap-view {
+  fill: #39776014;
+  stroke: var(--accent-2);
+  stroke-width: 1.5;
+}
+@media (max-width: 640px) {
+  .minimap {
+    display: none;
+  }
+}

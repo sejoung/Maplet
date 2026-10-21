@@ -59,17 +59,26 @@ test('commits inline typing before keyboard save and protects Korean composition
   expect(JSON.parse(Buffer.concat(chunks).toString()).nodes.root.title).toBe('한글 입력');
 });
 
-test('finds a node without a persistent outline', async ({ page }) => {
+test('finds nodes with a find bar instead of a persistent outline', async ({ page }) => {
   await page.goto('/');
   await page.locator('input[type=file]').setInputFiles('tests/fixtures/v2-rich.mup');
   await tool(page, '찾기');
-  await page.getByRole('textbox', { name: '노드 검색' }).fill('작은 단계');
-  await page.getByRole('button', { name: '작은 단계', exact: true }).click();
+  const field = page.getByRole('searchbox', { name: '노드 검색' });
+  await expect(field).toBeFocused();
+  await field.fill('작은 단계');
+  await expect(page.locator('.find-count')).toHaveText('0/1');
+  // Stepping to a match inside a collapsed branch reveals and highlights it.
+  await field.press('Enter');
+  await expect(page.locator('.search-match')).toHaveCount(1);
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page.getByRole('treeitem', { name: '작은 단계', exact: true })).toHaveAttribute(
     'aria-selected',
     'true',
   );
+  await expect(page.locator('.find-count')).toHaveText('1/1');
+  await field.press('Escape');
+  await expect(page.getByRole('search')).toHaveCount(0);
+  await expect(page.locator('.search-match')).toHaveCount(0);
   await expect(page.getByRole('complementary')).toHaveCount(0);
 });
 

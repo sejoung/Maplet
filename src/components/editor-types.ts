@@ -1,6 +1,7 @@
 import type { DriveSyncStatus } from '../application/drive-sync';
 import type { Translatable } from '../i18n/core';
 import type { CanvasProps } from './canvas-types';
+import type { NodePosition } from '../domain/model';
 import type { NodeToolActions } from './NodeToolsDialog';
 
 export type EditorCanvasProps = Omit<
@@ -14,6 +15,9 @@ export type EditorCanvasProps = Omit<
   | 'onPaste'
   | 'onDuplicate'
   | 'onReorder'
+  | 'focusId'
+  | 'matches'
+  | 'minimap'
 >;
 interface ClipboardActions {
   /** Each returns the plain-text outline handed to other apps, or null when nothing was copied. */
@@ -36,6 +40,8 @@ interface FileActions {
   onExportMup(): void;
   onBackup(): void;
   onExportImage(format: 'png' | 'svg'): void;
+  onExportOutline(format: 'md' | 'opml'): void;
+  onPrint(): void;
 }
 interface DriveIndicators {
   driveConfigured: boolean;
@@ -48,6 +54,12 @@ interface DriveIndicators {
   driveConnected: boolean;
   driveBusy: boolean;
   driveSaveStatus: string | null;
+}
+interface StructureActions {
+  /** A new central topic, at a map position when given. */
+  onAddRoot(at?: NodePosition): void;
+  /** Collapse below `depth` levels (null expands all), within `under` when given. */
+  onShowLevels(depth: number | null, under?: string): void;
 }
 interface HistoryActions {
   onAutoLayout(): void;
@@ -70,6 +82,7 @@ export interface EditorProps
     EditorCanvasProps,
     NodeToolActions,
     ClipboardActions,
+    StructureActions,
     FileActions,
     DriveIndicators,
     HistoryActions,

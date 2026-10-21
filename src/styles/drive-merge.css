@@ -34,7 +34,7 @@
 }
 .merge-choice:has(input:checked) {
   border-color: var(--accent);
-  background: #eef6f2;
+  background: var(--accent-soft);
 }
 .merge-choice input {
   flex: 0 0 auto;

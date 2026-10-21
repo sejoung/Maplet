@@ -5,7 +5,8 @@ export const MAX_MUP_BYTES = 10 * MiB;
 export const MAX_MAPLET_BYTES = 50 * MiB;
 
 export const isMupName = (name: string) => /\.mup$/i.test(name);
-export const byteLimitFor = (name: string) => (isMupName(name) ? MAX_MUP_BYTES : MAX_MAPLET_BYTES);
+export const byteLimitFor = (name: string) =>
+  isMupName(name) || /\.(md|markdown|opml|txt)$/i.test(name) ? MAX_MUP_BYTES : MAX_MAPLET_BYTES;
 
 /** UTF-8 size without allocating an encoded copy of a document that may be 50 MiB. */
 export function utf8Length(text: string): number {

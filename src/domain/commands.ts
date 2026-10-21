@@ -4,12 +4,14 @@ import {
   MAX_TITLE,
   type MindMap,
   type MindNode,
+  type NodePosition,
   type Side,
 } from './model';
 import { AppError, formatCount } from './errors';
 import { isReservedId } from './ids';
 import { equalJson } from './json';
 import { nextRank, placeRank } from './ranks';
+import { pruneConnections } from './connections';
 
 function nodeOf(map: MindMap, id: string): MindNode {
   if (!Object.hasOwn(map.nodes, id)) throw new AppError('노드를 찾을 수 없습니다.');
@@ -154,7 +156,7 @@ export function deleteNodes(map: MindMap, ids: readonly string[]): MindMap {
       result.nodes[parentId].children = result.nodes[parentId].children.filter((key) => key !== id);
     remove(id);
   }
-  return result;
+  return pruneConnections(result);
 }
 
 function setSide(map: MindMap, id: string, side: Side) {
@@ -258,4 +260,82 @@ export function moveSibling(map: MindMap, id: string, offset: -1 | 1): MindMap {
   release(id);
   release(neighbor);
   return result;
+}
+
+/**
+ * Reparent separate branches next to `anchor`, a child of `parentId`, in their given order.
+ * Unlike `moveNode`, the parent may stay the same, which reorders. The parent's children on
+ * that side lose their manual positions so the new order is visible.
+ */
+export function insertNodes(
+  map: MindMap,
+  ids: readonly string[],
+  parentId: string,
+  anchor: { id: string; after: boolean },
+): MindMap {
+  const parent = nodeOf(map, parentId);
+  if (nodeOf(map, anchor.id).parentId !== parentId || ids.includes(anchor.id))
+    throw new AppError('같은 부모 아래의 형제 노드를 선택해 주세요.');
+  for (const id of ids) {
+    const node = nodeOf(map, id);
+    if (id === parentId || isDescendant(map, id, parentId))
+      throw new AppError('순환 참조가 생기는 이동은 할 수 없습니다.');
+    if (node.parentId === null)
+      throw new AppError('중심 노드는 다른 노드 아래로 이동할 수 없습니다.');
+    if (depthOf(map, parentId) + subtreeHeight(map, id) > MAX_DEPTH) throw depthLimit();
+  }
+  const side = parent.parentId === null ? map.nodes[anchor.id].side : parent.side;
+  const result = structuredClone(map);
+  for (const id of ids) {
+    const old = result.nodes[result.nodes[id].parentId!];
+    old.children = old.children.filter((key) => key !== id);
+  }
+  const siblings = result.nodes[parentId].children;
+  let index = siblings.indexOf(anchor.id) + (anchor.after ? 1 : 0);
+  for (const id of ids) {
+    siblings.splice(index++, 0, id);
+    result.nodes[id].parentId = parentId;
+    setSide(result, id, side);
+    placeRank(result, siblings, id);
+  }
+  result.nodes[parentId].collapsed = false;
+  for (const id of siblings) if (result.nodes[id].side === side) setSide(result, id, side);
+  return result;
+}
+
+/** Add a central topic, optionally at a map position. Several roots need MindMup v3. */
+export function addRoot(map: MindMap, id: string, title: string, position?: NodePosition) {
+  if (Object.hasOwn(map.nodes, id) || isReservedId(id))
+    throw new AppError('중복되거나 사용할 수 없는 노드 ID입니다.');
+  if (Object.keys(map.nodes).length >= MAX_NODE_COUNT) throw nodeLimit();
+  const node = createNode(id, title, null, 'right', nextRank(map, map.roots, 'right'));
+  if (position) node.position = { x: position.x, y: position.y };
+  return {
+    ...map,
+    formatVersion: 3 as const,
+    roots: [...map.roots, id],
+    nodes: { ...map.nodes, [id]: node },
+  };
+}
+
+/**
+ * Show the map down to `depth` levels (roots are level 1): deeper nodes with children are
+ * collapsed, shallower ones expanded. `null` expands everything; `under` limits the change to
+ * one branch, counting its levels from that node.
+ */
+export function showLevels(map: MindMap, depth: number | null, under?: string): MindMap {
+  let nodes = map.nodes;
+  const visit = (id: string, level: number) => {
+    const node = map.nodes[id];
+    if (!node.children.length) return;
+    const collapsed = depth !== null && level >= depth;
+    if (node.collapsed !== collapsed) {
+      if (nodes === map.nodes) nodes = { ...nodes };
+      nodes[id] = { ...node, collapsed };
+    }
+    node.children.forEach((child) => visit(child, level + 1));
+  };
+  if (under !== undefined) visit(nodeOf(map, under).id, 1);
+  else map.roots.forEach((id) => visit(id, 1));
+  return nodes === map.nodes ? map : { ...map, nodes };
 }

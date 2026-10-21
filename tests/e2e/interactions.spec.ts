@@ -172,18 +172,18 @@ test('snaps to a node beside the dragged node, and Alt or Escape keeps the paren
   await expect(hint).toHaveCount(0);
   await page.mouse.up();
   await expect(branch).toHaveAttribute('aria-level', '2');
-  // Just above the node still snaps to it; holding Alt moves the branch freely instead.
+  // Just above the node offers to insert before it; holding Alt moves the branch freely.
   const start = (await branch.boundingBox())!;
   const above = { x: box.x + 4, y: box.y - 10 - start.height / 2 };
   await page.mouse.move(start.x + 4, start.y + start.height / 2);
   await page.mouse.down();
   await page.mouse.move(above.x, above.y, { steps: 8 });
-  await expect(target).toHaveClass(/drop-target/);
+  await expect(target).toHaveClass(/drop-sibling/);
   await page.keyboard.down('Alt');
-  await expect(page.locator('.drop-target')).toHaveCount(0);
+  await expect(page.locator('.drop-target, .drop-sibling')).toHaveCount(0);
   await expect(hint).toHaveText('위치만 옮기는 중 · Alt(⌥)를 떼면 부모 바꾸기');
   await page.keyboard.up('Alt');
-  await expect(target).toHaveClass(/drop-target/);
+  await expect(target).toHaveClass(/drop-sibling/);
   await page.keyboard.down('Alt');
   await page.mouse.move(above.x, above.y - 2);
   await page.mouse.up();

@@ -1,5 +1,6 @@
 import type { MindNode } from '../domain/model';
 import { characterWidth, nodeTypography } from '../domain/typography';
+import { nodeMarkers } from '../domain/node-markers';
 import {
   MIN_NODE_HEIGHT,
   MIN_NODE_WIDTH,
@@ -19,7 +20,9 @@ const graphemes = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
 export function measureNode(node: MindNode, measureText: TextMeasurer = estimateTextWidth) {
   const typography = nodeTypography(node.style);
   const width = sizeValue(node.style.width, MIN_NODE_WIDTH);
-  const insetX = 2 * (NODE_PADDING_X + NODE_BORDER);
+  // Icons and task boxes sit before the text and take part of the content width.
+  const insetX =
+    2 * (NODE_PADDING_X + NODE_BORDER) + nodeMarkers(node.style, typography.fontSize).width;
   const contentWidth = (width ?? 236) - insetX;
   const lines: string[] = [];
   for (const paragraph of node.title.split('\n')) {

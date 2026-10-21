@@ -23,8 +23,16 @@ export interface MindNode {
   nativeExtensions?: JsonObject;
 }
 
+/** A cross-link drawn from one node to another, outside the hierarchy. */
+export interface Connection {
+  from: string;
+  to: string;
+}
+
 export interface MindMap {
   nativeExtensions?: JsonObject;
+  /** Cross-links; absent when a document never had any. */
+  connections?: Connection[];
   formatVersion: 1 | 2 | 3;
   roots: string[];
   nodes: Record<string, MindNode>;

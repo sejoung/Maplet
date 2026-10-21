@@ -13,8 +13,8 @@
   max-width: 430px;
   max-height: 90dvh;
   overflow: auto;
-  background: #fff;
-  border: 1px solid #d6dfd8;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 10px;
   box-shadow: 0 12px 40px #2135281a;
   padding: 22px 24px;
@@ -60,15 +60,15 @@
   flex: 0 0 auto;
 }
 .tool-selection {
-  color: #5d6864;
+  color: var(--text-soft);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   margin-bottom: 20px;
 }
 .form-error {
-  color: #97333b;
-  background: #fff1ef;
+  color: var(--danger);
+  background: var(--danger-soft);
   border-radius: 5px;
   padding: 10px;
 }
@@ -101,7 +101,7 @@
 }
 .alignment-options [aria-pressed='true'],
 .color-option[aria-pressed='true'] {
-  background: #e4f0ea;
+  background: var(--accent-soft);
   border-color: var(--accent);
   color: var(--accent);
 }
@@ -115,13 +115,71 @@
   font-size: 12px;
 }
 .color-chip {
+  color: #25352d;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 28px;
   height: 28px;
-  border: 1px solid #d0d8d2;
+  border: 1px solid var(--border);
   border-radius: 5px;
+}
+.style-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.style-row fieldset {
+  margin: 0;
+}
+.swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.swatch {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  color: #fff;
+}
+.swatch.icon {
+  background: var(--surface);
+  font-size: 16px;
+}
+.swatch.none {
+  background: linear-gradient(135deg, transparent 46%, var(--text-faint) 46% 54%, transparent 54%);
+}
+.swatch[aria-pressed='true'] {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.connection-list {
+  display: grid;
+  gap: 4px;
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+}
+.connection-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 4px 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.connection-list span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .external-link {
   display: inline-block;
@@ -156,12 +214,12 @@
   justify-content: space-between;
   gap: 14px;
   padding: 9px 0;
-  border-bottom: 1px solid #edf0ee;
+  border-bottom: 1px solid var(--border);
 }
 .shortcut-list dd {
   margin: 0;
   font-size: 12px;
-  color: #526159;
+  color: var(--text-soft);
 }
 .drive-intro {
   display: flex;
@@ -175,9 +233,9 @@
 }
 .drive-status {
   padding: 10px;
-  background: #f1f5f2;
+  background: var(--surface-muted);
   border-radius: 6px;
-  color: #41634b;
+  color: var(--text-soft);
 }
 .drive-filename {
   overflow-wrap: anywhere;

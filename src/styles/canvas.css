@@ -10,7 +10,7 @@
   width: 100%;
   position: relative;
   overflow: clip;
-  background: #f8fafb;
+  background: var(--canvas);
   touch-action: none;
 }
 .canvas.is-panning {
@@ -35,20 +35,22 @@
   align-items: center;
   justify-content: center;
   padding: var(--node-padding-y) var(--node-padding-x);
-  border: 1px solid #d1d9d5;
+  border: 1px solid var(--node-border-color, var(--border-strong));
   border-radius: 8px;
   font-kerning: normal;
   text-align: left;
   font-size: 15px;
   line-height: 23px;
-  color: #25352d;
+  color: var(--node-text);
+  background: var(--node-bg);
   cursor: pointer;
   outline: none;
   user-select: none;
   white-space: pre-wrap;
 }
 .mind-node.root-node {
-  border-color: #9cab9f;
+  border-color: var(--node-border-color, var(--root-border));
+  background: var(--root-bg);
   font-weight: 600;
 }
 .mind-node[aria-expanded='false'] {
@@ -56,12 +58,12 @@
 }
 .mind-node.selected {
   z-index: 1;
-  border: 2px solid #397760;
+  border: 2px solid var(--accent-2);
   padding: calc(var(--node-padding-y) - 1px) calc(var(--node-padding-x) - 1px);
   box-shadow: 0 0 0 3px #3977600d;
 }
 .mind-node:focus-visible {
-  outline: 2px solid #236b58;
+  outline: 2px solid var(--accent);
   outline-offset: 4px;
 }
 .node-text {
@@ -113,11 +115,11 @@
   padding: 0;
   border: 0;
   border-radius: 3px;
-  background: #f8fafb;
+  background: var(--canvas);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #748078;
+  color: var(--text-faint);
   opacity: 0;
 }
 .collapse-node::before {
@@ -153,8 +155,8 @@
   bottom: 3px;
   width: 7px;
   height: 7px;
-  border-right: 1px solid #7d9085;
-  border-bottom: 1px solid #7d9085;
+  border-right: 1px solid var(--text-faint);
+  border-bottom: 1px solid var(--text-faint);
 }
 .resize-node::before {
   content: '';
@@ -179,10 +181,10 @@
   justify-content: center;
   width: 17px;
   height: 17px;
-  border: 1px solid #c9d4ce;
+  border: 1px solid var(--border-strong);
   border-radius: 50%;
-  background: white;
-  color: #4d6a5b;
+  background: var(--surface);
+  color: var(--text-soft);
 }
 a.node-badge:hover {
   border-color: var(--accent);
@@ -205,12 +207,12 @@ a.node-badge:hover {
 .branch-region {
   position: absolute;
   pointer-events: none;
-  border: 1px dashed #397760;
+  border: 1px dashed var(--accent-2);
   border-radius: 12px;
   background: #3977600a;
 }
 .branch-region.displaced {
-  border-color: #9b7a3d;
+  border-color: var(--warning);
   background: #9b7a3d0a;
 }
 /* Nodes carry an inline background, so a group selection tints with an inset shadow. */
@@ -242,7 +244,7 @@ a.node-badge:hover {
   transform: translateX(-50%);
   padding: 2px 8px;
   border-radius: 999px;
-  background: var(--accent);
+  background: var(--accent-fill);
   color: #fff;
   font:
     600 12px/18px system-ui,
@@ -254,7 +256,7 @@ a.node-badge:hover {
   position: absolute;
   z-index: 4;
   pointer-events: none;
-  border: 1px solid #397760;
+  border: 1px solid var(--accent-2);
   background: #3977601f;
 }
 .drag-hint {

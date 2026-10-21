@@ -1,27 +1,23 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { createMap, addNode, renameNode, deleteNodes, updateNode } from '../domain/commands';
-import { moveNodes, updateNodes } from '../domain/selection';
-import type { MindNode } from '../domain/model';
+import { createMap } from '../domain/commands';
 import { messageOf } from '../domain/errors';
-import { resizeNode } from '../domain/node-size';
-import { setNodePositions } from '../domain/positions';
+import { stripMapExtension } from '../domain/filename';
 import { autoArrange } from '../engine/auto-arrange';
 import { measureNodeText } from '../components/text-measure';
 import { filenameFromTitle } from '../application/document-name';
-import { serializeMup } from '../adapters/mup/codec';
 import { serializeMaplet } from '../adapters/maplet/codec';
-import { parseDocument, nativeFilename, mupFilename } from '../adapters/documents';
+import { parseDocument, nativeFilename } from '../adapters/documents';
+import { isOutlineName, parseOutline } from '../adapters/outline/outline';
 import { restoreDraft, draftHasChanges } from '../adapters/storage/recovery';
 import { DraftStore, type Draft } from '../adapters/storage/drafts';
-import { downloadBlob, downloadFile, readMapFile } from '../adapters/storage/files';
-import { stripMapExtension } from '../domain/filename';
+import { downloadFile, readMapFile } from '../adapters/storage/files';
 import { Editor } from '../components/Editor';
 import { Dialog } from '../components/Dialog';
 import { ShortcutHelpDialog } from '../components/ShortcutHelpDialog';
-import { useDrive, type DriveServices } from './useDrive';
+import { NewMapDialog } from '../components/NewMapDialog';
 import { useI18n } from '../i18n/react';
 import type { Translatable } from '../i18n/core';
-import { NewMapDialog } from '../components/NewMapDialog';
+import { useDrive, type DriveServices } from './useDrive';
 import { DriveDialogs } from './DriveDialogs';
 import { useDraftPersistence } from './useDraftPersistence';
 import { usePrimarySave } from './usePrimarySave';
@@ -29,9 +25,8 @@ import { useEditorShortcuts } from './useEditorShortcuts';
 import { useDraftPrivacy } from './useDraftPrivacy';
 import { useDocument } from './useDocument';
 import { useNodeClipboard } from './useNodeClipboard';
-import { layoutMap } from '../engine/layout';
-import { renderSvg } from '../engine/svg-export';
-import { svgToPng } from '../adapters/storage/image';
+import { useNodeCommands } from './useNodeCommands';
+import { useExports } from './useExports';
 
 const defaultDrafts = new DraftStore();
 
@@ -53,7 +48,7 @@ export function App({
     onEdited: () => setError(null),
     onError: report,
   });
-  const { map, content, filename, selectedId, edit } = doc;
+  const { map, content, filename, selectedId } = doc;
   const [draftStatus, setDraftStatus] = useState(
     drafts.enabled ? '이 기기에만 보관' : '기기 초안 보관 꺼짐',
   );
@@ -102,19 +97,6 @@ export function App({
   }, [content, filename, markDownloaded, report]);
 
   const clipboard = useNodeClipboard(doc, report);
-  const exportImage = async (format: 'png' | 'svg') => {
-    try {
-      const image = renderSvg(map, layoutMap(map, measureNodeText));
-      const blob =
-        format === 'svg'
-          ? new Blob([image.svg], { type: 'image/svg+xml' })
-          : await svgToPng(image.svg, image.width, image.height);
-      downloadBlob(blob, `${stripMapExtension(filename)}.${format}`);
-    } catch (reason) {
-      report(reason);
-    }
-  };
-
   const replace: typeof doc.replace = (next, ...rest) => {
     doc.replace(next, ...rest);
     setError(null);
@@ -130,7 +112,14 @@ export function App({
   const open = async (file: File) => {
     const generation = ++importGeneration.current;
     try {
-      const next = parseDocument(await readMapFile(file));
+      const source = await readMapFile(file);
+      // Outlines arrive without a layout; balance their branches like Auto arrange.
+      const next = isOutlineName(file.name)
+        ? autoArrange(
+            parseOutline(source, file.name, stripMapExtension(file.name)),
+            measureNodeText,
+          )
+        : parseDocument(source);
       if (generation !== importGeneration.current || !allowReplace()) return;
       replace(next, file.name);
       driveState.clearFile(serializeMaplet(next), nativeFilename(file.name));
@@ -138,43 +127,8 @@ export function App({
       if (generation === importGeneration.current) report(reason);
     }
   };
-  const add = (sibling = false) => {
-    const id = crypto.randomUUID();
-    const added = edit((current) => {
-      const node = current.nodes[selectedId];
-      const asSibling = sibling && node.parentId !== null;
-      return addNode(
-        current,
-        asSibling ? node.parentId! : selectedId,
-        id,
-        t('새 노드'),
-        asSibling ? selectedId : undefined,
-      );
-    });
-    if (!added) return;
-    doc.setSelected(id);
-    doc.setEditingId(id);
-  };
-  const remove = () => {
-    const ids = doc.targets(selectedId);
-    const nodes = ids.map((id) => map.nodes[id]);
-    if (
-      nodes.some((node) => node.children.length) &&
-      !window.confirm(
-        ids.length > 1
-          ? t(
-              '선택한 노드 {count}개와 모든 하위 노드를 삭제할까요? 실행 취소로 복원할 수 있습니다.',
-              {
-                count: doc.selection.length,
-              },
-            )
-          : t('이 노드와 모든 하위 노드를 삭제할까요? 실행 취소로 복원할 수 있습니다.'),
-      )
-    )
-      return;
-    const fallback = nodes[0].parentId ?? map.roots.find((id) => !ids.includes(id))!;
-    if (edit((current) => deleteNodes(current, ids))) doc.setSelected(fallback);
-  };
+  const commands = useNodeCommands(doc, t);
+  const exports = useExports(map, filename, report, setNotice);
   const recover = () => {
     if (!recovery) return;
     try {
@@ -258,40 +212,7 @@ export function App({
         onCancelEdit={() => doc.setEditingId(null)}
         onSelect={doc.select}
         onEdit={(id = selectedId) => doc.setEditingId(id)}
-        onAdd={add}
-        onDelete={remove}
-        onToggle={(id) =>
-          edit((current) => updateNode(current, id, { collapsed: !current.nodes[id].collapsed }))
-        }
-        onRename={(id, title) => {
-          const renamed = edit((current) => renameNode(current, id, title));
-          if (
-            renamed &&
-            doc.filenamePending &&
-            id === map.roots[0] &&
-            title !== map.nodes[id].title
-          ) {
-            const name = filenameFromTitle(title);
-            if (name) doc.rename(name);
-          }
-          if (renamed) doc.setEditingId(null);
-          return renamed;
-        }}
-        onUpdate={(
-          id,
-          patch: Partial<Pick<MindNode, 'notes' | 'links' | 'style' | 'side' | 'collapsed'>>,
-        ) =>
-          edit((current) =>
-            updateNodes(current, doc.selection.includes(id) ? doc.selection : [id], id, patch),
-          )
-        }
-        onMove={(id, parent) => edit((current) => moveNodes(current, doc.targets(id), parent))}
-        onReparent={(ids, parent, side) => edit((current) => moveNodes(current, ids, parent, side))}
-        onResize={(id, width, positions) =>
-          edit((current) => resizeNode(current, id, width, positions))
-        }
-        onReposition={(positions) => edit((current) => setNodePositions(current, positions))}
-        onAutoLayout={() => edit((current) => autoArrange(current, measureNodeText))}
+        {...commands}
         onUndo={doc.undo}
         onRedo={doc.redo}
         canUndo={doc.canUndo}
@@ -302,25 +223,13 @@ export function App({
         onDownload={save}
         saveToDrive={primary.saveToDrive}
         driveSync={primary.sync}
-        onExportMup={() => {
-          try {
-            downloadFile(serializeMup(map), mupFilename(filename));
-            setNotice('.mup 호환 파일을 내보냈습니다. Maplet 원본은 .maplet 저장으로 보관하세요.');
-          } catch (reason) {
-            report(reason);
-          }
-        }}
-        onExportImage={(format) => void exportImage(format)}
+        {...exports}
         onCopyNode={clipboard.copy}
         onCutNode={clipboard.cut}
         onPasteNode={clipboard.paste}
         onDuplicateNode={clipboard.duplicate}
         onReorder={clipboard.reorder}
         canPaste={clipboard.canPaste}
-        onBackup={() => {
-          if (map.original)
-            downloadFile(map.original, `${stripMapExtension(filename)}.original.mup`);
-        }}
         onHelp={() => setDialog('help')}
         onDrive={driveState.showDrive}
         driveConfigured={driveState.configured}

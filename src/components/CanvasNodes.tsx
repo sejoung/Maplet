@@ -9,14 +9,16 @@ import {
   type CSSProperties,
   type MouseEvent,
 } from 'react';
-import { ExternalLink, Minus, Plus, StickyNote } from 'lucide-react';
+import { Check, ExternalLink, Minus, Plus, StickyNote } from 'lucide-react';
 import { safeUrl } from '../domain/commands';
 import { InlineNodeEditor } from './InlineNodeEditor';
 import type { CanvasProps } from './canvas-types';
 import { FONT_FAMILIES, nodeTypography } from '../domain/typography';
 import { NODE_PADDING_X, NODE_PADDING_Y } from '../domain/node-size';
-import { nodeBackground } from '../domain/node-colors';
 import type { Layout } from '../engine/layout';
+import type { DropTarget } from '../engine/branch-drag';
+import { nodeMarkers } from '../domain/node-markers';
+import { nodeBorder, readableBackground } from '../domain/node-colors';
 
 type CanvasNodesProps = Pick<
   CanvasProps,
@@ -33,12 +35,14 @@ type CanvasNodesProps = Pick<
   | 'onAdd'
   | 'onToggle'
   | 'onContextMenu'
+  | 'onToggleTask'
+  | 'matches'
 > & {
   layout: Layout;
   onDraftChange(id: string, title: string): void;
   resizeHandlers(id: string): ButtonHTMLAttributes<HTMLButtonElement>;
   dragging?: string[];
-  dropTarget?: string;
+  dropTarget?: DropTarget | null;
   viewport: RefObject<HTMLDivElement | null>;
   onKeyDown(event: KeyboardEvent): void;
 };
@@ -67,6 +71,8 @@ export function CanvasNodes(props: CanvasNodesProps) {
     resizeHandlers,
     dragging,
     dropTarget,
+    matches,
+    onToggleTask,
     viewport,
     onKeyDown,
   } = props;
@@ -103,13 +109,21 @@ export function CanvasNodes(props: CanvasNodesProps) {
           parent = map.nodes[parent].parentId;
         }
         const chosen = selection.includes(node.id);
+        const markers = nodeMarkers(node.style, typography.fontSize);
+        const border = nodeBorder(node.style);
+        const custom = readableBackground(node.style.background, '');
+        const dropping = dropTarget?.node === node.id ? dropTarget.place : null;
         const classes = [
           'mind-node',
           node.parentId === null && 'root-node',
           chosen && 'selected',
           chosen && selection.length > 1 && 'multi',
           dragging?.includes(node.id) && 'dragging',
-          dropTarget === node.id && 'drop-target',
+          dropping === 'child' && 'drop-target',
+          dropping && dropping !== 'child' && 'drop-sibling',
+          matches?.has(node.id) && 'search-match',
+          markers.task === 'done' && 'task-done',
+          custom && 'custom-bg',
         ];
         return (
           <div
@@ -119,7 +133,7 @@ export function CanvasNodes(props: CanvasNodesProps) {
             aria-label={node.title}
             aria-level={depth}
             aria-selected={chosen}
-            data-drop-label={dropTarget === node.id ? t('여기로 옮기기') : undefined}
+            data-drop-label={dropping === 'child' ? t('여기로 옮기기') : undefined}
             aria-expanded={node.children.length ? !node.collapsed : undefined}
             tabIndex={selected === node.id ? 0 : -1}
             data-node-id={node.id}
@@ -131,12 +145,16 @@ export function CanvasNodes(props: CanvasNodesProps) {
                 textAlign: typography.textAlign,
                 fontSize: typography.fontSize,
                 fontFamily: FONT_FAMILIES[typography.fontFamily],
+                fontWeight: typography.bold ? 700 : undefined,
+                fontStyle: typography.italic ? 'italic' : undefined,
+                '--node-border-color': border ?? undefined,
                 lineHeight: `${typography.lineHeight}px`,
                 left: placed.x,
                 top: placed.y,
                 width: placed.width,
                 minHeight: placed.height,
-                background: nodeBackground(node.style, node.parentId === null),
+                // Default colors come from the theme; chosen pastel colors stay as they are.
+                background: custom || undefined,
               } as CSSProperties
             }
             onFocus={() => {
@@ -178,6 +196,36 @@ export function CanvasNodes(props: CanvasNodesProps) {
               );
             }}
           >
+            {(markers.task || markers.icon) && (
+              <span className="node-markers" style={{ width: markers.width }}>
+                {markers.task && (
+                  <button
+                    type="button"
+                    className="node-task"
+                    role="checkbox"
+                    aria-checked={markers.task === 'done'}
+                    aria-label={t('{title} 완료', { title: node.title })}
+                    tabIndex={-1}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onToggleTask(node.id);
+                    }}
+                    onDoubleClick={(event) => event.stopPropagation()}
+                  >
+                    {markers.task === 'done' && <Check size={12} strokeWidth={3} />}
+                  </button>
+                )}
+                {markers.icon && (
+                  <span
+                    className="node-icon"
+                    aria-hidden="true"
+                    style={{ width: markers.iconSize, fontSize: typography.fontSize }}
+                  >
+                    {markers.icon}
+                  </span>
+                )}
+              </span>
+            )}
             {editingId === node.id ? (
               <InlineNodeEditor
                 key={node.id}

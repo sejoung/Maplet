@@ -149,5 +149,5 @@ test('opens a map menu from a right-click anywhere on empty canvas', async ({ pa
   await page.keyboard.press('Escape');
   await page.mouse.click(canvas.x + canvas.width - 40, canvas.y + 40, { button: 'right' });
   await map.getByRole('menuitem', { name: '찾기' }).click();
-  await expect(page.getByRole('dialog', { name: '찾기' })).toBeVisible();
+  await expect(page.getByRole('search', { name: '노드 찾기' })).toBeVisible();
 });

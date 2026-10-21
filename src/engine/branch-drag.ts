@@ -5,9 +5,15 @@ import { layoutWithPositions, type Layout, type LayoutNode } from './layout';
 import { branchBounds } from './branch-regions';
 import { proposeSubtreeMove, type PlacementProposal } from './subtree-placement';
 
+/**
+ * Where a drop would put the dragged branches: under `id`, beside the hovered `node` (`before`
+ * or `after` it among its siblings) or as its last child.
+ */
 export interface DropTarget {
   id: string;
   side: Side;
+  node: string;
+  place: 'child' | 'before' | 'after';
 }
 
 /** Screen distances between the dragged node and a candidate parent: a node is captured within
@@ -37,26 +43,58 @@ function adopts(map: MindMap, dragged: readonly string[], id: string) {
   );
 }
 
-/** Valid parents for the dragged branches within `reach` of `probe`, nearest first. */
-function candidates(
-  map: MindMap,
-  layout: Layout,
-  dragged: readonly string[],
-  probe: Probe,
-  reach: number,
-) {
-  return layout.nodes
-    .map((node, order) => ({ node, order, gap: gap(node, probe), center: centerGap(node, probe) }))
-    .filter((entry) => entry.gap <= reach && adopts(map, dragged, entry.node.id))
-    .sort((a, b) => a.gap - b.gap || a.center - b.center || b.order - a.order)
-    .map((entry) => entry.node);
+/** Whether every dragged branch can sit beside `id`, possibly reordering under the same parent. */
+function joins(map: MindMap, dragged: readonly string[], id: string) {
+  const parent = map.nodes[id].parentId;
+  return (
+    parent !== null &&
+    !dragged.includes(id) &&
+    dragged.every((key) => map.nodes[key].parentId === parent || canMoveNode(map, key, parent))
+  );
 }
 
 /**
- * The node that would adopt every dragged branch if dropped now: the nearest valid node within
- * the magnet distance of `probe` (the dragged node's box, or a point), or the `current` target
- * while it stays within the release distance. Pass the layout as it is shown so the target is
- * where the user sees it. Dropping on a root picks the side the probe's center is on.
+ * The drop a probe implies for one node: above or below it, overlapping it horizontally,
+ * inserts beside it; anywhere else around it makes it the parent.
+ */
+function relate(
+  map: MindMap,
+  dragged: readonly string[],
+  node: LayoutNode,
+  probe: Probe,
+): DropTarget | null {
+  const width = probe.width ?? 0,
+    height = probe.height ?? 0;
+  const center = { x: probe.x + width / 2, y: probe.y + height / 2 };
+  const overlapsX =
+    Math.min(probe.x + width, node.x + node.width) - Math.max(probe.x, node.x) > 0 ||
+    (center.x >= node.x && center.x <= node.x + node.width);
+  const target = map.nodes[node.id];
+  if (
+    overlapsX &&
+    (center.y < node.y || center.y > node.y + node.height) &&
+    joins(map, dragged, node.id)
+  )
+    return {
+      id: target.parentId!,
+      side: target.side,
+      node: node.id,
+      place: center.y < node.y ? 'before' : 'after',
+    };
+  if (!adopts(map, dragged, node.id)) return null;
+  const side =
+    target.parentId === null
+      ? center.x < node.x + node.width / 2
+        ? 'left'
+        : 'right'
+      : target.side;
+  return { id: node.id, side, node: node.id, place: 'child' };
+}
+
+/**
+ * The drop that would happen now: relative to the nearest node within the magnet distance of
+ * `probe` (the dragged node's box, or a point), or to the `current` target's node while it
+ * stays within the release distance. Overlapping several nodes prefers the closest center.
  */
 export function dropTargetAt(
   map: MindMap,
@@ -65,15 +103,20 @@ export function dropTargetAt(
   probe: Probe,
   { zoom = 1, current = null }: { zoom?: number; current?: DropTarget | null } = {},
 ): DropTarget | null {
-  let hit = current ? layout.nodes.find((node) => node.id === current.id) : undefined;
-  if (!hit || gap(hit, probe) > DROP_RELEASE / zoom || !adopts(map, dragged, hit.id))
-    hit = candidates(map, layout, dragged, probe, DROP_MAGNET / zoom)[0];
-  if (!hit) return null;
-  const target = map.nodes[hit.id];
-  const center = probe.x + (probe.width ?? 0) / 2;
-  const side =
-    target.parentId === null ? (center < hit.x + hit.width / 2 ? 'left' : 'right') : target.side;
-  return { id: hit.id, side };
+  const held = current && layout.nodes.find((node) => node.id === current.node);
+  if (held && gap(held, probe) <= DROP_RELEASE / zoom) {
+    const kept = relate(map, dragged, held, probe);
+    if (kept) return kept;
+  }
+  const near = layout.nodes
+    .map((node, order) => ({ node, order, gap: gap(node, probe), center: centerGap(node, probe) }))
+    .filter((entry) => entry.gap <= DROP_MAGNET / zoom)
+    .sort((a, b) => a.gap - b.gap || a.center - b.center || b.order - a.order);
+  for (const { node } of near) {
+    const target = relate(map, dragged, node, probe);
+    if (target) return target;
+  }
+  return null;
 }
 
 /**

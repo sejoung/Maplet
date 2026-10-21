@@ -6,6 +6,11 @@ import {
   ArrowUp,
   BoxSelect,
   CaseSensitive,
+  Crosshair,
+  Eye,
+  EyeOff,
+  Map as MapIcon,
+  Spline,
   ChevronsDownUp,
   ChevronsUpDown,
   ClipboardPaste,
@@ -17,7 +22,9 @@ import {
   MessageSquare,
   Palette,
   Focus,
+  ListCollapse,
   Plus,
+  SquarePlus,
   Redo2,
   Scissors,
   Search,
@@ -53,13 +60,15 @@ export interface NodeActionHandlers {
   onDuplicate(id: string): void;
   onReorder(id: string, offset: -1 | 1): void;
   openTool(tool: NodeTool): void;
+  onFocus(id: string): void;
+  onExpandAll(id: string): void;
   canPaste: boolean;
 }
 
 const mod = (key: string) => ({ label: `Ctrl/⌘ ${key}`, aria: `Control+${key} Meta+${key}` });
 
 export type NodeActionGroups = Record<
-  'create' | 'tools' | 'clipboard' | 'arrange' | 'remove',
+  'create' | 'tools' | 'clipboard' | 'arrange' | 'view' | 'remove',
   NodeAction[]
 >;
 
@@ -115,6 +124,11 @@ export function nodeActionGroups(
       },
       { label: t('링크'), icon: <Link2 size={17} />, run: () => handlers.openTool('link') },
       { label: t('서식'), icon: <Palette size={17} />, run: () => handlers.openTool('style') },
+      {
+        label: t('연결선'),
+        icon: <Spline size={17} />,
+        run: () => handlers.openTool('connections'),
+      },
     ],
     clipboard: [
       {
@@ -185,6 +199,20 @@ export function nodeActionGroups(
         run: () => handlers.onToggle(id),
       },
     ],
+    view: [
+      {
+        label: t('이 가지만 보기'),
+        icon: <Crosshair size={17} />,
+        disabled: !node.children.length,
+        run: () => handlers.onFocus(id),
+      },
+      {
+        label: t('하위 모두 펼치기'),
+        icon: <ChevronsUpDown size={17} />,
+        disabled: !node.children.length,
+        run: () => handlers.onExpandAll(id),
+      },
+    ],
     remove: [
       {
         label: group
@@ -213,15 +241,26 @@ export interface CanvasActionHandlers {
   onFit(): void;
   onZoomIn(): void;
   onZoomOut(): void;
+  /** Absent where there is no point to place a topic, such as the toolbar. */
+  onAddTopic?(): void;
+  onLevels(depth: number | null): void;
+  focused: boolean;
+  onExitFocus(): void;
+  minimap: boolean;
+  onToggleMinimap(): void;
 }
+export type CanvasActionGroups = Record<
+  'history' | 'edit' | 'levels' | 'display' | 'layout',
+  NodeAction[]
+>;
 
-/** Map-wide actions for a right-click on empty canvas. */
+/** Map-wide actions for a right-click on empty canvas and the toolbar View menu. */
 export function canvasActionGroups(
   handlers: CanvasActionHandlers,
   t: (message: string) => string,
-): NodeAction[][] {
-  return [
-    [
+): CanvasActionGroups {
+  return {
+    history: [
       {
         label: t('실행 취소'),
         icon: <Undo2 size={17} />,
@@ -237,7 +276,10 @@ export function canvasActionGroups(
         run: handlers.onRedo,
       },
     ],
-    [
+    edit: [
+      ...(handlers.onAddTopic
+        ? [{ label: t('여기에 새 주제'), icon: <SquarePlus size={17} />, run: handlers.onAddTopic }]
+        : []),
       {
         label: t('선택한 노드에 붙여넣기'),
         icon: <ClipboardPaste size={17} />,
@@ -251,9 +293,46 @@ export function canvasActionGroups(
         shortcut: mod('A'),
         run: handlers.onSelectAll,
       },
-      { label: t('찾기'), icon: <Search size={17} />, run: handlers.onSearch },
+      {
+        label: t('찾기'),
+        icon: <Search size={17} />,
+        shortcut: mod('F'),
+        run: handlers.onSearch,
+      },
     ],
-    [
+    levels: [
+      {
+        label: t('모두 펼치기'),
+        icon: <ChevronsUpDown size={17} />,
+        run: () => handlers.onLevels(null),
+      },
+      {
+        label: t('주 가지만 보기'),
+        icon: <ListCollapse size={17} />,
+        run: () => handlers.onLevels(2),
+      },
+      {
+        label: t('2단계까지 보기'),
+        icon: <ListTree size={17} />,
+        run: () => handlers.onLevels(3),
+      },
+      {
+        label: t('3단계까지 보기'),
+        icon: <ListTree size={17} />,
+        run: () => handlers.onLevels(4),
+      },
+    ],
+    display: [
+      ...(handlers.focused
+        ? [{ label: t('전체 맵 보기'), icon: <Eye size={17} />, run: handlers.onExitFocus }]
+        : []),
+      {
+        label: handlers.minimap ? t('미니맵 숨기기') : t('미니맵 보기'),
+        icon: handlers.minimap ? <EyeOff size={17} /> : <MapIcon size={17} />,
+        run: handlers.onToggleMinimap,
+      },
+    ],
+    layout: [
       { label: t('자동 배치'), icon: <WandSparkles size={17} />, run: handlers.onArrange },
       {
         label: t('화면에 맞추기'),
@@ -269,7 +348,7 @@ export function canvasActionGroups(
         run: handlers.onZoomOut,
       },
     ],
-  ];
+  };
 }
 
 /** Menu rows for one action list; `role` distinguishes toolbar menus from a context menu. */

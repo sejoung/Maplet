@@ -6,8 +6,9 @@ let activeFont = '';
 const widths = new Map<string, number>();
 
 export function measureNodeText(text: string, node: MindNode): number {
-  const { fontSize, fontFamily } = nodeTypography(node.style);
-  const font = `${node.parentId === null ? 600 : 400} ${fontSize}px ${FONT_FAMILIES[fontFamily]}`;
+  const { fontSize, fontFamily, bold, italic } = nodeTypography(node.style);
+  const weight = bold ? 700 : node.parentId === null ? 600 : 400;
+  const font = `${italic ? 'italic ' : ''}${weight} ${fontSize}px ${FONT_FAMILIES[fontFamily]}`;
   const key = `${font}\n${text}`;
   const cached = widths.get(key);
   if (cached !== undefined) return cached;

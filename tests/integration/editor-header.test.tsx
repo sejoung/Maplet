@@ -28,6 +28,8 @@ function header(overrides: Partial<Parameters<typeof EditorHeader>[0]> = {}) {
     onExportMup: vi.fn(),
     onBackup: vi.fn(),
     onExportImage: vi.fn(),
+    onExportOutline: vi.fn(),
+    onPrint: vi.fn(),
     onDrive: vi.fn(),
     onSettings: vi.fn(),
     command: (action: () => void) => action,

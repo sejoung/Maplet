@@ -28,8 +28,11 @@ const center = (id: string, dx = 0) => {
 
 describe('dragging branches onto nodes', () => {
   it('targets the node under the pointer that can adopt every dragged branch', () => {
-    expect(dropTargetAt(map, layout, ['a1'], center('b'))).toEqual({ id: 'b', side: 'right' });
-    expect(dropTargetAt(map, layout, ['a1', 'b1'], center('a'))).toEqual({
+    expect(dropTargetAt(map, layout, ['a1'], center('b'))).toMatchObject({
+      id: 'b',
+      side: 'right',
+    });
+    expect(dropTargetAt(map, layout, ['a1', 'b1'], center('a'))).toMatchObject({
       id: 'a',
       side: 'right',
     });
@@ -45,7 +48,7 @@ describe('dragging branches onto nodes', () => {
 
   it('picks the side of a root from the half under the pointer', () => {
     const root = box('root');
-    expect(dropTargetAt(map, layout, ['b1'], center('root', -root.width / 4))).toEqual({
+    expect(dropTargetAt(map, layout, ['b1'], center('root', -root.width / 4))).toMatchObject({
       id: 'root',
       side: 'left',
     });
@@ -131,7 +134,7 @@ describe('reaching a drop target while dragging', () => {
 
   it('captures the node beside the dragged node and releases it with hysteresis', () => {
     const caught = dragFrame(spaced, start, state(beside(DROP_MAGNET - 4)))!;
-    expect(caught.target).toEqual({ id: 'b', side: 'right' });
+    expect(caught.target).toMatchObject({ id: 'b', side: 'right', node: 'b', place: 'child' });
     still(caught, 'b');
     expect(caught.proposal.displacedIds).toEqual([]);
     expect(caught.proposal.regions.map((region) => region.kind)).toEqual(['dragged']);
