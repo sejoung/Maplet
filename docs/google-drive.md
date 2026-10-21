@@ -5,7 +5,7 @@
 1. 같은 Google Cloud 프로젝트에서 Drive API와 Google Picker API를 활성화한다.
 2. OAuth 동의 화면을 설정하고 `drive.file` 범위의 공개 정책을 확인한다. 테스트 모드라면 테스트 사용자를 등록한다.
 3. 웹 애플리케이션 OAuth 클라이언트의 authorized JavaScript origin에 로컬 `http://127.0.0.1:5173`과 실제 배포 origin을 등록한다. 경로는 origin에 포함하지 않는다.
-4. 브라우저 API 키에 웹사이트 referrer 제한과 Drive/Picker API 제한을 적용한다. Picker 공식 안내에 따라 `https://docs.google.com/*` referrer도 확인한다.
+4. 브라우저 API 키에 웹사이트 referrer 제한과 API 제한을 적용한다. 아래 [API 키 제한](#api-키-제한)의 값을 그대로 사용한다.
 5. `.env.example`을 `.env.local`로 복사하고 Client ID, API key, 프로젝트 번호(App ID)를 입력한 뒤 재시작/재빌드한다. 세 값은 공개 브라우저 설정이다. client secret은 절대 포함하지 않는다.
 6. 상단 Google Drive 버튼에서 먼저 `저장 위치 선택`을 누른다. Google 로그인 직후 내 드라이브 루트부터 하위 폴더를 탐색해 저장할 폴더를 선택한다. 폴더 이름을 확인한 뒤 `Drive에서 열기` 또는 `Drive에 저장`을 사용할 수 있다. 이미 연결되어 있으면 로그인 단계를 건너뛴다.
 
@@ -24,6 +24,21 @@ SDK는 Drive 화면을 열 때만 로드하며 기본 로컬 사용 중 맵 콘�
 자동 저장은 로그인·폴더 선택 창을 띄우지 않는다. 일시 오류만 제한적으로 재시도하며 인증 실패·실제 충돌 후에는 중지한다. 새로고침 후에는 로그인·Drive REST 요청을 자동 실행하지 않는다. 미저장 초안의 복구 선택을 먼저 기다리고, 사용자가 `다시 연결`을 누르면 인증 및 폴더 접근 확인 후 기억한 파일을 복원한다. 복원 중 시작한 편집은 덮어쓰지 않는다. 폴더만 선택했던 경우 파일은 만들지 않으며 다음 편집부터 자동 저장한다. 인증 실패·파일 접근 거절 시 저장을 중지하고 현재 편집과 저장 위치를 유지한다. 401은 인증 만료로 처리하고 403은 파일 권한·요청 제한으로 안내하며 유효한 인증을 지우지 않는다. 연결 해제는 즉시 메모리 인증과 기억한 저장 위치를 삭제하고, SDK가 없으면 Identity Services를 로드해 권한 철회를 시도한다. 철회 실패·시간 초과 시 Google 계정 권한 관리 링크를 제공한다. 유효한 토큰이 없는 새로고침 이후에는 앱에서 원격 철회를 할 수 없으므로 Google 계정에서 해제한다. 연결 해제만으로 기기의 초안은 삭제하지 않으며 설정에서 보관을 끄면 삭제한다.
 
 미저장 초안을 복구하면 초안에 함께 보관한 Drive 대상과 원래 버전으로 재연결하며 로컬 편집을 유지한다. 초안에 보관한 마지막 Drive 기준 내용과 현재 편집·원격 내용을 비교해 노드·속성 단위로 병합한다. 같은 속성의 상충되는 수정과 삭제·구조 충돌만 선택을 요청한다. 기준 내용이 없는 이전 초안은 원격 변경 시 기존 충돌 안내로 보호한다. 내용이 이미 동일하면 버전만 갱신한다. 폴더를 사용할 수 없거나 인증을 취소하면 기억한 설정과 로컬 작업을 유지하며 재시도 또는 폴더 변경을 제공한다. 기존 파일이 선택 폴더 밖으로 이동했다면 선택 폴더에 새 사본을 만드는 정책을 유지한다. 새 맵·다른 로컬 파일로 바꾸면 이전 파일 대상은 해제하고 폴더만 유지한다. `연결 해제`는 기억한 설정도 삭제하며 이전 초안이 연결을 되살리지 않는다. 파일 쓰기는 하나씩 실행하고 문서 전환 중 오래된 요청은 무효화한다.
+
+## API 키 제한
+
+API 키는 Picker의 developer key로만 사용한다. Drive 파일 읽기·쓰기는 OAuth 액세스 토큰으로 요청하며 API 키를 보내지 않는다. 키는 빌드 결과에 공개되므로 다른 origin에서의 사용과 다른 API 호출을 제한한다.
+
+| 설정                        | 값                                                                                   |
+| --------------------------- | ------------------------------------------------------------------------------------ |
+| 애플리케이션 제한(웹사이트) | `http://127.0.0.1:5173/*`, `https://<계정>.github.io/*`, `https://docs.google.com/*` |
+| API 제한                    | Google Picker API (Picker가 거부되면 Google Drive API 추가)                          |
+
+- 배포 항목에는 경로를 넣지 않는다. `index.html`의 referrer 정책(`strict-origin-when-cross-origin`)으로 Google에는 `https://<계정>.github.io/`만 전달되므로 `https://<계정>.github.io/Maplet/*`는 일치하지 않는다.
+- `https://docs.google.com/*`가 필요하다. Picker는 `docs.google.com` iframe 안에서 키를 다시 사용하므로 그 요청의 referrer는 앱 origin이 아니다. 이 항목이 없으면 로그인 후 `docs.google.com/picker` 요청이 401을 반환하고 Picker에 "API 개발자 키가 잘못되었습니다"가 표시된다.
+- 키 값은 빌드 시 번들에 들어가므로 키를 바꾸면 재빌드한다. 제한만 바꾼 경우 재빌드는 필요 없지만 반영까지 몇 분 걸린다. 변경 직후의 성공·실패 결과는 이전 설정일 수 있다.
+
+Picker가 열리지 않으면 제한을 모두 해제해 동작을 확인한 뒤 API 제한, 웹사이트 제한 순으로 하나씩 다시 적용한다. 단계마다 몇 분 기다린 뒤 로컬과 배포 origin을 모두 확인한다. 콘솔의 `Cross-Origin-Opener-Policy policy would block the window.closed call` 경고는 Identity Services 팝업에서 정상적으로 발생하며 원인이 아니다.
 
 ## 저장 큐와 속성 병합
 
@@ -45,7 +60,7 @@ SDK는 Drive 화면을 열 때만 로드하며 기본 로컬 사용 중 맵 콘�
 
 ## GitHub Pages 보안 범위
 
-GitHub Pages 정적 배포를 유지하며 인증 유지용 서버·refresh token·client secret을 도입하지 않는다. 메모리 인증도 연결 중 실행되는 XSS나 악성 확장 프로그램으로부터 완전히 격리되지는 않는다. CSP로 외부 스크립트·연결 origin을 제한하고 임의 form 제출·base URL 변경을 차단한다. referrer는 다른 origin에 origin만 전달한다. GitHub Pages 자체의 응답 헤더를 앱에서 설정할 수 없으므로 HttpOnly 서버 세션과 헤더 전용 CSP(frame-ancestors 등)는 제공하지 않는다. API 키 referrer/API 제한 및 Google Cloud OAuth 설정은 배포 운영자가 적용해야 한다. 로컬 Vite는 포트 충돌 시 다른 포트로 자동 변경하지 않는다.
+GitHub Pages 정적 배포를 유지하며 인증 유지용 서버·refresh token·client secret을 도입하지 않는다. 메모리 인증도 연결 중 실행되는 XSS나 악성 확장 프로그램으로부터 완전히 격리되지는 않는다. CSP로 외부 스크립트·연결 origin을 제한하고 임의 form 제출·base URL 변경을 차단한다. referrer는 다른 origin에 origin만 전달한다. GitHub Pages 자체의 응답 헤더를 앱에서 설정할 수 없으므로 HttpOnly 서버 세션과 헤더 전용 CSP(frame-ancestors 등)는 제공하지 않는다. 대신 다른 사이트의 frame 안에서 열리면 앱을 렌더링하지 않아 클릭재킹 overlay를 막는다. API 키 referrer/API 제한 및 Google Cloud OAuth 설정은 배포 운영자가 적용해야 한다. 로컬 Vite는 포트 충돌 시 다른 포트로 자동 변경하지 않는다.
 
 권한 철회 응답은 [Google RevocationResponse](https://developers.google.com/identity/oauth2/web/reference/js-reference#google.accounts.oauth2.revoke)에 따라 확인한다. 운영 계정의 실제 OAuth·Picker·권한 철회는 모킹 테스트와 별도로 확인한다.
 
