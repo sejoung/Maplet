@@ -1,3 +1,4 @@
+import { AppError } from './errors';
 import type { MindMap, NodePosition } from './model';
 
 export function isNodePosition(value: unknown): value is NodePosition {
@@ -15,9 +16,9 @@ export function isNodePosition(value: unknown): value is NodePosition {
 
 export function setNodePositions(map: MindMap, positions: Record<string, NodePosition>): MindMap {
   for (const [id, point] of Object.entries(positions)) {
-    if (!Object.hasOwn(map.nodes, id)) throw new Error('노드를 찾을 수 없습니다.');
+    if (!Object.hasOwn(map.nodes, id)) throw new AppError('노드를 찾을 수 없습니다.');
     if (!isNodePosition(point))
-      throw new Error('노드 위치는 ±1,000,000 범위의 유한한 좌표여야 합니다.');
+      throw new AppError('노드 위치는 ±1,000,000 범위의 유한한 좌표여야 합니다.');
   }
   let nodes = map.nodes;
   for (const [id, point] of Object.entries(positions)) {
@@ -36,7 +37,7 @@ export function positionsForSubtreeMove(
   target: NodePosition,
 ): Record<string, NodePosition> {
   if (!Object.hasOwn(map.nodes, id) || !positions[id])
-    throw new Error('이동할 노드의 위치를 찾을 수 없습니다.');
+    throw new AppError('이동할 노드의 위치를 찾을 수 없습니다.');
   const dx = target.x - positions[id].x;
   const dy = target.y - positions[id].y;
   const result = { ...positions };

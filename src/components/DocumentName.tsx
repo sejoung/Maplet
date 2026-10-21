@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import { Pencil } from 'lucide-react';
 import { renameFilename } from '../application/document-name';
+import { stripMapExtension } from '../domain/filename';
 import { useI18n } from '../i18n/react';
 
 export function DocumentName({
@@ -11,7 +12,7 @@ export function DocumentName({
   onChange(name: string): void;
 }) {
   const { t } = useI18n();
-  const name = filename.replace(/\.(maplet|mup)$/i, '');
+  const name = stripMapExtension(filename);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState('');
   const input = useRef<HTMLInputElement>(null);

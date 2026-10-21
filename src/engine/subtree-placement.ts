@@ -62,6 +62,13 @@ export function proposeSubtreeMove(
   const boxes = layout.nodes.map((node) => ({ ...node, ...positions[node.id] }));
   const boundsFor = (ids: Set<string>) => branchBounds(boxes.filter((node) => ids.has(node.id)));
   const anchored = boundsFor(dragged);
+  // Each pass moves one group; caching the others' bounds keeps a pass linear in node count.
+  const cached = new Map<string, BranchBounds>();
+  const groupBounds = (group: { id: string; ids: Set<string> }) => {
+    let bounds = cached.get(group.id);
+    if (!bounds) cached.set(group.id, (bounds = boundsFor(group.ids)));
+    return bounds;
+  };
   // Partition the remaining tree into sibling subtrees along the dragged
   // node's ancestor path. Ancestors themselves are not enclosing groups.
   const groups = [
@@ -80,7 +87,7 @@ export function proposeSubtreeMove(
   const preferred = Math.abs(dx) > Math.abs(dy) ? [horizontal, vertical] : [vertical, horizontal];
   const directions = [...preferred, ...preferred.map(({ x, y }) => ({ x: -x, y: -y }))];
   for (let pass = 0; pass < boxes.length; pass++) {
-    const obstruction = groups.find((group) => overlaps(boundsFor(group.ids), anchored));
+    const obstruction = groups.find((group) => overlaps(groupBounds(group), anchored));
     if (!obstruction)
       return {
         positions,
@@ -94,10 +101,7 @@ export function proposeSubtreeMove(
       };
     const group = collect(obstruction.id, dragged);
     const moving = boxes.filter((node) => group.has(node.id));
-    const fixed = [
-      anchored,
-      ...groups.filter((other) => !group.has(other.id)).map((other) => boundsFor(other.ids)),
-    ];
+    const fixed = [anchored, ...groups.filter((other) => !group.has(other.id)).map(groupBounds)];
     const saved = [...group].flatMap((key) => (positions[key] ? [positions[key]] : []));
     let best: NodePosition | null = null;
     let distance = Infinity;
@@ -126,6 +130,8 @@ export function proposeSubtreeMove(
       node.y += best.y;
       displaced.add(node.id);
     }
+    for (const other of groups)
+      if ([...other.ids].some((key) => group.has(key))) cached.delete(other.id);
   }
   return null;
 }

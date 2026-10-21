@@ -1,8 +1,9 @@
+import { AppError } from '../domain/errors';
 import {
   DriveAuthError,
   DriveClient,
   DriveConflict,
-  DriveRequestError,
+  retryableDriveError,
   type DriveFile,
 } from '../adapters/drive/client';
 import { nativeFilename } from '../adapters/documents';
@@ -16,10 +17,7 @@ import {
 } from './driveMerge';
 
 const same = sameDriveSnapshot;
-const retryable = (error: unknown) =>
-  error instanceof TypeError ||
-  (error instanceof DriveRequestError &&
-    (error.status === 408 || error.status === 429 || error.status >= 500));
+const retryable = retryableDriveError;
 export interface SaveResult extends DriveSnapshot {
   file: DriveFile;
 }
@@ -53,7 +51,7 @@ export class DriveDocumentSaver {
       work = local;
     let base: DriveSnapshot | null = baseline?.fileId === file.id ? baseline : null;
     for (let attempt = 0; attempt < 3; attempt++) {
-      if (!current()) throw new Error('저장 대상 문서가 변경되었습니다.');
+      if (!current()) throw new AppError('저장 대상 문서가 변경되었습니다.');
       try {
         attempting?.(work);
         const saved =

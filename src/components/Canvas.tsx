@@ -18,7 +18,8 @@ import type { MindMap, NodePosition } from '../domain/model';
 import { layoutWithPositions, type Layout } from '../engine/layout';
 import { proposeSubtreeMove, type PlacementProposal } from '../engine/subtree-placement';
 import { BranchRegions } from './BranchRegions';
-import { fitLayout } from '../engine/fit-layout';
+import { clampZoom } from '../engine/fit-layout';
+import { useViewportFit } from './useViewportFit';
 
 export function Canvas(props: CanvasProps) {
   const { t } = useI18n();
@@ -43,7 +44,6 @@ export function Canvas(props: CanvasProps) {
   const dragPreview =
     preview?.source === map && preview.documentKey === documentKey && !editingId ? preview : null;
   const viewport = useRef<HTMLDivElement>(null);
-  const [size, setSize] = useState({ width: 900, height: 650 });
   const [view, setView] = useState({ x: 0, y: 0, zoom: 0.85 });
   const resizing = useNodeResize(map, baseLayout, view.zoom, props.onResize);
   const layout = dragPreview?.layout ?? resizing.layout;
@@ -90,25 +90,7 @@ export function Canvas(props: CanvasProps) {
   useLayoutEffect(() => {
     layoutRef.current = layout;
   }, [layout]);
-  useLayoutEffect(() => {
-    const observer = new ResizeObserver((entries) => {
-      const rect = entries[0].contentRect;
-      setSize({ width: rect.width, height: rect.height });
-    });
-    observer.observe(viewport.current!);
-    return () => observer.disconnect();
-  }, []);
-  const fit = useCallback(
-    (initial = false) => {
-      const fitted = fitLayout(layoutRef.current, size, initial ? 0.85 : 0.15);
-      setView(fitted);
-      return fitted;
-    },
-    [size],
-  );
-  useEffect(() => {
-    fit(true);
-  }, [documentKey, fit]);
+  const { size, fit } = useViewportFit(viewport, layoutRef, documentKey, setView);
   useEffect(() => {
     if (nodeDrag.current) return;
     const node = layoutRef.current.nodes.find((n) => n.id === selected);
@@ -128,7 +110,7 @@ export function Canvas(props: CanvasProps) {
   const zoomAt = useCallback(
     (factor: number, x = size.width / 2, y = size.height / 2) =>
       setView((current) => {
-        const zoom = Math.max(0.15, Math.min(2.5, current.zoom * factor));
+        const zoom = clampZoom(current.zoom * factor);
         return {
           zoom,
           x: x - ((x - current.x) * zoom) / current.zoom,
@@ -290,7 +272,7 @@ export function Canvas(props: CanvasProps) {
           const rect = viewport.current!.getBoundingClientRect();
           const x = (points[0].x + points[1].x) / 2 - rect.left;
           const y = (points[0].y + points[1].y) / 2 - rect.top;
-          const zoom = Math.max(0.15, Math.min(2.5, (start.zoom * distance) / start.distance));
+          const zoom = clampZoom((start.zoom * distance) / start.distance);
           setView({
             zoom,
             x: x - ((start.x - rect.left - start.vx) * zoom) / start.zoom,
@@ -376,7 +358,15 @@ export function Canvas(props: CanvasProps) {
           ))}
         </svg>
         <CanvasNodes
-          {...props}
+          map={map}
+          selected={selected}
+          editingId={editingId}
+          onSelect={onSelect}
+          onEdit={props.onEdit}
+          onRename={props.onRename}
+          onCancelEdit={props.onCancelEdit}
+          onAdd={props.onAdd}
+          onToggle={props.onToggle}
           layout={layout}
           onDraftChange={onDraftChange}
           resizeHandlers={resizing.handlers}

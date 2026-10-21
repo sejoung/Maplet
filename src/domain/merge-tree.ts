@@ -1,5 +1,7 @@
 import { MAX_DEPTH, MAX_NODE_COUNT, type MindMap } from './model';
-import type { MergeChoices, MergeConflict } from './merge-values';
+import { own } from './ids';
+import { decide, type MergeResolution } from './merge-values';
+import { hasDuplicateRanks, rankMagnitude, renumberRanks } from './ranks';
 
 /** Rebuild redundant child lists from placements and validate the complete tree. */
 export function rebuildTree(map: MindMap): boolean {
@@ -18,14 +20,10 @@ export function rebuildTree(map: MindMap): boolean {
   const sort = (ids: string[]) => {
     ids.sort(
       (a, b) =>
-        Math.abs(Number(map.nodes[a].rank)) - Math.abs(Number(map.nodes[b].rank)) ||
+        rankMagnitude(map.nodes[a].rank) - rankMagnitude(map.nodes[b].rank) ||
         (a < b ? -1 : a > b ? 1 : 0),
     );
-    const ranks = ids.map((id) => map.nodes[id].rank);
-    if (new Set(ranks).size !== ranks.length)
-      ids.forEach((id, index) => {
-        map.nodes[id].rank = String((index + 1) * (map.nodes[id].side === 'left' ? -1 : 1));
-      });
+    if (hasDuplicateRanks(map, ids)) renumberRanks(map, ids);
   };
   sort(map.roots);
   nodes.forEach((node) => sort(node.children));
@@ -46,8 +44,7 @@ export function resolveTree(
   base: MindMap,
   local: MindMap,
   remote: MindMap,
-  conflicts: MergeConflict[],
-  choices: MergeChoices,
+  resolution: MergeResolution,
 ) {
   const affected = new Set<string>();
   for (const node of Object.values(map.nodes)) {
@@ -60,7 +57,7 @@ export function resolveTree(
         break;
       }
       path.push(id);
-      if (!map.nodes[id] || path.length > MAX_DEPTH) {
+      if (!own(map.nodes, id) || path.length > MAX_DEPTH) {
         path.forEach((key) => affected.add(key));
         break;
       }
@@ -92,7 +89,7 @@ export function resolveTree(
     Object.fromEntries(
       [...affected].map((key) => [
         key,
-        tree.nodes[key]
+        own(tree.nodes, key)
           ? {
               title: tree.nodes[key].title,
               parentId: tree.nodes[key].parentId,
@@ -101,22 +98,25 @@ export function resolveTree(
           : null,
       ]),
     );
-  if (!choices[id])
-    conflicts.push({
+  const side = decide(
+    resolution,
+    () => ({
       id,
       nodeId: null,
       path: ['structure'],
       base: describe(base),
       local: describe(local),
       remote: describe(remote),
-    });
-  const chosen = choices[id] === 'remote' ? remote : local;
+    }),
+    id,
+  );
+  const chosen = side === 'remote' ? remote : local;
   for (const key of affected) {
-    const node = chosen.nodes[key];
+    const node = own(chosen.nodes, key);
     if (!node) delete map.nodes[key];
     else
       map.nodes[key] = {
-        ...(map.nodes[key] ?? node),
+        ...(own(map.nodes, key) ?? node),
         parentId: node.parentId,
         rank: node.rank,
         side: node.side,
@@ -127,21 +127,24 @@ export function resolveTree(
     // Both individually valid trees can exceed global limits when combined.
     // Make the larger structural decision explicit rather than losing nodes silently.
     const limitId = JSON.stringify([null, ['structure', 'document']]);
-    if (!choices[limitId])
-      conflicts.push({
+    const fallbackSide = decide(
+      resolution,
+      () => ({
         id: limitId,
         nodeId: null,
         path: ['structure', 'document'],
         base: base.roots,
         local: Object.keys(local.nodes),
         remote: Object.keys(remote.nodes),
-      });
-    const fallback = choices[limitId] === 'remote' ? remote : local;
+      }),
+      limitId,
+    );
+    const fallback = fallbackSide === 'remote' ? remote : local;
     map.nodes = Object.fromEntries(
       Object.values(fallback.nodes).map((node) => [
         node.id,
         {
-          ...(map.nodes[node.id] ?? node),
+          ...(own(map.nodes, node.id) ?? node),
           parentId: node.parentId,
           rank: node.rank,
           side: node.side,

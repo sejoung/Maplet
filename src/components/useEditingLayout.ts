@@ -6,7 +6,12 @@ export function useEditingLayout(map: MindMap, editingId: string | null, documen
   const [draft, setDraft] = useState<{ source: MindMap; id: string; title: string } | null>(null);
   useLayoutEffect(() => setDraft(null), [map, editingId, documentKey]);
   const previewMap = useMemo(() => {
-    if (!draft || draft.source !== map || draft.id !== editingId || !map.nodes[draft.id])
+    if (
+      !draft ||
+      draft.source !== map ||
+      draft.id !== editingId ||
+      !Object.hasOwn(map.nodes, draft.id)
+    )
       return map;
     return {
       ...map,

@@ -1,13 +1,24 @@
-import { MAX_DEPTH, MAX_NODE_COUNT, MAX_TITLE, type MindMap, type MindNode } from './model';
+import {
+  MAX_DEPTH,
+  MAX_NODE_COUNT,
+  MAX_TITLE,
+  type MindMap,
+  type MindNode,
+  type Side,
+} from './model';
+import { AppError, formatCount } from './errors';
+import { isReservedId } from './ids';
+import { equalJson } from './json';
+import { nextRank, placeRank } from './ranks';
 
 function nodeOf(map: MindMap, id: string): MindNode {
-  if (!Object.hasOwn(map.nodes, id)) throw new Error('노드를 찾을 수 없습니다.');
+  if (!Object.hasOwn(map.nodes, id)) throw new AppError('노드를 찾을 수 없습니다.');
   return map.nodes[id];
 }
 
 function titleOf(title: string): string {
   if (!title.trim() || title.length > MAX_TITLE)
-    throw new Error('제목은 1~10,000자로 입력해 주세요.');
+    throw new AppError('제목은 1~{max}자로 입력해 주세요.', { max: formatCount(MAX_TITLE) });
   return title;
 }
 
@@ -20,44 +31,42 @@ export function safeUrl(value: string): boolean {
   }
 }
 
+function createNode(
+  id: string,
+  title: string,
+  parentId: string | null,
+  side: Side,
+  rank: string,
+): MindNode {
+  return {
+    id,
+    originalId: id,
+    title: titleOf(title),
+    children: [],
+    parentId,
+    rank,
+    side,
+    collapsed: false,
+    style: {},
+    notes: '',
+    links: [],
+    position: null,
+    rawExtensions: {},
+  };
+}
+
 export function createMap(title = '중심 주제'): MindMap {
   return {
     formatVersion: 2,
     roots: ['root'],
-    nodes: {
-      root: {
-        id: 'root',
-        originalId: 'root',
-        title: titleOf(title),
-        children: [],
-        parentId: null,
-        rank: '1',
-        side: 'right',
-        collapsed: false,
-        style: {},
-        notes: '',
-        links: [],
-        position: null,
-        rawExtensions: {},
-      },
-    },
+    nodes: { root: createNode('root', title, null, 'right', '1') },
     rawExtensions: {},
     original: null,
     warnings: [],
   };
 }
 
-function nextRank(map: MindMap, siblings: string[], side: 'left' | 'right'): string {
-  const max = Math.max(
-    0,
-    ...siblings
-      .filter((id) => map.nodes[id].side === side)
-      .map((id) => Math.abs(Number(map.nodes[id].rank))),
-  );
-  return String((max + 1) * (side === 'left' ? -1 : 1));
-}
-
-function depthOf(map: MindMap, id: string): number {
+export function depthOf(map: MindMap, id: string): number {
   let depth = 0;
   let current: string | null = id;
   while (current !== null) {
@@ -66,6 +75,8 @@ function depthOf(map: MindMap, id: string): number {
   }
   return depth;
 }
+
+const depthLimit = () => new AppError('최대 노드 깊이는 {max}입니다.', { max: MAX_DEPTH });
 
 export function addNode(
   map: MindMap,
@@ -76,41 +87,21 @@ export function addNode(
 ): MindMap {
   const parent = nodeOf(map, parentId);
   if (afterId && nodeOf(map, afterId).parentId !== parentId)
-    throw new Error('같은 부모 아래의 형제 노드를 선택해 주세요.');
-  if (Object.hasOwn(map.nodes, id) || ['__proto__', 'constructor', 'prototype'].includes(id))
-    throw new Error('중복되거나 사용할 수 없는 노드 ID입니다.');
+    throw new AppError('같은 부모 아래의 형제 노드를 선택해 주세요.');
+  if (Object.hasOwn(map.nodes, id) || isReservedId(id))
+    throw new AppError('중복되거나 사용할 수 없는 노드 ID입니다.');
   if (Object.keys(map.nodes).length >= MAX_NODE_COUNT)
-    throw new Error('최대 5,000개 노드까지 편집할 수 있습니다.');
-  if (depthOf(map, parentId) >= MAX_DEPTH) throw new Error('최대 노드 깊이는 100입니다.');
+    throw new AppError('최대 {max}개 노드까지 편집할 수 있습니다.', {
+      max: formatCount(MAX_NODE_COUNT),
+    });
+  if (depthOf(map, parentId) >= MAX_DEPTH) throw depthLimit();
   const result = structuredClone(map);
   const side = afterId ? nodeOf(map, afterId).side : parent.side;
   const siblings = result.nodes[parentId].children;
-  result.nodes[id] = {
-    id,
-    originalId: id,
-    title: titleOf(title),
-    children: [],
-    parentId,
-    rank: nextRank(map, siblings, side),
-    side,
-    collapsed: false,
-    style: {},
-    notes: '',
-    links: [],
-    position: null,
-    rawExtensions: {},
-  };
+  result.nodes[id] = createNode(id, title, parentId, side, nextRank(map, siblings, side));
   const index = afterId ? siblings.indexOf(afterId) + 1 : siblings.length;
   siblings.splice(index, 0, id);
-  // New siblings get a fractional rank between neighbors; existing ranks remain untouched.
-  if (afterId) {
-    const sameSide = siblings.filter((key) => result.nodes[key].side === side);
-    const pos = sameSide.indexOf(id);
-    const before = Math.abs(Number(result.nodes[afterId].rank));
-    const next = sameSide[pos + 1];
-    const rank = next ? (before + Math.abs(Number(result.nodes[next].rank))) / 2 : before + 1;
-    result.nodes[id].rank = String(rank * (side === 'left' ? -1 : 1));
-  }
+  if (afterId) placeRank(result, siblings, id);
   result.nodes[parentId].collapsed = false;
   return result;
 }
@@ -134,7 +125,7 @@ export function isDescendant(map: MindMap, ancestor: string, candidate: string):
 export function deleteNode(map: MindMap, id: string): MindMap {
   const node = nodeOf(map, id);
   if (node.parentId === null && map.roots.length === 1)
-    throw new Error('마지막 중심 노드는 삭제할 수 없습니다.');
+    throw new AppError('마지막 중심 노드는 삭제할 수 없습니다.');
   const result = structuredClone(map);
   if (node.parentId === null) result.roots = result.roots.filter((key) => key !== id);
   else
@@ -149,25 +140,25 @@ export function deleteNode(map: MindMap, id: string): MindMap {
   return result;
 }
 
-function setSide(map: MindMap, id: string, side: 'left' | 'right') {
+function setSide(map: MindMap, id: string, side: Side) {
   map.nodes[id].side = side;
   map.nodes[id].position = null;
   map.nodes[id].children.forEach((child) => setSide(map, child, side));
+}
+
+function subtreeHeight(map: MindMap, id: string): number {
+  return 1 + Math.max(0, ...map.nodes[id].children.map((child) => subtreeHeight(map, child)));
 }
 
 export function moveNode(map: MindMap, id: string, parentId: string): MindMap {
   const node = nodeOf(map, id);
   const parent = nodeOf(map, parentId);
   if (id === parentId || isDescendant(map, id, parentId))
-    throw new Error('순환 참조가 생기는 이동은 할 수 없습니다.');
-  if (node.parentId === null) throw new Error('중심 노드는 다른 노드 아래로 이동할 수 없습니다.');
+    throw new AppError('순환 참조가 생기는 이동은 할 수 없습니다.');
+  if (node.parentId === null)
+    throw new AppError('중심 노드는 다른 노드 아래로 이동할 수 없습니다.');
   if (node.parentId === parentId) return map;
-  let subtreeDepth = 1;
-  for (const candidate of Object.values(map.nodes))
-    if (isDescendant(map, id, candidate.id))
-      subtreeDepth = Math.max(subtreeDepth, depthOf(map, candidate.id) - depthOf(map, id) + 1);
-  if (depthOf(map, parentId) + subtreeDepth > MAX_DEPTH)
-    throw new Error('최대 노드 깊이는 100입니다.');
+  if (depthOf(map, parentId) + subtreeHeight(map, id) > MAX_DEPTH) throw depthLimit();
   const result = structuredClone(map);
   result.nodes[node.parentId].children = result.nodes[node.parentId].children.filter(
     (key) => key !== id,
@@ -187,29 +178,23 @@ export function updateNode(
 ): MindMap {
   const node = nodeOf(map, id);
   if (patch.links?.some((link) => !safeUrl(link)))
-    throw new Error('링크는 http, https 또는 mailto 주소만 사용할 수 있습니다.');
-  if (
-    Object.entries(patch).every(
-      ([key, value]) => JSON.stringify(node[key as keyof MindNode]) === JSON.stringify(value),
-    )
-  )
+    throw new AppError('링크는 http, https 또는 mailto 주소만 사용할 수 있습니다.');
+  if (Object.entries(patch).every(([key, value]) => equalJson(node[key as keyof MindNode], value)))
     return map;
+  if (patch.side && patch.side !== node.side && node.parentId === null)
+    throw new AppError('중심 노드는 방향을 바꿀 수 없습니다.');
   const result = structuredClone(map);
   Object.assign(result.nodes[id], patch);
   if (patch.side && patch.side !== node.side) {
     let branch = id;
-    while (
-      result.nodes[branch].parentId &&
-      result.nodes[result.nodes[branch].parentId!].parentId !== null
-    )
+    while (result.nodes[result.nodes[branch].parentId!].parentId !== null)
       branch = result.nodes[branch].parentId!;
-    const parentId = result.nodes[branch].parentId;
-    if (parentId)
-      result.nodes[branch].rank = nextRank(
-        map,
-        map.nodes[parentId].children.filter((key) => key !== branch),
-        patch.side,
-      );
+    const parentId = result.nodes[branch].parentId!;
+    result.nodes[branch].rank = nextRank(
+      map,
+      map.nodes[parentId].children.filter((key) => key !== branch),
+      patch.side,
+    );
     setSide(result, branch, patch.side);
   }
   return result;

@@ -1,3 +1,4 @@
+import { AppError } from './errors';
 import type { MindMap, NodePosition } from './model';
 import { updateNode } from './commands';
 import { setNodePositions } from './positions';
@@ -27,9 +28,9 @@ export function resizeNode(
   width: number | null,
   positions: Record<string, NodePosition> = {},
 ): MindMap {
-  if (!Object.hasOwn(map.nodes, id)) throw new Error('노드를 찾을 수 없습니다.');
+  if (!Object.hasOwn(map.nodes, id)) throw new AppError('노드를 찾을 수 없습니다.');
   if (width !== null && sizeValue(width, MIN_NODE_WIDTH) === null)
-    throw new Error('노드 크기 범위를 확인해 주세요.');
+    throw new AppError('노드 크기 범위를 확인해 주세요.');
   const style = { ...map.nodes[id].style };
   if (width !== null) style.width = width;
   else delete style.width;

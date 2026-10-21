@@ -12,14 +12,18 @@ interface BufferedSave extends Snapshot {
 
 /** Write-back cache: one immutable active upload is owned by the caller; retain only its latest successor. */
 export class DriveSaveBuffer {
-  pending: BufferedSave | null = null;
+  private current: BufferedSave | null = null;
   private lastStarted: { key: number; time: number } | null = null;
 
+  get pending(): Readonly<BufferedSave> | null {
+    return this.current;
+  }
+
   stage(key: number, snapshot: Snapshot, now: number, manual = false): boolean {
-    const previous = this.pending?.key === key ? this.pending : null;
+    const previous = this.current?.key === key ? this.current : null;
     const same = previous?.content === snapshot.content && previous.filename === snapshot.filename;
     if (same && (!manual || previous.manual)) return false;
-    this.pending = {
+    this.current = {
       content: snapshot.content,
       filename: snapshot.filename,
       key,
@@ -31,8 +35,8 @@ export class DriveSaveBuffer {
   }
 
   clear(automaticOnly = false): boolean {
-    if (!this.pending || (automaticOnly && this.pending.manual)) return false;
-    this.pending = null;
+    if (!this.current || (automaticOnly && this.current.manual)) return false;
+    this.current = null;
     return true;
   }
 
@@ -41,7 +45,7 @@ export class DriveSaveBuffer {
   }
 
   delay(now: number): number {
-    const request = this.pending;
+    const request = this.current;
     if (!request || request.manual) return 0;
     const earliest =
       this.lastStarted?.key === request.key

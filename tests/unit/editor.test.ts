@@ -11,6 +11,7 @@ import {
 } from '../../src/domain/commands';
 import { createHistory, commit, undo, redo } from '../../src/application/history';
 import { parseMup, serializeMup } from '../../src/adapters/mup/codec';
+import { parseMaplet, serializeMaplet } from '../../src/adapters/maplet/codec';
 
 describe('immutable editing commands', () => {
   it('adds, renames, removes a subtree and preserves the input', () => {
@@ -63,6 +64,23 @@ describe('immutable editing commands', () => {
     doc = addNode(doc, 'root', 'b');
     const updated = updateNode(doc, 'a', { side: 'right' });
     expect(updated.nodes.a.rank).toBe(doc.nodes.a.rank);
+  });
+  it('keeps sibling ranks distinct and reloadable after many insertions at one spot', () => {
+    let doc = addNode(createMap(), 'root', 'a');
+    doc = addNode(doc, 'root', 'b');
+    let previous = 'a';
+    for (let index = 0; index < 80; index++) {
+      doc = addNode(doc, 'root', `n${index}`, 'x', previous);
+      previous = `n${index}`;
+    }
+    const ranks = doc.nodes.root.children.map((id) => doc.nodes[id].rank);
+    expect(new Set(ranks).size).toBe(ranks.length);
+    expect(parseMaplet(serializeMaplet(doc)).nodes.root.children).toEqual(doc.nodes.root.children);
+    expect(doc.nodes.root.children.at(-1)).toBe('b');
+  });
+  it('refuses to change the direction of a central topic', () => {
+    const doc = addNode(createMap(), 'root', 'a');
+    expect(() => updateNode(doc, 'root', { side: 'left' })).toThrow('중심 노드');
   });
   it('inserts siblings between ranks and rejects unrelated sibling anchors', () => {
     let doc = addNode(createMap(), 'root', 'a');

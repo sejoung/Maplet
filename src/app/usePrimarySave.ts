@@ -17,8 +17,7 @@ export function usePrimarySave(drive: DriveController, download: () => void, doc
     if (!target.connected && !target.saveFolder) return current.download();
     if (!target.connected || !target.saveFolder || target.awaitingRestore)
       return target.showDrive();
-    if (target.driveFile && !target.driveDirty && target.autoSaveStatus === 'Drive에 저장됨')
-      return;
+    if (target.driveFile && !target.driveDirty && target.autoSave === 'saved') return;
     void target.saveDrive();
   }, []);
   const saveToDrive = Boolean(drive.connected || drive.saveFolder);
@@ -31,9 +30,9 @@ export function usePrimarySave(drive: DriveController, download: () => void, doc
           hasFolder: Boolean(drive.saveFolder),
           awaitingRestore: drive.awaitingRestore,
           busy: drive.busy,
-          saving: drive.driveStatus === 'Drive 저장 중…',
-          paused: drive.autoSaveStatus === 'Drive 자동 저장 중지',
-          conflict: drive.driveStatus === '충돌 · 현재 편집 유지',
+          saving: drive.activity === 'saving',
+          paused: drive.autoSave === 'stopped',
+          conflict: drive.activity === 'conflict',
           dirty: drive.driveDirty,
           hasFile: Boolean(drive.driveFile),
         })

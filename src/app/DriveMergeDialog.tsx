@@ -4,6 +4,7 @@ import { useI18n } from '../i18n/react';
 import type { DriveMergeConflict } from './driveMerge';
 import type { MergeChoices } from '../domain/merge';
 import { parseMaplet } from '../adapters/maplet/codec';
+import { own } from '../domain/ids';
 
 const labels: Record<string, string> = {
   title: '노드 제목',
@@ -63,7 +64,8 @@ export function DriveMergeDialog({
       </p>
       <div className="merge-conflicts">
         {conflict.conflicts.map((item, index) => {
-          const node = item.nodeId && (local.nodes[item.nodeId] ?? remote.nodes[item.nodeId]);
+          const node =
+            item.nodeId && (own(local.nodes, item.nodeId) ?? own(remote.nodes, item.nodeId));
           const field =
             item.path.map((part) => t(labels[part] ?? part)).join(' · ') ||
             t('노드 삭제 또는 수정');

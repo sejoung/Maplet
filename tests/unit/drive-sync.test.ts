@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { driveSyncStatus } from '../../src/application/drive-sync';
+import { autoSaveState, driveSyncStatus } from '../../src/application/drive-sync';
 
 const saved = {
   connected: true,
@@ -30,3 +30,17 @@ it.each([
     expect(driveSyncStatus({ ...saved, ...changes })).toEqual({ kind, label });
   },
 );
+
+it.each([
+  [{ hasFolder: false }, null],
+  [{ awaitingRestore: true, busy: true }, 'restoring'],
+  [{ awaitingRestore: true }, 'reconnect'],
+  [{ paused: true }, 'stopped'],
+  [{ connected: false }, 'stopped'],
+  [{ busy: true }, 'saving'],
+  [{ dirty: true }, 'waiting'],
+  [{ hasFile: false }, 'ready'],
+  [{}, 'saved'],
+] as const)('derives the autosave state as a kind, not a label: %j', (changes, state) => {
+  expect(autoSaveState({ ...saved, ...changes })).toBe(state);
+});

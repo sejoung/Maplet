@@ -21,6 +21,7 @@ export function DriveDialogs({ controller, save }: { controller: DriveController
     needsReconnect,
     awaitingRestore,
     driveDirty,
+    activity,
     driveStatus,
     driveError,
     showDrive,
@@ -79,7 +80,7 @@ export function DriveDialogs({ controller, save }: { controller: DriveController
                     ? t('Drive 준비 중…')
                     : busy
                       ? t('Drive 작업을 진행하고 있습니다…')
-                      : driveFile && driveDirty && driveStatus === 'Drive에 저장됨'
+                      : driveFile && driveDirty && activity === 'saved'
                         ? t('Drive에 저장한 이후 편집한 변경이 있습니다')
                         : t(driveStatus)}
                 </p>

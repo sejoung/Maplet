@@ -1,9 +1,13 @@
 import type { Layout } from './layout';
 
+export const MIN_ZOOM = 0.15;
+export const MAX_ZOOM = 2.5;
+export const clampZoom = (zoom: number) => Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, zoom));
+
 export function fitLayout(
   layout: Layout,
   viewport: { width: number; height: number },
-  minimumZoom = 0.15,
+  minimumZoom = MIN_ZOOM,
 ) {
   const minX = Math.min(...layout.nodes.map((node) => node.x));
   const minY = Math.min(...layout.nodes.map((node) => node.y));

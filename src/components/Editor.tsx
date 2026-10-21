@@ -22,44 +22,15 @@ import {
   WandSparkles,
 } from 'lucide-react';
 import { EditorHeader } from './EditorHeader';
-import type { DriveSyncStatus } from '../application/drive-sync';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { SettingsDialog } from './SettingsDialog';
 import { ToolbarMenu } from './ToolbarMenu';
 import { useAutoArrange } from './useAutoArrange';
-import { Canvas, type CanvasProps, type CanvasControls } from './Canvas';
-import { NodeToolsDialog, type NodeTool, type NodeToolActions } from './NodeToolsDialog';
+import { Canvas, type CanvasControls } from './Canvas';
+import { NodeToolsDialog, type NodeTool } from './NodeToolsDialog';
+import type { EditorProps } from './editor-types';
+export type { EditorProps } from './editor-types';
 
-export interface EditorProps
-  extends Omit<CanvasProps, 'controlsRef' | 'onZoomChange'>, NodeToolActions {
-  filename: string;
-  onFilenameChange(name: string): void;
-  dirty: boolean;
-  draftStatus: string;
-  error: string | null;
-  notice: string | null;
-  onAutoLayout(): void;
-  onUndo(): void;
-  onRedo(): void;
-  canUndo: boolean;
-  canRedo: boolean;
-  onNew(): void;
-  onOpen(file: File): void;
-  onSave(): void;
-  onDownload(): void;
-  saveToDrive: boolean;
-  driveSync: DriveSyncStatus | null;
-  onExportMup(): void;
-  onBackup(): void;
-  onHelp(): void;
-  onDrive(): void;
-  driveConnected: boolean;
-  driveBusy: boolean;
-  driveSaveStatus: string | null;
-  onDismissError(): void;
-  onDismissNotice(): void;
-  draftPrivacy?: { enabled: boolean; busy: boolean; change(enabled: boolean): void };
-}
 export function Editor(props: EditorProps) {
   const { t } = useI18n();
   const { map, selected } = props;
@@ -116,11 +87,25 @@ export function Editor(props: EditorProps) {
         {t('마인드맵으로 건너뛰기')}
       </a>
       <EditorHeader
-        {...props}
-        editingText={editingText || Boolean(props.editingId)}
+        filename={props.filename}
+        documentKey={props.documentKey}
+        onFilenameChange={props.onFilenameChange}
+        dirty={props.dirty}
         original={map.original}
-        command={command}
+        driveConnected={props.driveConnected}
+        driveBusy={props.driveBusy}
+        driveSync={props.driveSync}
+        saveToDrive={props.saveToDrive}
+        editingText={editingText || Boolean(props.editingId)}
+        onNew={props.onNew}
+        onOpen={props.onOpen}
+        onSave={props.onSave}
+        onDownload={props.onDownload}
+        onExportMup={props.onExportMup}
+        onBackup={props.onBackup}
+        onDrive={props.onDrive}
         onSettings={() => setSettingsOpen(true)}
+        command={command}
       />
       <div role="region" aria-label={t('편집 도구 모음')}>
         <div className="editor-toolbar" role="toolbar" aria-label={t('편집 도구')}>
@@ -331,7 +316,23 @@ export function Editor(props: EditorProps) {
         </div>
       )}
       <main className="workspace" id="workspace" tabIndex={-1}>
-        <Canvas {...props} controlsRef={controls} onZoomChange={setZoom} />
+        <Canvas
+          map={map}
+          selected={selected}
+          documentKey={props.documentKey}
+          onSelect={props.onSelect}
+          onEdit={props.onEdit}
+          editingId={props.editingId}
+          onRename={props.onRename}
+          onCancelEdit={props.onCancelEdit}
+          onAdd={props.onAdd}
+          onDelete={props.onDelete}
+          onToggle={props.onToggle}
+          onResize={props.onResize}
+          onReposition={props.onReposition}
+          controlsRef={controls}
+          onZoomChange={setZoom}
+        />
       </main>
       <footer className="status-bar">
         <div

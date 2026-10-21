@@ -4,7 +4,9 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import ts from 'typescript';
 import english from '../../src/i18n/locales/en.json';
-import { detectLanguage, translate } from '../../src/i18n/core';
+import { detectLanguage, translate, translateMessage } from '../../src/i18n/core';
+import { AppError } from '../../src/domain/errors';
+import { DriveRequestError } from '../../src/adapters/drive/client';
 import {
   getLanguage,
   initializeLanguage,
@@ -42,20 +44,27 @@ describe('language selection and translation', () => {
     expect(translate('Unknown API error', 'en')).toBe('Unknown API error');
     expect(translate('노드 {count}개', 'ko')).toBe('노드 {count}개');
   });
-  it('translates dynamic adapter errors and combined compatibility notices', () => {
-    expect(translate('파일 크기는 10 MiB 이하여야 합니다.', 'en')).toBe(
-      'Files must be 10 MiB or smaller.',
-    );
-    expect(translate('Drive 파일 크기는 50 MiB 이하여야 합니다.', 'en')).toBe(
-      'Drive files must be 50 MiB or smaller.',
-    );
-    expect(translate('Drive 요청이 실패했습니다 (500). 로컬 사본은 유지됩니다.', 'en')).toBe(
+  it('translates structured errors and combined compatibility notices without parsing text', () => {
+    expect(
+      translateMessage(
+        new AppError('파일 크기는 {limit} MiB 이하여야 합니다.', { limit: 10 }),
+        'en',
+      ),
+    ).toBe('Files must be 10 MiB or smaller.');
+    const request = new DriveRequestError(500);
+    expect(request.message).toBe('Drive 요청이 실패했습니다 (500). 로컬 사본은 유지됩니다.');
+    expect(translateMessage(request, 'en')).toBe(
       'Drive request failed (500). Your local copy is safe.',
     );
+    expect(translateMessage(request, 'ko')).toBe(request.message);
     const first = '일부 첨부 콘텐츠는 화면에 표시하지 않고 원본 그대로 보존합니다.';
     const second = '교차 연결·아이콘·리소스는 원본에 보존되며 화면 표현이 제한될 수 있습니다.';
-    expect(translate(`${first} ${second}`, 'en')).toBe(
+    expect(translateMessage([first, second], 'en')).toBe(
       `${translate(first, 'en')} ${translate(second, 'en')}`,
+    );
+    // Pre-formatted text is shown as-is rather than guessed back into a template.
+    expect(translate('Drive 요청이 실패했습니다 (500). 로컬 사본은 유지됩니다.', 'en')).toBe(
+      'Drive 요청이 실패했습니다 (500). 로컬 사본은 유지됩니다.',
     );
   });
   it('persists selection, updates metadata, and notifies subscribers', () => {

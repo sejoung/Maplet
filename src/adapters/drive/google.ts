@@ -1,3 +1,4 @@
+import { AppError } from '../../domain/errors';
 import { translate, type Language } from '../../i18n/core';
 import { clearDriveSession } from './session';
 
@@ -92,7 +93,7 @@ function script(src: string): Promise<void> {
         const timer = window.setTimeout(() => {
           element.remove();
           scripts.delete(src);
-          reject(new Error('Google 연결 시간이 초과되었습니다.'));
+          reject(new AppError('Google 연결 시간이 초과되었습니다.'));
         }, 15000);
         element.onload = () => {
           clearTimeout(timer);
@@ -102,7 +103,7 @@ function script(src: string): Promise<void> {
           clearTimeout(timer);
           scripts.delete(src);
           element.remove();
-          reject(new Error('Google 연결을 불러오지 못했습니다. 네트워크를 확인해 주세요.'));
+          reject(new AppError('Google 연결을 불러오지 못했습니다. 네트워크를 확인해 주세요.'));
         };
         document.head.append(element);
       }),
@@ -115,6 +116,7 @@ export class GoogleConnection {
   private expiresAt = 0;
   private generation = 0;
   constructor(readonly config: GoogleConfig) {
+    // Every connection starts memory-only, even if an older release stored credentials.
     clearDriveSession();
   }
   getToken = (): string | null => {
@@ -138,15 +140,15 @@ export class GoogleConnection {
     await new Promise<void>((resolve, reject) =>
       window.gapi!.load('picker', {
         callback: resolve,
-        onerror: () => reject(new Error('Picker를 불러오지 못했습니다.')),
+        onerror: () => reject(new AppError('Picker를 불러오지 못했습니다.')),
         timeout: 15000,
-        ontimeout: () => reject(new Error('Picker 연결 시간 초과')),
+        ontimeout: () => reject(new AppError('Picker 연결 시간 초과')),
       }),
     );
   }
 
   async connect(): Promise<void> {
-    if (!window.google?.accounts) throw new Error('Google 연결 준비 후 다시 눌러 주세요.');
+    if (!window.google?.accounts) throw new AppError('Google 연결 준비 후 다시 눌러 주세요.');
     const generation = ++this.generation;
     await new Promise<void>((resolve, reject) => {
       const client = window.google!.accounts.oauth2.initTokenClient({
@@ -154,18 +156,18 @@ export class GoogleConnection {
         scope: 'https://www.googleapis.com/auth/drive.file',
         callback: (result) => {
           if (generation !== this.generation) {
-            reject(new Error('Google Drive 연결 요청이 취소되었습니다.'));
+            reject(new AppError('Google Drive 연결 요청이 취소되었습니다.'));
             return;
           }
           if (result.error || !result.access_token) {
-            reject(new Error('Google Drive 권한이 취소되었습니다.'));
+            reject(new AppError('Google Drive 권한이 취소되었습니다.'));
             return;
           }
           this.token = result.access_token;
           this.expiresAt = Date.now() + Math.max(0, (result.expires_in ?? 3600) - 30) * 1000;
           resolve();
         },
-        error_callback: () => reject(new Error('Google 로그인 창이 닫혔거나 차단되었습니다.')),
+        error_callback: () => reject(new AppError('Google 로그인 창이 닫혔거나 차단되었습니다.')),
       });
       client.requestAccessToken({ prompt: '' });
     });
@@ -176,7 +178,7 @@ export class GoogleConnection {
     language: Language = 'ko',
   ): Promise<GoogleSelection | null> {
     const token = this.getToken();
-    if (!token) throw new Error('먼저 Google Drive에 연결해 주세요.');
+    if (!token) throw new AppError('먼저 Google Drive에 연결해 주세요.');
     return new Promise((resolve) => {
       const api = window.google!.picker;
       const view = new api.DocsView(api.ViewId.DOCS)
@@ -227,7 +229,7 @@ export class GoogleConnection {
         }
       });
     } catch {
-      throw new Error(
+      throw new AppError(
         '이 기기의 연결은 해제했지만 Google 권한 철회를 확인하지 못했습니다. Google 계정에서 앱 권한을 해제해 주세요.',
       );
     }

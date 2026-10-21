@@ -2,8 +2,8 @@ import english from './locales/en.json';
 
 export type Language = 'ko' | 'en';
 export type Parameters = Record<string, string | number>;
-type Message = string | { one: string; other: string };
-const messages: Record<string, Message> = english;
+type CatalogEntry = string | { one: string; other: string };
+const messages: Record<string, CatalogEntry> = english;
 
 export function detectLanguage(preferred: readonly string[], saved?: string | null): Language {
   if (saved === 'ko' || saved === 'en') return saved;
@@ -20,48 +20,31 @@ function interpolate(message: string, parameters: Parameters): string {
   );
 }
 
-// Match parameterized errors produced by the language-independent adapters.
-const templates = Object.keys(messages)
-  .filter((key) => key.includes('{'))
-  .map((key) => {
-    const names: string[] = [];
-    const pattern = key
-      .split(/(\{\w+\})/)
-      .map((part) => {
-        if (/^\{\w+\}$/.test(part)) {
-          names.push(part.slice(1, -1));
-          return '(.+?)';
-        }
-        return part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      })
-      .join('');
-    return { key, names, pattern: new RegExp(`^${pattern}$`) };
-  });
-
 export function translate(
   message: string,
   language: Language,
   parameters: Parameters = {},
 ): string {
-  if (language === 'ko') return interpolate(message, parameters);
-  if (Object.hasOwn(messages, message)) {
-    const value = messages[message];
-    const translated =
-      typeof value === 'string' ? value : Number(parameters.count) === 1 ? value.one : value.other;
-    return interpolate(translated, parameters);
-  }
-  for (const template of templates) {
-    const match = template.pattern.exec(message);
-    if (match) {
-      const values = Object.fromEntries(
-        template.names.map((key, index) => [key, match[index + 1]]),
-      );
-      return translate(template.key, language, values);
-    }
-  }
-  // Imported files can contribute several independent compatibility notices.
-  const sentences = message.split(/(?<=\.)\s+(?=[가-힣])/u);
-  return sentences.length > 1
-    ? sentences.map((part) => translate(part, language)).join(' ')
-    : message;
+  if (language === 'ko' || !Object.hasOwn(messages, message))
+    return interpolate(message, parameters);
+  const value = messages[message];
+  const translated =
+    typeof value === 'string' ? value : Number(parameters.count) === 1 ? value.one : value.other;
+  return interpolate(translated, parameters);
 }
+
+/** Matches the domain `Message` structurally, keeping i18n free of other layers. */
+export interface Message {
+  key: string;
+  params?: Parameters;
+}
+/** Catalog key, structured message (e.g. an error), or independent notices shown together. */
+export type Translatable = string | Message | readonly Translatable[];
+
+export function translateMessage(message: Translatable, language: Language): string {
+  if (typeof message === 'string') return translate(message, language);
+  if (isList(message)) return message.map((part) => translateMessage(part, language)).join(' ');
+  return translate(message.key, language, message.params);
+}
+const isList = (message: Translatable): message is readonly Translatable[] =>
+  Array.isArray(message);

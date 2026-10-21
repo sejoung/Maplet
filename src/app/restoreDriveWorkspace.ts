@@ -63,3 +63,36 @@ export async function restoreDriveWorkspace(
     merged,
   };
 }
+
+type Restored = Awaited<ReturnType<typeof restoreDriveWorkspace>>;
+interface LocalState {
+  keepLocal: boolean;
+  /** Restoring a workspace remembered from a previous visit rather than this session. */
+  remembered: boolean;
+  content: string;
+  filename: string;
+  synced: { content: string | null; filename: string | null };
+}
+
+/** What counts as saved to Drive after reconnecting a workspace. */
+export function restoredSyncState(restored: Restored, local: LocalState) {
+  const { document, file } = restored;
+  let content: string | null = document?.content ?? local.content;
+  if (!document && local.keepLocal)
+    content = local.remembered ? null : (local.synced.content ?? local.content);
+  const filename =
+    document?.filename ??
+    (local.keepLocal && !local.remembered
+      ? (local.synced.filename ?? local.filename)
+      : local.filename);
+  const baseline: DriveBaseline | null =
+    file && document
+      ? {
+          fileId: file.id,
+          version: file.version,
+          content: document.content,
+          filename: document.filename,
+        }
+      : null;
+  return { baseline, content, filename };
+}

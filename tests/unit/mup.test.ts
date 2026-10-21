@@ -70,3 +70,16 @@ describe('MUP compatibility and data ownership', () => {
     expect(() => parseMup('{"id":1,"title":"x","unknown":1e999}')).toThrow();
   });
 });
+
+it('keeps unsafe hyperlinks out of the model but preserves them in an unchanged export', () => {
+  const source = JSON.stringify({
+    formatVersion: 2,
+    id: 1,
+    title: 'Root',
+    attr: { hyperlink: 'javascript:alert(1)' },
+  });
+  const map = parseMup(source);
+  expect(map.nodes['1'].links).toEqual([]);
+  expect(map.warnings).toContain('안전하지 않은 링크는 열 수 없도록 제외했습니다.');
+  expect(JSON.parse(serializeMup(map)).attr.hyperlink).toBe('javascript:alert(1)');
+});

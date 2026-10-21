@@ -112,14 +112,14 @@ export function layoutMap(map: MindMap, measureText?: TextMeasurer): Layout {
     node.y -= minY;
   });
   const manual = Object.values(map.nodes).some((node) => node.position !== null);
-  const occupied: LayoutNode[] = [];
+  const occupied = new OccupiedRows();
   const byId = new Map(nodes.map((node) => [node.id, node]));
   for (const node of nodes) {
     const point = map.nodes[node.id].position;
     if (point) {
       node.x = point.x;
       node.y = point.y;
-      occupied.push(node);
+      if (manual) occupied.add(node);
     }
   }
   for (const node of nodes) {
@@ -132,19 +132,9 @@ export function layoutMap(map: MindMap, measureText?: TextMeasurer): Layout {
           ? parent.x + parent.width + LEVEL_GAP
           : parent.x - node.width - LEVEL_GAP;
       node.y = parent.y + (parent.height - node.height) / 2;
-      let collision: LayoutNode | undefined;
-      while (
-        (collision = occupied.find(
-          (other) =>
-            node.x < other.x + other.width + 24 &&
-            node.x + node.width + 24 > other.x &&
-            node.y < other.y + other.height + 24 &&
-            node.y + node.height + 24 > other.y,
-        ))
-      )
-        node.y = collision.y + collision.height + 24;
+      occupied.moveBelowCollisions(node);
     }
-    occupied.push(node);
+    if (manual) occupied.add(node);
   }
   return finishLayout(
     nodes,
@@ -153,6 +143,51 @@ export function layoutMap(map: MindMap, measureText?: TextMeasurer): Layout {
       .map((node) => ({ from: map.nodes[node.id].parentId!, to: node.id, branch: node.branch })),
     !manual,
   );
+}
+
+const CLEARANCE = 24;
+
+/** Placed boxes ordered by top edge, so a collision search only visits nearby rows. */
+class OccupiedRows {
+  private boxes: LayoutNode[] = [];
+  private tallest = 0;
+
+  add(box: LayoutNode) {
+    let low = 0,
+      high = this.boxes.length;
+    while (low < high) {
+      const middle = (low + high) >> 1;
+      if (this.boxes[middle].y <= box.y) low = middle + 1;
+      else high = middle;
+    }
+    this.boxes.splice(low, 0, box);
+    this.tallest = Math.max(this.tallest, box.height);
+  }
+
+  /**
+   * Move `node` down to the first free slot. It only moves downward, so one sweep in top
+   * order reaches the same slot as rescanning every box after each move.
+   */
+  moveBelowCollisions(node: LayoutNode) {
+    const reach = node.y - this.tallest - CLEARANCE;
+    let index = 0,
+      high = this.boxes.length;
+    while (index < high) {
+      const middle = (index + high) >> 1;
+      if (this.boxes[middle].y < reach) index = middle + 1;
+      else high = middle;
+    }
+    for (; index < this.boxes.length; index++) {
+      const other = this.boxes[index];
+      if (other.y >= node.y + node.height + CLEARANCE) break;
+      if (
+        node.x < other.x + other.width + CLEARANCE &&
+        node.x + node.width + CLEARANCE > other.x &&
+        node.y < other.y + other.height + CLEARANCE
+      )
+        node.y = other.y + other.height + CLEARANCE;
+    }
+  }
 }
 
 function finishLayout(

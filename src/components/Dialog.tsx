@@ -1,5 +1,5 @@
 import { useI18n } from '../i18n/react';
-import { useEffect, useId, useRef, type ReactNode } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, type ReactNode } from 'react';
 import { X } from 'lucide-react';
 
 export function Dialog({
@@ -14,6 +14,11 @@ export function Dialog({
   const { t } = useI18n();
   const ref = useRef<HTMLDivElement>(null);
   const titleId = useId();
+  // Callers may pass inline handlers; focus setup must still run only on open and close.
+  const close = useRef(onClose);
+  useLayoutEffect(() => {
+    close.current = onClose;
+  });
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
     const dialog = ref.current!;
@@ -26,7 +31,7 @@ export function Dialog({
     const key = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault();
-        onClose();
+        close.current();
       }
       if (event.key === 'Tab') {
         const items = controls();
@@ -44,7 +49,7 @@ export function Dialog({
       dialog.removeEventListener('keydown', key);
       previous?.focus();
     };
-  }, [onClose]);
+  }, []);
   return (
     <div className="dialog-backdrop">
       <div

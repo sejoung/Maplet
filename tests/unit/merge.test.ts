@@ -7,7 +7,7 @@ import {
   deleteNode,
   moveNode,
 } from '../../src/domain/commands';
-import { mergeMaps } from '../../src/domain/merge';
+import { changedNodes, mergeMaps } from '../../src/domain/merge';
 import { mergeHistory } from '../../src/application/merge-history';
 import { commit, createHistory, undo, redo } from '../../src/application/history';
 import { parseMaplet, serializeMaplet } from '../../src/adapters/maplet/codec';
@@ -26,6 +26,35 @@ describe('three-way node/property merge', () => {
     expect(result.map.nodes.b.title).toBe('Theirs');
     expect([base, local, remote]).toEqual(before);
     valid(result.map);
+  });
+  it('treats IDs named like inherited object members as absent when deleted', () => {
+    for (const id of ['plain', 'toString', 'valueOf']) {
+      const withNode = addNode(base, 'root', id, 'Inherited name');
+      const deleted = mergeMaps(withNode, withNode, base);
+      expect(deleted.conflicts).toEqual([]);
+      expect(Object.hasOwn(deleted.map.nodes, id)).toBe(false);
+      const added = mergeMaps(base, withNode, base);
+      expect(added.conflicts).toEqual([]);
+      expect(added.map.nodes[id].title).toBe('Inherited name');
+    }
+  });
+  it('resolves every discovered conflict in one pass with a preferred side', () => {
+    const local = renameNode(base, 'a', 'Mine'),
+      remote = renameNode(base, 'a', 'Theirs');
+    const result = mergeMaps(base, local, remote, {}, { prefer: 'remote' });
+    expect(result.conflicts).toHaveLength(1);
+    expect(result.map.nodes.a.title).toBe('Theirs');
+    expect(mergeMaps(base, local, remote, {}, { prefer: 'local' }).map.nodes.a.title).toBe('Mine');
+  });
+  it('gives the same result when reusing a precomputed remote diff', () => {
+    const local = renameNode(deleteNode(base, 'b'), 'a', 'Mine');
+    const remote = addNode(renameNode(base, 'a', 'Theirs'), 'a', 'c', 'C');
+    const remoteChanges = changedNodes(base, remote);
+    expect([...remoteChanges].sort()).toEqual(['a', 'c']);
+    for (const prefer of ['local', 'remote'] as const)
+      expect(mergeMaps(base, local, remote, {}, { prefer, remoteChanges })).toEqual(
+        mergeMaps(base, local, remote, {}, { prefer }),
+      );
   });
   it('merges distinct properties and individual nested style keys on the same node', () => {
     const local = updateNode(renameNode(base, 'a', 'Mine'), 'a', {

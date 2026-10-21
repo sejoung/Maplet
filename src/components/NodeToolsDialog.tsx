@@ -1,5 +1,5 @@
 import { useI18n } from '../i18n/react';
-import { useCallback, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Search } from 'lucide-react';
 import type { MindMap, MindNode } from '../domain/model';
 import { isDescendant, safeUrl } from '../domain/commands';
@@ -44,9 +44,16 @@ export function NodeToolsDialog({
   const [parent, setParent] = useState(node.parentId ?? '');
   const [query, setQuery] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const close = useCallback(onClose, [onClose]);
+  const matches = useMemo(() => {
+    const term = query.trim().toLocaleLowerCase();
+    return term
+      ? Object.values(map.nodes).filter((candidate) =>
+          candidate.title.toLocaleLowerCase().includes(term),
+        )
+      : null;
+  }, [map, query]);
   return (
-    <Dialog title={t(titles[tool])} onClose={close}>
+    <Dialog title={t(titles[tool])} onClose={onClose}>
       {tool !== 'search' && (
         <p className="tool-selection" title={node.title}>
           {node.title}
@@ -181,30 +188,23 @@ export function NodeToolsDialog({
             />
           </div>
           <div className="search-results" aria-live="polite">
-            {query.trim() ? (
-              Object.values(map.nodes)
-                .filter((candidate) =>
-                  candidate.title.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()),
-                )
-                .map((candidate) => (
-                  <button
-                    className="search-result"
-                    key={candidate.id}
-                    onClick={() => {
-                      onSelect(candidate.id);
-                      onClose();
-                    }}
-                  >
-                    {candidate.title}
-                  </button>
-                ))
+            {matches ? (
+              matches.map((candidate) => (
+                <button
+                  className="search-result"
+                  key={candidate.id}
+                  onClick={() => {
+                    onSelect(candidate.id);
+                    onClose();
+                  }}
+                >
+                  {candidate.title}
+                </button>
+              ))
             ) : (
               <p className="muted">{t('제목으로 노드를 검색합니다.')}</p>
             )}
-            {query.trim() &&
-              !Object.values(map.nodes).some((candidate) =>
-                candidate.title.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()),
-              ) && <p className="muted">{t('검색 결과가 없습니다.')}</p>}
+            {matches?.length === 0 && <p className="muted">{t('검색 결과가 없습니다.')}</p>}
           </div>
         </>
       )}

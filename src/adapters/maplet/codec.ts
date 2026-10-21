@@ -7,8 +7,15 @@ import {
   type MindNode,
 } from '../../domain/model';
 import { isNodePosition } from '../../domain/positions';
+import { safeUrl } from '../../domain/commands';
+import { AppError, formatCount } from '../../domain/errors';
+import { isNodeId } from '../../domain/ids';
+import { isJsonObject, parseFiniteJson } from '../../domain/json';
+import { hasDuplicateRanks, renumberRanks } from '../../domain/ranks';
+import { assertSize, MAX_MAPLET_BYTES, utf8Length } from '../limits';
 
-export const MAX_MAPLET_BYTES = 50 * 1024 * 1024;
+export { MAX_MAPLET_BYTES } from '../limits';
+export const UNSAFE_LINK_WARNING = '안전하지 않은 링크는 열 수 없도록 제외했습니다.';
 const nodeFields = [
   'id',
   'title',
@@ -24,60 +31,59 @@ const nodeFields = [
 ];
 const documentFields = ['format', 'version', 'roots', 'nodes'];
 
-function object(value: unknown): value is JsonObject {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
-}
+const object = isJsonObject;
 const obj = (value: unknown): JsonObject => (object(value) ? value : {});
 function strings(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === 'string');
 }
 const extensions = (raw: JsonObject, known: string[]): JsonObject =>
   Object.fromEntries(Object.entries(raw).filter(([key]) => !known.includes(key)));
-const validId = (value: unknown): value is string =>
-  typeof value === 'string' &&
-  value.length > 0 &&
-  !['__proto__', 'constructor', 'prototype'].includes(value);
+const validId = isNodeId;
 function invalid(): never {
-  throw new Error('Maplet 문서의 노드·계층·속성 형식이 올바르지 않습니다.');
+  throw new AppError('Maplet 문서의 노드·계층·속성 형식이 올바르지 않습니다.');
 }
 
+/** Children order is authoritative; colliding ranks (older releases could create them) are repaired. */
 function validateTree(map: MindMap) {
   const visited = new Set<string>();
   const visit = (id: string, parent: string | null, depth: number) => {
-    if (depth > MAX_DEPTH) throw new Error('최대 노드 깊이는 100입니다.');
+    if (depth > MAX_DEPTH) throw new AppError('최대 노드 깊이는 {max}입니다.', { max: MAX_DEPTH });
     if (!Object.hasOwn(map.nodes, id) || visited.has(id)) invalid();
     const node = map.nodes[id];
     if (node.parentId !== parent) invalid();
     visited.add(id);
-    const ranks = node.children.map((child) => map.nodes[child]?.rank);
-    if (new Set(ranks).size !== ranks.length) invalid();
     node.children.forEach((child) => visit(child, id, depth + 1));
   };
   map.roots.forEach((id) => visit(id, null, 1));
   if (visited.size !== Object.keys(map.nodes).length) invalid();
-  const rootRanks = map.roots.map((id) => map.nodes[id].rank);
-  if (new Set(rootRanks).size !== rootRanks.length) invalid();
+  for (const ids of [map.roots, ...Object.values(map.nodes).map((node) => node.children)])
+    if (hasDuplicateRanks(map, ids)) renumberRanks(map, ids);
 }
 
 export function parseMaplet(source: string): MindMap {
-  if (new TextEncoder().encode(source).byteLength > MAX_MAPLET_BYTES)
-    throw new Error('Maplet 파일 크기는 50 MiB 이하여야 합니다.');
+  assertSize(
+    utf8Length(source),
+    MAX_MAPLET_BYTES,
+    'Maplet 파일 크기는 {limit} MiB 이하여야 합니다.',
+  );
   let raw: unknown;
   try {
-    raw = JSON.parse(source, (_key, value: unknown) => {
-      if (typeof value === 'number' && !Number.isFinite(value)) throw new Error('숫자 범위 초과');
-      return value;
-    });
+    raw = parseFiniteJson(source);
   } catch {
-    throw new Error('올바른 JSON 파일이 아니거나 숫자 범위를 초과했습니다.');
+    throw new AppError('올바른 JSON 파일이 아니거나 숫자 범위를 초과했습니다.');
   }
-  if (!object(raw) || raw.format !== 'maplet') throw new Error('Maplet 문서가 아닙니다.');
-  if (raw.version !== 1) throw new Error('지원하지 않는 Maplet 파일 버전입니다.');
+  return mapletFromJson(raw);
+}
+
+/** Validate an already parsed document; callers own the size check. */
+export function mapletFromJson(raw: unknown): MindMap {
+  if (!object(raw) || raw.format !== 'maplet') throw new AppError('Maplet 문서가 아닙니다.');
+  if (raw.version !== 1) throw new AppError('지원하지 않는 Maplet 파일 버전입니다.');
   if (!strings(raw.roots) || !raw.roots.length || !raw.roots.every(validId) || !object(raw.nodes))
     invalid();
   const entries = Object.entries(raw.nodes);
   if (!entries.length || entries.length > MAX_NODE_COUNT)
-    throw new Error('노드는 1~5,000개여야 합니다.');
+    throw new AppError('노드는 1~{max}개여야 합니다.', { max: formatCount(MAX_NODE_COUNT) });
   if (raw.compatibility !== undefined && !object(raw.compatibility)) invalid();
   const compatibility = obj(raw.compatibility);
   const legacy = obj(compatibility.mindmup);
@@ -96,6 +102,7 @@ export function parseMaplet(source: string): MindMap {
   if (legacy.warnings !== undefined && !strings(legacy.warnings)) invalid();
   const metadata = obj(legacy.nodes);
   const nodes: Record<string, MindNode> = {};
+  let unsafeLinks = false;
   for (const [id, node] of entries) {
     if (
       !validId(id) ||
@@ -143,6 +150,9 @@ export function parseMaplet(source: string): MindMap {
     )
       invalid();
     if (meta.raw !== undefined && !object(meta.raw)) invalid();
+    // Only openable links enter the model; imported files are untrusted.
+    const links = node.links.filter(safeUrl);
+    if (links.length !== node.links.length) unsafeLinks = true;
     nodes[id] = {
       id,
       originalId: (meta.originalId as string | number) ?? id,
@@ -154,7 +164,7 @@ export function parseMaplet(source: string): MindMap {
       collapsed: node.collapsed,
       style: { ...node.style },
       notes: node.notes,
-      links: [...node.links],
+      links,
       position: node.position ? { x: node.position.x, y: node.position.y } : null,
       rawExtensions: obj(meta.raw),
       nativeExtensions: extensions(node, nodeFields),
@@ -169,6 +179,8 @@ export function parseMaplet(source: string): MindMap {
     warnings: strings(legacy.warnings) ? [...legacy.warnings] : [],
     nativeExtensions: extensions(raw, documentFields),
   };
+  if (unsafeLinks && !map.warnings.includes(UNSAFE_LINK_WARNING))
+    map.warnings.push(UNSAFE_LINK_WARNING);
   validateTree(map);
   return map;
 }

@@ -160,13 +160,6 @@ describe('Maplet native format v1', () => {
       },
     ],
     [
-      'duplicate rank',
-      (raw: ReturnType<typeof document>) => {
-        raw.nodes.extra = { ...raw.nodes.child, id: 'extra' };
-        raw.nodes.root.children.push('extra');
-      },
-    ],
-    [
       'invalid position',
       (raw: ReturnType<typeof document>) => {
         raw.nodes.child.position = { x: 1_000_001, y: 0 };
@@ -188,6 +181,22 @@ describe('Maplet native format v1', () => {
     const raw = document();
     change(raw);
     expect(() => parseMaplet(JSON.stringify(raw))).toThrow();
+  });
+  it('repairs colliding sibling ranks in children order instead of refusing the document', () => {
+    const raw = document();
+    raw.nodes.extra = { ...raw.nodes.child, id: 'extra' };
+    raw.nodes.root.children.push('extra');
+    const map = parseMaplet(JSON.stringify(raw));
+    expect(map.nodes.root.children).toEqual(['child', 'extra']);
+    expect(map.nodes.child.rank).not.toBe(map.nodes.extra.rank);
+    expect(parseMaplet(serializeMaplet(map)).nodes.root.children).toEqual(['child', 'extra']);
+  });
+  it('keeps only openable links and reports the removal', () => {
+    const raw = document();
+    raw.nodes.child.links = ['javascript:alert(1)', 'https://example.com'];
+    const map = parseMaplet(JSON.stringify(raw));
+    expect(map.nodes.child.links).toEqual(['https://example.com']);
+    expect(map.warnings).toContain('안전하지 않은 링크는 열 수 없도록 제외했습니다.');
   });
   it('rejects malformed JSON, unsupported identifiers and non-finite extension numbers', () => {
     expect(() => parseMaplet('{bad')).toThrow(/JSON/);

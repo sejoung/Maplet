@@ -1,4 +1,5 @@
 import type { MindMap, MindNode, Side } from '../domain/model';
+import { signedRank } from '../domain/ranks';
 import type { TextMeasurer } from './node-measure';
 import { BRANCH_GAP, measureTree } from './tree-measure';
 
@@ -38,7 +39,7 @@ export function autoArrange(map: MindMap, measureText?: TextMeasurer): MindMap {
     children.forEach((id, index) => {
       const side = sides.get(id)!;
       // Distinct absolute ranks retain the global sibling order in MUP too.
-      branch(id, side, String((index + 1) * (side === 'left' ? -1 : 1)));
+      branch(id, side, signedRank(index + 1, side));
     });
   }
   return nodes === map.nodes ? map : { ...map, nodes };

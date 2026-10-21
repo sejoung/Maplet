@@ -162,3 +162,20 @@ describe('Drive transport contracts', () => {
     expect(parts[2].split('\r\n\r\n')[1]).toBe(content + '\r\n');
   });
 });
+
+it('times out a stalled download body instead of hanging the save', async () => {
+  vi.useFakeTimers();
+  try {
+    const stalled = new Response(new ReadableStream({ start() {} }), { status: 200 });
+    const fetcher = vi
+      .fn()
+      .mockResolvedValueOnce(response({ id: 'f', name: 'a.maplet', version: '1', size: '2' }))
+      .mockResolvedValueOnce(stalled);
+    const opening = new DriveClient(() => 'token', fetcher).open('f');
+    const outcome = expect(opening).rejects.toMatchObject({ status: 408 });
+    await vi.advanceTimersByTimeAsync(30_000);
+    await outcome;
+  } finally {
+    vi.useRealTimers();
+  }
+});
