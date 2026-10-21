@@ -89,6 +89,10 @@
 .settings-button {
   flex-shrink: 0;
 }
+a.button {
+  color: inherit;
+  text-decoration: none;
+}
 .drive-button.connected {
   color: var(--accent);
   background: var(--accent-soft);

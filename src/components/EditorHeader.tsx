@@ -1,7 +1,9 @@
 import { useI18n } from '../i18n/react';
+import { manualPath } from '../i18n/locale';
 import { useRef } from 'react';
 import {
   ArrowDownToLine,
+  BookOpen,
   Cloud,
   CloudUpload,
   Copy,
@@ -47,7 +49,7 @@ interface HeaderProps {
   command(action: () => void): () => void;
 }
 export function EditorHeader(props: HeaderProps) {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const input = useRef<HTMLInputElement>(null);
   const { command } = props;
   const download = t('header.downloadMaplet');
@@ -163,6 +165,17 @@ export function EditorHeader(props: HeaderProps) {
             <span>{t('header.download')}</span>
           </button>
         )}
+        <a
+          className="button settings-button guide-button"
+          href={manualPath(language)}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={t('header.userGuide')}
+          title={t('header.userGuide')}
+        >
+          <BookOpen size={16} />
+          <span>{t('header.userGuide')}</span>
+        </a>
         <button
           className="button settings-button"
           aria-label={t('common.settings')}

@@ -1,4 +1,5 @@
 import { useI18n } from '../i18n/react';
+import { manualPath } from '../i18n/locale';
 import { Dialog } from './Dialog';
 
 export function ShortcutHelpDialog({
@@ -8,10 +9,15 @@ export function ShortcutHelpDialog({
   onClose(): void;
   saveToDrive?: boolean;
 }) {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   return (
     <Dialog title={t('shortcuts.keyboardShortcuts')} onClose={onClose}>
       <p className="muted">{t('shortcuts.selectNodeCanvasFirst')}</p>
+      <p>
+        <a href={manualPath(language)} target="_blank" rel="noopener noreferrer">
+          {t('shortcuts.openManual')}
+        </a>
+      </p>
       <dl className="shortcut-list">
         {[
           ['Tab', 'common.addChildNode'],

@@ -1,0 +1,753 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; img-src 'self'; style-src 'self'; base-uri 'none'; form-action 'none'"
+    />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <meta name="description" content="How to use the Maplet mind map editor, feature by feature" />
+    <title>Maplet User Guide</title>
+    <link rel="icon" href="../../icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="../manual.css" />
+  </head>
+  <body>
+    <header class="top">
+      <a class="brand" href="../../index.html">
+        <img src="../../icon.svg" alt="" width="28" height="28" />
+        <span>Maplet <small>User guide</small></span>
+      </a>
+      <nav class="top-links" aria-label="Language and editor">
+        <a href="../index.html" hreflang="ko" lang="ko">한국어</a>
+        <a class="open-editor" href="../../index.html">Open the editor</a>
+      </nav>
+    </header>
+    <div class="layout">
+      <nav class="toc" aria-label="Contents">
+        <p class="toc-title">Contents</p>
+        <ol>
+          <li><a href="#start">Getting started</a></li>
+          <li><a href="#edit">Creating and editing nodes</a></li>
+          <li><a href="#menus">Node and map menus</a></li>
+          <li><a href="#select">Selecting several nodes</a></li>
+          <li><a href="#drag">Dragging</a></li>
+          <li><a href="#style">Formatting and markers</a></li>
+          <li><a href="#notes">Notes, links and connections</a></li>
+          <li><a href="#find">Find</a></li>
+          <li><a href="#view">View: levels, focus and minimap</a></li>
+          <li><a href="#files">Opening, saving and exporting</a></li>
+          <li><a href="#drive">Google Drive</a></li>
+          <li><a href="#settings">Settings, theme and language</a></li>
+          <li><a href="#shortcuts">Keyboard shortcuts</a></li>
+          <li><a href="#faq">FAQ</a></li>
+        </ol>
+      </nav>
+      <main>
+        <section class="intro">
+          <h1>Maplet User Guide</h1>
+          <p class="lead">
+            Maplet is a mind map editor that runs in your browser. Edit on this device without an
+            account, download your work as <code>.maplet</code> files, and optionally save to Google
+            Drive automatically. It also opens MindMup <code>.mup</code>, Markdown and OPML files.
+          </p>
+          <p class="note">
+            The officially supported browser is desktop Google Chrome. The screenshots below were
+            captured automatically from the app.
+          </p>
+        </section>
+
+        <section id="start">
+          <h2>1. Getting started</h2>
+          <figure>
+            <img
+              src="../images/en/overview.png"
+              width="1280"
+              height="760"
+              alt="The Maplet editor with a sample map open"
+            />
+            <figcaption>
+              The whole editor. The central topic sits in the middle with branches on both sides.
+            </figcaption>
+          </figure>
+          <figure>
+            <img
+              src="../images/en/header.png"
+              width="1280"
+              height="100"
+              alt="The header and the editing toolbar"
+            />
+            <figcaption>Top: the header · Bottom: the editing toolbar</figcaption>
+          </figure>
+          <dl class="parts">
+            <div>
+              <dt>Header</dt>
+              <dd>
+                The <b>File</b> menu, the file name (click to rename), Google Drive status,
+                <b>Download</b>, <b>User guide</b> and <b>Settings</b>.
+              </dd>
+            </div>
+            <div>
+              <dt>Toolbar</dt>
+              <dd>
+                Undo and redo, Child node, Delete, the <b>Node actions</b> menu, Notes, Link, Style,
+                Find, the <b>View</b> menu, Auto arrange, zoom and fit, and shortcut help
+                (<kbd>?</kbd>).
+              </dd>
+            </div>
+            <div>
+              <dt>Canvas</dt>
+              <dd>
+                Where the map is drawn. Drag empty space to pan; use <kbd>Ctrl</kbd>+wheel or pinch
+                to zoom. The minimap in the bottom right shows where you are.
+              </dd>
+            </div>
+            <div>
+              <dt>Status bar</dt>
+              <dd>
+                Save status, draft storage, selection count, node count and the language selector.
+              </dd>
+            </div>
+          </dl>
+          <p>
+            A new map starts with one central topic. Select it and start typing. If you were editing
+            before, a <b>Recover draft</b> dialog appears.
+          </p>
+        </section>
+
+        <section id="edit">
+          <h2>2. Creating and editing nodes</h2>
+          <div class="split">
+            <figure class="small">
+              <img
+                src="../images/en/editing.png"
+                width="440"
+                height="241"
+                alt="Typing the title of a new child node"
+              />
+              <figcaption>A child node made with Tab starts in title editing.</figcaption>
+            </figure>
+            <ul class="steps">
+              <li>
+                <kbd>Tab</kbd> adds a child under the selected node and starts editing its title.
+              </li>
+              <li><kbd>Enter</kbd> adds a sibling under the same parent.</li>
+              <li><kbd>F2</kbd> or a double-click edits a title.</li>
+              <li>
+                While typing, <kbd>Enter</kbd> applies, <kbd>Shift</kbd>+<kbd>Enter</kbd> adds a
+                line break, <kbd>Esc</kbd> cancels, and <kbd>Tab</kbd> applies and continues with a
+                child.
+              </li>
+              <li>
+                <kbd>Delete</kbd> removes a node and its descendants, asking first if it has any.
+              </li>
+              <li>
+                Arrow keys move between nodes; <kbd>Alt</kbd>+<kbd>↑</kbd>/<kbd>↓</kbd> reorders
+                siblings.
+              </li>
+              <li>
+                Undo any change with <kbd>Ctrl/⌘</kbd>+<kbd>Z</kbd> and redo with
+                <kbd>Ctrl/⌘</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd>.
+              </li>
+            </ul>
+          </div>
+          <p class="tip">
+            Drag a node's bottom-right corner sideways to change its width; double-click it to
+            return to automatic size. The −/+ buttons on a branch collapse and expand it.
+          </p>
+        </section>
+
+        <section id="menus">
+          <h2>3. Node and map menus</h2>
+          <p>
+            <b>Right-click</b> a node (or press <kbd>Shift</kbd>+<kbd>F10</kbd>) for everything you
+            can do with it. <b>Right-click empty canvas</b> for map-wide actions. Actions that don't
+            apply right now are dimmed.
+          </p>
+          <div class="pair">
+            <figure class="small">
+              <img
+                src="../images/en/node-menu.png"
+                width="334"
+                height="819"
+                alt="The node context menu"
+              />
+              <figcaption>
+                Node menu: add and edit, notes, link, style and connections, clipboard, order and
+                side, view, delete
+              </figcaption>
+            </figure>
+            <figure class="small">
+              <img
+                src="../images/en/canvas-menu.png"
+                width="330"
+                height="660"
+                alt="The context menu for empty canvas"
+              />
+              <figcaption>
+                Map menu: undo, new topic here, select all, find, levels, minimap, arrange and zoom
+              </figcaption>
+            </figure>
+          </div>
+          <ul>
+            <li>
+              <b>Copy, cut, paste, duplicate</b>:
+              <kbd>Ctrl/⌘</kbd>+<kbd>C</kbd>·<kbd>X</kbd>·<kbd>V</kbd>·<kbd>D</kbd>. Whole branches
+              are copied with notes, links and styles. Pasting an indented or bulleted list from
+              another app creates nodes in that hierarchy, and copied branches paste into other apps
+              as an indented list.
+            </li>
+            <li><b>New topic here</b>: adds a separate central topic where you right-clicked.</li>
+            <li><b>Move node</b>: pick a new parent from a list.</li>
+            <li>
+              <b>Place left / right</b>: choose which side of the central topic a branch sits on.
+            </li>
+          </ul>
+        </section>
+
+        <section id="select">
+          <h2>4. Selecting several nodes</h2>
+          <figure>
+            <img
+              src="../images/en/multi-select.png"
+              width="1280"
+              height="760"
+              alt="Three nodes selected together"
+            />
+            <figcaption>
+              Selected nodes are tinted green; the one you picked last has the strong outline.
+            </figcaption>
+          </figure>
+          <div class="split">
+            <figure class="small">
+              <img
+                src="../images/en/marquee.png"
+                width="359"
+                height="218"
+                alt="Selecting an area by Shift-dragging on empty canvas"
+              />
+              <figcaption>Shift-drag on empty canvas to select an area</figcaption>
+            </figure>
+            <ul class="steps">
+              <li>Hold <kbd>Shift</kbd> or <kbd>Ctrl/⌘</kbd> and click to add or remove nodes.</li>
+              <li><kbd>Shift</kbd>-drag on empty canvas to select the nodes inside a rectangle.</li>
+              <li>
+                <kbd>Shift</kbd>+arrow keys extend the selection; <kbd>Ctrl/⌘</kbd>+<kbd>A</kbd>
+                selects every visible node.
+              </li>
+              <li>
+                Delete, copy, cut, duplicate, move, side and style apply to the whole selection at
+                once and undo in one step.
+              </li>
+              <li>Drag any selected node to move the group together.</li>
+              <li><kbd>Esc</kbd> or a click on empty canvas returns to one selected node.</li>
+            </ul>
+          </div>
+        </section>
+
+        <section id="drag">
+          <h2>5. Dragging</h2>
+          <p>
+            Dragging a node moves all its descendants with it. The rest of the map stays still while
+            you drag, and where you drop decides what happens. A hint at the bottom of the canvas
+            shows the current mode.
+          </p>
+          <figure>
+            <img
+              src="../images/en/drag-reparent.png"
+              width="1280"
+              height="760"
+              alt="Dragging Social campaign next to Design, with ‘Move here’ shown"
+            />
+            <figcaption>
+              Next to another node, “Move here” appears; drop to make it the parent.
+            </figcaption>
+          </figure>
+          <figure>
+            <img
+              src="../images/en/drag-insert.png"
+              width="1280"
+              height="760"
+              alt="Dragging QA just above API, with an ‘Insert here’ line"
+            />
+            <figcaption>
+              Just above or below a node, a line and “Insert here” appear; drop to insert before or
+              after it.
+            </figcaption>
+          </figure>
+          <table>
+            <thead>
+              <tr>
+                <th>Where you drop</th>
+                <th>Result</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Next to or onto a node (within 16px)</td>
+                <td>
+                  Becomes its last child. On a central topic, it joins the side you dropped on.
+                </td>
+              </tr>
+              <tr>
+                <td>Just above or below a node</td>
+                <td>Inserted before or after it. Under the same parent, only the order changes.</td>
+              </tr>
+              <tr>
+                <td>Empty space</td>
+                <td>
+                  Moves the position only. Dashed outlines show where overlapping branches will make
+                  room on release.
+                </td>
+              </tr>
+              <tr>
+                <td>While holding <kbd>Alt</kbd> (⌥)</td>
+                <td>Moves the position only, never reparenting; other branches move aside live.</td>
+              </tr>
+            </tbody>
+          </table>
+          <p class="tip">
+            Press <kbd>Esc</kbd> while dragging to put it back. A drop undoes in one step. To tidy
+            the whole map, use <b>Auto arrange</b> in the toolbar.
+          </p>
+        </section>
+
+        <section id="style">
+          <h2>6. Formatting and markers</h2>
+          <p>
+            Open <b>Style</b> from the node menu or the toolbar. With several nodes selected, only
+            the settings you change apply to all of them.
+          </p>
+          <div class="pair">
+            <figure class="small">
+              <img
+                src="../images/en/style-dialog.png"
+                width="430"
+                height="940"
+                alt="The node style dialog"
+              />
+              <figcaption>The node style dialog</figcaption>
+            </figure>
+            <div>
+              <figure class="small">
+                <img
+                  src="../images/en/styled-nodes.png"
+                  width="422"
+                  height="324"
+                  alt="Nodes with an icon, a done task, background and border colors, and note and link badges"
+                />
+                <figcaption>
+                  Icons, task boxes, background and border, branch line color, note (page) and link
+                  (arrow) badges
+                </figcaption>
+              </figure>
+              <ul>
+                <li>
+                  <b>Font, size and alignment</b>: sans, serif or monospace; small, normal or large;
+                  three alignments.
+                </li>
+                <li>
+                  <b>Background color</b>: six light colors that stay readable in the dark theme.
+                </li>
+                <li><b>Bold and italic</b></li>
+                <li>
+                  <b>Task</b>: a checkbox before the title. Tick it right on the node; done tasks
+                  are struck through.
+                </li>
+                <li><b>Icon</b>: one of ⭐ ✅ ❗ ❓ 💡 🔥 📌 ⚠️ 🎯 📅.</li>
+                <li>
+                  <b>Border color</b>, <b>branch line color and style</b> (solid, dashed, dotted):
+                  line settings carry down to child branches.
+                </li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section id="notes">
+          <h2>7. Notes, links and connections</h2>
+          <div class="pair">
+            <figure class="small">
+              <img src="../images/en/notes.png" width="430" height="391" alt="The notes dialog" />
+              <figcaption>Notes: write details as plain text.</figcaption>
+            </figure>
+            <figure class="small">
+              <img
+                src="../images/en/connections-dialog.png"
+                width="430"
+                height="310"
+                alt="The connections dialog"
+              />
+              <figcaption>Connections: link to a node in another branch with an arrow.</figcaption>
+            </figure>
+          </div>
+          <figure>
+            <img
+              src="../images/en/connections.png"
+              width="987"
+              height="261"
+              alt="A purple dashed arrow from Market research to Social campaign"
+            />
+            <figcaption>
+              Connections are drawn as purple dashed arrows, independent of the hierarchy.
+            </figcaption>
+          </figure>
+          <ul>
+            <li>A node with notes shows a small page badge; hover it to read the notes.</li>
+            <li>
+              <b>Links</b> accept <code>http</code>, <code>https</code> and <code>mailto</code>
+              addresses only. Click the link badge to open it in a new tab.
+            </li>
+            <li>
+              Remove a connection in the connections dialog; deleting either node removes it too.
+            </li>
+          </ul>
+        </section>
+
+        <section id="find">
+          <h2>8. Find</h2>
+          <figure>
+            <img
+              src="../images/en/find.png"
+              width="1280"
+              height="760"
+              alt="The find bar with ‘launch’ typed and two nodes outlined in yellow"
+            />
+            <figcaption>
+              Matching nodes get a yellow outline; the bar shows “current/total”.
+            </figcaption>
+          </figure>
+          <p>
+            Open it with <kbd>Ctrl/⌘</kbd>+<kbd>F</kbd> or <b>Find</b> in the toolbar. It searches
+            titles. <kbd>Enter</kbd> goes to the next result and <kbd>Shift</kbd>+<kbd>Enter</kbd>
+            to the previous one; results inside collapsed branches are revealed. Close it with
+            <kbd>Esc</kbd>.
+          </p>
+        </section>
+
+        <section id="view">
+          <h2>9. View: levels, focus and minimap</h2>
+          <div class="split">
+            <figure class="small">
+              <img
+                src="../images/en/view-menu.png"
+                width="258"
+                height="290"
+                alt="The View menu in the toolbar"
+              />
+              <figcaption>The View menu in the toolbar</figcaption>
+            </figure>
+            <ul class="steps">
+              <li><b>Expand all</b>: open every collapsed branch.</li>
+              <li>
+                <b>Main branches only</b>, <b>Show 2 / 3 levels</b>: see the outline of a large map
+                quickly.
+              </li>
+              <li><b>Expand all below</b> in the node menu expands one branch only.</li>
+              <li><b>Show / Hide minimap</b>: your choice is remembered on this device.</li>
+            </ul>
+          </div>
+          <figure>
+            <img
+              src="../images/en/levels.png"
+              width="1280"
+              height="760"
+              alt="The map collapsed to its main branches"
+            />
+            <figcaption>
+              Main branches only: branches with children are collapsed and show a + button.
+            </figcaption>
+          </figure>
+          <figure>
+            <img
+              src="../images/en/focus.png"
+              width="1280"
+              height="760"
+              alt="Only the Development branch is shown"
+            />
+            <figcaption>
+              <b>Show only this branch</b> from the node menu. <b>Show whole map</b> at the top left
+              returns.
+            </figcaption>
+          </figure>
+          <div class="split">
+            <figure class="small">
+              <img src="../images/en/minimap.png" width="212" height="152" alt="The minimap" />
+              <figcaption>The minimap</figcaption>
+            </figure>
+            <p>
+              The minimap shows the whole map and the area you are looking at (green rectangle).
+              Click or drag on it to move there. It hides while dragging and on narrow screens.
+            </p>
+          </div>
+        </section>
+
+        <section id="files">
+          <h2>10. Opening, saving and exporting</h2>
+          <div class="split">
+            <figure class="small">
+              <img src="../images/en/file-menu.png" width="298" height="519" alt="The File menu" />
+              <figcaption>The File menu</figcaption>
+            </figure>
+            <div>
+              <ul>
+                <li>
+                  <b>Open</b>: <code>.maplet</code>, MindMup <code>.mup</code>, Markdown
+                  <code>.md</code>, OPML <code>.opml</code> and indented <code>.txt</code>. You can
+                  also drop a file onto the window.
+                </li>
+                <li>
+                  <b>Download</b> (header button, <kbd>Ctrl/⌘</kbd>+<kbd>S</kbd>): saves a
+                  <code>.maplet</code> file with positions, styles, notes and connections.
+                </li>
+                <li><b>Download .mup</b>: a copy MindMup can open.</li>
+                <li><b>PNG and SVG images</b>: save the visible map as an image.</li>
+                <li>
+                  <b>Markdown and OPML</b>: move to note-taking or outliner apps; hierarchy, notes
+                  and links only.
+                </li>
+                <li>
+                  <b>Print / Save as PDF</b>: choose “Save as PDF” in the print dialog for a PDF.
+                </li>
+                <li>
+                  <b>Original backup</b>: download an imported MindMup file exactly as it was.
+                </li>
+              </ul>
+              <p class="tip">
+                Your edits are kept in this browser as a draft, so you can recover them after
+                closing the window. On a shared computer, turn draft storage off in Settings.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section id="drive">
+          <h2>11. Google Drive</h2>
+          <p>
+            When the deployment has a Google connection configured, a Drive button appears in the
+            header. Connect, pick a save folder, and Maplet saves a few seconds after you stop
+            editing.
+          </p>
+          <div class="split">
+            <figure class="small">
+              <img
+                src="../images/en/drive-dialog.png"
+                width="430"
+                height="818"
+                alt="The Google Drive dialog"
+              />
+              <figcaption>
+                Google Drive: choose a save folder, open from or save to Drive
+              </figcaption>
+            </figure>
+            <div>
+              <figure class="small">
+                <img
+                  src="../images/en/drive-status.png"
+                  width="154"
+                  height="56"
+                  alt="Drive sync status in the header"
+                />
+                <figcaption>Sync status in the header</figcaption>
+              </figure>
+              <ol>
+                <li>Click <b>Connect Google Drive</b> in the header and sign in.</li>
+                <li>Choose a <b>save folder</b>. Choosing a folder does not create a file.</li>
+                <li>
+                  <b>Open from Drive</b> to open a file, or <b>Save to Drive</b> to save the current
+                  map.
+                </li>
+                <li>
+                  Later edits save automatically; the header shows editing, pending and synced.
+                </li>
+              </ol>
+              <p>
+                If the same file changes elsewhere, changes that don't overlap merge automatically
+                and you choose which side to keep for conflicts. For security you need to
+                <b>Reconnect</b> after reloading the page, but the save location is remembered.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section id="settings">
+          <h2>12. Settings, theme and language</h2>
+          <div class="split">
+            <figure class="small">
+              <img
+                src="../images/en/settings.png"
+                width="430"
+                height="459"
+                alt="The settings dialog"
+              />
+              <figcaption>Settings</figcaption>
+            </figure>
+            <ul class="steps">
+              <li><b>Language</b>: 한국어 or English. Also available in the status bar.</li>
+              <li><b>Theme</b>: match system, light or dark.</li>
+              <li>
+                <b>Keep editing drafts on this device</b>: turning it off deletes stored drafts and
+                stops saving new ones.
+              </li>
+            </ul>
+          </div>
+          <figure>
+            <img
+              src="../images/en/dark.png"
+              width="1280"
+              height="760"
+              alt="The editor in the dark theme"
+            />
+            <figcaption>
+              The dark theme. Nodes with a background color you chose stay light.
+            </figcaption>
+          </figure>
+        </section>
+
+        <section id="shortcuts">
+          <h2>13. Keyboard shortcuts</h2>
+          <p>
+            The <kbd>?</kbd> button in the toolbar or the <kbd>?</kbd> key shows them in the app
+            too.
+          </p>
+          <div class="split reverse">
+            <table>
+              <thead>
+                <tr>
+                  <th>Keys</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><kbd>Tab</kbd> / <kbd>Enter</kbd></td>
+                  <td>Add a child / sibling</td>
+                </tr>
+                <tr>
+                  <td><kbd>F2</kbd>, double-click</td>
+                  <td>Edit a title</td>
+                </tr>
+                <tr>
+                  <td>Arrow keys</td>
+                  <td>Move between nodes</td>
+                </tr>
+                <tr>
+                  <td><kbd>Delete</kbd></td>
+                  <td>Delete a node and its descendants</td>
+                </tr>
+                <tr>
+                  <td><kbd>Ctrl/⌘</kbd>+<kbd>Z</kbd> / <kbd>Shift</kbd>+<kbd>Z</kbd></td>
+                  <td>Undo / redo</td>
+                </tr>
+                <tr>
+                  <td><kbd>Ctrl/⌘</kbd>+<kbd>S</kbd></td>
+                  <td>Save to Drive / download the file</td>
+                </tr>
+                <tr>
+                  <td><kbd>Ctrl/⌘</kbd>+<kbd>C</kbd> <kbd>X</kbd> <kbd>V</kbd> <kbd>D</kbd></td>
+                  <td>Copy · cut · paste · duplicate</td>
+                </tr>
+                <tr>
+                  <td><kbd>Alt</kbd>+<kbd>↑</kbd>/<kbd>↓</kbd></td>
+                  <td>Reorder siblings</td>
+                </tr>
+                <tr>
+                  <td><kbd>Ctrl/⌘</kbd>+<kbd>F</kbd></td>
+                  <td>Find</td>
+                </tr>
+                <tr>
+                  <td><kbd>Ctrl/⌘</kbd>+<kbd>A</kbd></td>
+                  <td>Select all visible nodes</td>
+                </tr>
+                <tr>
+                  <td><kbd>Shift</kbd>/<kbd>Ctrl/⌘</kbd>+click</td>
+                  <td>Add to or remove from the selection</td>
+                </tr>
+                <tr>
+                  <td><kbd>Shift</kbd>+arrows / drag on empty canvas</td>
+                  <td>Extend the selection / select an area</td>
+                </tr>
+                <tr>
+                  <td><kbd>Esc</kbd></td>
+                  <td>Cancel a drag, clear a multi-node selection</td>
+                </tr>
+                <tr>
+                  <td>Right-click, <kbd>Shift</kbd>+<kbd>F10</kbd></td>
+                  <td>Node menu · map menu on empty canvas</td>
+                </tr>
+                <tr>
+                  <td><kbd>Alt</kbd> (⌥)+drag</td>
+                  <td>Move position only</td>
+                </tr>
+                <tr>
+                  <td><kbd>Space</kbd>+drag</td>
+                  <td>Pan the canvas</td>
+                </tr>
+                <tr>
+                  <td><kbd>Ctrl/⌘</kbd>+<kbd>+</kbd> <kbd>−</kbd> <kbd>0</kbd></td>
+                  <td>Zoom in · zoom out · fit to screen</td>
+                </tr>
+              </tbody>
+            </table>
+            <figure class="small">
+              <img
+                src="../images/en/shortcuts.png"
+                width="430"
+                height="684"
+                alt="Shortcut help inside the app"
+              />
+              <figcaption>Shortcut help inside the app</figcaption>
+            </figure>
+          </div>
+        </section>
+
+        <section id="faq">
+          <h2>14. FAQ</h2>
+          <details>
+            <summary>Where are my edits stored?</summary>
+            <p>
+              While you edit, a draft is kept in this browser. To move to another device or browser,
+              <b>Download</b> a <code>.maplet</code> file or save to Google Drive.
+            </p>
+          </details>
+          <details>
+            <summary>
+              I want to place a node next to another one, but it keeps becoming its child.
+            </summary>
+            <p>
+              Hold <kbd>Alt</kbd> (⌥ on a Mac) while dragging to move the position only. If it
+              already moved under the other node, press <kbd>Ctrl/⌘</kbd>+<kbd>Z</kbd>.
+            </p>
+          </details>
+          <details>
+            <summary>My map has become cluttered.</summary>
+            <p>
+              Click <b>Auto arrange</b> in the toolbar to reorganize the whole map by branch size.
+              One undo brings the previous layout back.
+            </p>
+          </details>
+          <details>
+            <summary>I want to edit a MindMup file and keep using it in MindMup.</summary>
+            <p>
+              Use <b>File → Download .mup</b> for a compatible copy. Maplet-specific positions may
+              look different in other editors, and <b>Download original backup</b> always gives you
+              the original.
+            </p>
+          </details>
+          <details>
+            <summary>Drive disconnected after I reloaded the page.</summary>
+            <p>
+              For security, sign-in credentials are never stored. Click <b>Reconnect</b> in the
+              header to keep saving to the remembered folder and file.
+            </p>
+          </details>
+        </section>
+        <footer class="bottom">
+          <a href="../../index.html">Back to the editor</a>
+          <span>Maplet · MIT License</span>
+        </footer>
+      </main>
+    </div>
+  </body>
+</html>

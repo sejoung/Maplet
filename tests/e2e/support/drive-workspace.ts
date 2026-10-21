@@ -7,6 +7,7 @@ export async function setupDriveWorkspace(
   page: Page,
   openFile = true,
   validators: 'all' | 'missing' | 'download-only' | 'upload-missing' = 'all',
+  folderName = 'Maplet 작업 폴더',
 ) {
   await mockGoogle(page);
   await page.clock.install();
@@ -53,7 +54,7 @@ export async function setupDriveWorkspace(
               headers,
               body: JSON.stringify({
                 id: 'chosen-folder',
-                name: 'Maplet 작업 폴더',
+                name: folderName,
                 mimeType: 'application/vnd.google-apps.folder',
                 capabilities: { canAddChildren: true },
               }),
@@ -116,7 +117,7 @@ export async function setupDriveWorkspace(
     });
   });
   await seedDriveWorkspace(page, {
-    folder: { id: 'chosen-folder', name: 'Maplet 작업 폴더' },
+    folder: { id: 'chosen-folder', name: folderName },
     file: openFile
       ? {
           id: 'chosen-file',
@@ -129,9 +130,7 @@ export async function setupDriveWorkspace(
     source: null,
   });
   await page.goto('/');
-  await expect(
-    page.getByRole('button', { name: 'Google Drive 연결됨', exact: true }),
-  ).toBeEnabled();
+  await expect(page.locator('.drive-button.connected')).toBeEnabled();
   if (openFile) {
     await expect(page.getByRole('treeitem', { name: 'Drive original', exact: true })).toBeVisible();
   }
@@ -152,9 +151,7 @@ export async function waitForDriveResume(page: Page) {
     await page.getByRole('button', { name: '다시 연결', exact: true }).click();
   }
   await expect(page.locator('.save-status')).not.toContainText('Drive 다시 연결 필요');
-  await expect(
-    page.getByRole('button', { name: 'Google Drive 연결됨', exact: true }),
-  ).toBeEnabled();
+  await expect(page.locator('.drive-button.connected')).toBeEnabled();
 }
 
 export async function renameDriveFile(page: Page, name: string) {

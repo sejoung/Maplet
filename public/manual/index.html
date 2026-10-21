@@ -1,0 +1,697 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; img-src 'self'; style-src 'self'; base-uri 'none'; form-action 'none'"
+    />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <meta name="description" content="Maplet 마인드맵 편집기의 화면 구성과 기능별 사용 방법" />
+    <title>Maplet 사용 설명서</title>
+    <link rel="icon" href="../icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="manual.css" />
+  </head>
+  <body>
+    <header class="top">
+      <a class="brand" href="../index.html">
+        <img src="../icon.svg" alt="" width="28" height="28" />
+        <span>Maplet <small>사용 설명서</small></span>
+      </a>
+      <nav class="top-links" aria-label="언어와 편집기">
+        <a href="en/index.html" hreflang="en" lang="en">English</a>
+        <a class="open-editor" href="../index.html">편집기 열기</a>
+      </nav>
+    </header>
+    <div class="layout">
+      <nav class="toc" aria-label="목차">
+        <p class="toc-title">목차</p>
+        <ol>
+          <li><a href="#start">시작하기</a></li>
+          <li><a href="#edit">노드 만들기와 편집</a></li>
+          <li><a href="#menus">노드 메뉴와 맵 메뉴</a></li>
+          <li><a href="#select">여러 노드 선택</a></li>
+          <li><a href="#drag">드래그로 옮기기</a></li>
+          <li><a href="#style">서식과 표시</a></li>
+          <li><a href="#notes">메모·링크·연결선</a></li>
+          <li><a href="#find">찾기</a></li>
+          <li><a href="#view">보기: 펼침 단계·가지 집중·미니맵</a></li>
+          <li><a href="#files">파일 열기·저장·내보내기</a></li>
+          <li><a href="#drive">Google Drive</a></li>
+          <li><a href="#settings">설정·테마·언어</a></li>
+          <li><a href="#shortcuts">단축키</a></li>
+          <li><a href="#faq">자주 묻는 질문</a></li>
+        </ol>
+      </nav>
+      <main>
+        <section class="intro">
+          <h1>Maplet 사용 설명서</h1>
+          <p class="lead">
+            Maplet은 브라우저에서 바로 쓰는 마인드맵 편집기입니다. 계정 없이 이 기기에서 편집하고
+            <code>.maplet</code> 파일로 내려받으며, 원하면 Google Drive에 자동 저장할 수 있습니다.
+            MindMup <code>.mup</code>, Markdown, OPML 파일도 열 수 있습니다.
+          </p>
+          <p class="note">
+            공식 지원 브라우저는 데스크톱 Google Chrome입니다. 아래 화면은 실제 앱에서 자동으로
+            캡처했습니다.
+          </p>
+        </section>
+
+        <section id="start">
+          <h2>1. 시작하기</h2>
+          <figure>
+            <img
+              src="images/ko/overview.png"
+              width="1280"
+              height="760"
+              alt="샘플 맵을 연 Maplet 편집기 전체 화면"
+            />
+            <figcaption>편집기 전체 화면. 가운데가 중심 주제, 양쪽으로 가지가 뻗습니다.</figcaption>
+          </figure>
+          <figure>
+            <img
+              src="images/ko/header.png"
+              width="1280"
+              height="100"
+              alt="상단 헤더와 편집 도구 모음"
+            />
+            <figcaption>위: 헤더 · 아래: 편집 도구 모음</figcaption>
+          </figure>
+          <dl class="parts">
+            <div>
+              <dt>헤더</dt>
+              <dd>
+                <b>파일</b> 메뉴, 파일 이름(눌러서 변경), Google Drive 상태, <b>다운로드</b>,
+                <b>설정</b>이 있습니다.
+              </dd>
+            </div>
+            <div>
+              <dt>도구 모음</dt>
+              <dd>
+                실행 취소·다시 실행, 하위 노드, 삭제, <b>노드 작업</b> 메뉴, 메모·링크·서식·찾기,
+                <b>보기</b> 메뉴, 자동 배치, 확대·축소·화면 맞추기, 단축키 도움말(<kbd>?</kbd>).
+              </dd>
+            </div>
+            <div>
+              <dt>캔버스</dt>
+              <dd>
+                맵을 그리는 영역입니다. 빈 곳을 끌면 화면이 움직이고, <kbd>Ctrl</kbd>+휠이나 핀치로
+                확대합니다. 오른쪽 아래 미니맵으로 전체 위치를 봅니다.
+              </dd>
+            </div>
+            <div>
+              <dt>상태 표시줄</dt>
+              <dd>저장 상태, 초안 보관 상태, 선택 개수, 노드 수, 언어 선택이 있습니다.</dd>
+            </div>
+          </dl>
+          <p>
+            처음 열면 “중심 주제” 하나가 있습니다. 노드를 선택하고 바로 입력을 시작하세요. 이전에
+            편집하던 내용이 있으면 <b>초안 복구</b> 창이 뜹니다.
+          </p>
+        </section>
+
+        <section id="edit">
+          <h2>2. 노드 만들기와 편집</h2>
+          <div class="split">
+            <figure class="small">
+              <img
+                src="images/ko/editing.png"
+                width="330"
+                height="241"
+                alt="새 하위 노드의 제목을 입력하는 모습"
+              />
+              <figcaption>Tab으로 만든 하위 노드에 바로 제목을 입력합니다.</figcaption>
+            </figure>
+            <ul class="steps">
+              <li><kbd>Tab</kbd> 선택한 노드 아래에 하위 노드를 만들고 제목 입력을 시작합니다.</li>
+              <li><kbd>Enter</kbd> 같은 부모 아래에 형제 노드를 만듭니다.</li>
+              <li><kbd>F2</kbd> 또는 더블클릭으로 제목을 고칩니다.</li>
+              <li>
+                입력 중 <kbd>Enter</kbd>는 적용, <kbd>Shift</kbd>+<kbd>Enter</kbd>는 줄바꿈,
+                <kbd>Esc</kbd>는 취소, <kbd>Tab</kbd>은 적용 후 하위 노드를 이어 만듭니다.
+              </li>
+              <li><kbd>Delete</kbd>로 노드와 하위 노드를 지웁니다. 하위가 있으면 확인합니다.</li>
+              <li>
+                방향키로 노드 사이를 오가고, <kbd>Alt</kbd>+<kbd>↑</kbd>/<kbd>↓</kbd>로 형제 순서를
+                바꿉니다.
+              </li>
+              <li>
+                모든 변경은 <kbd>Ctrl/⌘</kbd>+<kbd>Z</kbd>로 되돌리고
+                <kbd>Ctrl/⌘</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd>로 다시 실행합니다.
+              </li>
+            </ul>
+          </div>
+          <p class="tip">
+            노드 오른쪽 아래 모서리를 좌우로 끌면 너비가 바뀌고, 더블클릭하면 자동 크기로
+            돌아갑니다. 가지의 −/+ 단추로 접고 펼칩니다.
+          </p>
+        </section>
+
+        <section id="menus">
+          <h2>3. 노드 메뉴와 맵 메뉴</h2>
+          <p>
+            노드를 <b>우클릭</b>(또는 <kbd>Shift</kbd>+<kbd>F10</kbd>)하면 그 노드에서 할 수 있는
+            모든 작업이 나옵니다. 캔버스의 <b>빈 곳을 우클릭</b>하면 맵 전체 작업이 나옵니다. 실행할
+            수 없는 항목은 흐리게 표시됩니다.
+          </p>
+          <div class="pair">
+            <figure class="small">
+              <img src="images/ko/node-menu.png" width="330" height="819" alt="노드 우클릭 메뉴" />
+              <figcaption>
+                노드 메뉴: 추가·편집, 메모·링크·서식·연결선, 복사·붙여넣기, 순서·배치, 보기, 삭제
+              </figcaption>
+            </figure>
+            <figure class="small">
+              <img
+                src="images/ko/canvas-menu.png"
+                width="330"
+                height="660"
+                alt="빈 캔버스 우클릭 메뉴"
+              />
+              <figcaption>
+                맵 메뉴: 실행 취소, 여기에 새 주제, 모두 선택, 찾기, 펼침 단계, 미니맵, 자동
+                배치·확대
+              </figcaption>
+            </figure>
+          </div>
+          <ul>
+            <li>
+              <b>복사·잘라내기·붙여넣기·복제</b>:
+              <kbd>Ctrl/⌘</kbd>+<kbd>C</kbd>·<kbd>X</kbd>·<kbd>V</kbd>·<kbd>D</kbd>. 가지 전체를
+              메모·링크·서식과 함께 복사합니다. 다른 앱에서 들여쓰기·글머리표 목록을 붙여넣으면
+              계층대로 노드가 생기고, 복사한 가지는 다른 앱에 들여쓰기 목록으로 붙습니다.
+            </li>
+            <li><b>여기에 새 주제</b>: 우클릭한 자리에 독립된 중심 주제를 하나 더 만듭니다.</li>
+            <li><b>노드 이동</b>: 목록에서 새 부모를 골라 가지를 옮깁니다.</li>
+            <li><b>왼쪽·오른쪽 배치</b>: 중심 주제의 어느 쪽에 가지를 둘지 정합니다.</li>
+          </ul>
+        </section>
+
+        <section id="select">
+          <h2>4. 여러 노드 선택</h2>
+          <figure>
+            <img
+              src="images/ko/multi-select.png"
+              width="1280"
+              height="760"
+              alt="세 노드를 함께 선택한 화면"
+            />
+            <figcaption>
+              선택한 노드는 옅은 녹색, 마지막으로 고른 노드는 진한 테두리로 표시됩니다.
+            </figcaption>
+          </figure>
+          <div class="split">
+            <figure class="small">
+              <img
+                src="images/ko/marquee.png"
+                width="349"
+                height="218"
+                alt="빈 곳에서 Shift를 누른 채 끌어 영역을 선택하는 모습"
+              />
+              <figcaption>Shift를 누른 채 빈 곳을 끌어 영역으로 선택</figcaption>
+            </figure>
+            <ul class="steps">
+              <li>
+                <kbd>Shift</kbd> 또는 <kbd>Ctrl/⌘</kbd>를 누른 채 클릭해 노드를 더하거나 뺍니다.
+              </li>
+              <li>빈 곳에서 <kbd>Shift</kbd>+드래그하면 사각형 안의 노드를 고릅니다.</li>
+              <li>
+                <kbd>Shift</kbd>+방향키로 선택을 넓히고, <kbd>Ctrl/⌘</kbd>+<kbd>A</kbd>로 보이는
+                노드를 모두 고릅니다.
+              </li>
+              <li>
+                삭제·복사·잘라내기·복제·노드 이동·좌우 배치·서식은 선택한 노드 전체에 한 번에
+                적용되고, 실행 취소도 한 번이면 됩니다.
+              </li>
+              <li>선택한 노드 하나를 끌면 묶음 전체가 함께 움직입니다.</li>
+              <li><kbd>Esc</kbd>나 빈 곳 클릭으로 한 노드 선택으로 돌아갑니다.</li>
+            </ul>
+          </div>
+        </section>
+
+        <section id="drag">
+          <h2>5. 드래그로 옮기기</h2>
+          <p>
+            노드를 끌면 하위 노드가 모두 함께 움직입니다. 끄는 동안 나머지 맵은 그대로 있고, 놓을
+            위치에 따라 결과가 달라집니다. 화면 아래 안내 문구가 현재 모드를 알려 줍니다.
+          </p>
+          <figure>
+            <img
+              src="images/ko/drag-reparent.png"
+              width="1280"
+              height="760"
+              alt="SNS 캠페인 노드를 디자인 노드 옆으로 끌어 ‘여기로 옮기기’가 표시된 화면"
+            />
+            <figcaption>
+              다른 노드에 붙이면 “여기로 옮기기”가 표시되고, 놓으면 그 노드의 하위가 됩니다.
+            </figcaption>
+          </figure>
+          <figure>
+            <img
+              src="images/ko/drag-insert.png"
+              width="1280"
+              height="760"
+              alt="QA 노드를 API 노드 바로 위로 끌어 ‘여기에 넣기’ 선이 표시된 화면"
+            />
+            <figcaption>
+              노드의 바로 위·아래로 가져가면 선과 “여기에 넣기”가 나오고, 그 앞·뒤 형제로
+              들어갑니다.
+            </figcaption>
+          </figure>
+          <table>
+            <thead>
+              <tr>
+                <th>놓는 위치</th>
+                <th>결과</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>다른 노드 옆이나 위(16px 안)</td>
+                <td>
+                  그 노드의 마지막 하위로 이동. 중심 주제에 놓으면 놓은 쪽(왼쪽/오른쪽)에 붙습니다.
+                </td>
+              </tr>
+              <tr>
+                <td>노드의 바로 위·아래</td>
+                <td>그 노드의 앞·뒤 형제로 넣기. 같은 부모면 순서만 바뀝니다.</td>
+              </tr>
+              <tr>
+                <td>빈 곳</td>
+                <td>
+                  위치만 옮깁니다. 겹치는 가지가 비켜날 자리는 점선으로 보여 주고 놓을 때 옮깁니다.
+                </td>
+              </tr>
+              <tr>
+                <td><kbd>Alt</kbd>(⌥)를 누른 채</td>
+                <td>부모를 바꾸지 않고 위치만 옮깁니다. 주변 가지는 실시간으로 비켜납니다.</td>
+              </tr>
+            </tbody>
+          </table>
+          <p class="tip">
+            끄는 중 <kbd>Esc</kbd>를 누르면 처음 자리로 돌아갑니다. 놓은 결과는 실행 취소 한 번으로
+            되돌릴 수 있습니다. 전체를 다시 정리하려면 도구 모음의 <b>자동 배치</b>를 누르세요.
+          </p>
+        </section>
+
+        <section id="style">
+          <h2>6. 서식과 표시</h2>
+          <p>
+            노드 메뉴나 도구 모음의 <b>서식</b>을 엽니다. 여러 노드를 골랐다면 바꾼 항목만 모두에
+            적용됩니다.
+          </p>
+          <div class="pair">
+            <figure class="small">
+              <img
+                src="images/ko/style-dialog.png"
+                width="430"
+                height="949"
+                alt="노드 서식 대화상자"
+              />
+              <figcaption>노드 서식 대화상자</figcaption>
+            </figure>
+            <div>
+              <figure class="small">
+                <img
+                  src="images/ko/styled-nodes.png"
+                  width="333"
+                  height="324"
+                  alt="아이콘, 완료 표시, 배경색과 테두리, 메모·링크 배지가 있는 노드"
+                />
+                <figcaption>
+                  아이콘·할 일 상자·배경과 테두리·가지 선 색, 메모(문서)·링크(화살표) 배지
+                </figcaption>
+              </figure>
+              <ul>
+                <li>
+                  <b>글꼴·글자 크기·정렬</b>: 기본 고딕·명조·고정폭, 작게·보통·크게, 세 가지 정렬.
+                </li>
+                <li><b>배경색</b>: 밝은 6색. 어두운 테마에서도 글자가 잘 보입니다.</li>
+                <li><b>굵게·기울임</b></li>
+                <li>
+                  <b>할 일</b>: 제목 앞에 체크 상자를 둡니다. 노드에서 바로 눌러 완료하면 제목에
+                  취소선이 그어집니다.
+                </li>
+                <li><b>아이콘</b>: ⭐ ✅ ❗ ❓ 💡 🔥 📌 ⚠️ 🎯 📅 중 하나.</li>
+                <li>
+                  <b>테두리 색</b>, <b>가지 선 색·모양</b>(실선·파선·점선): 가지 선 설정은 하위
+                  가지로 이어집니다.
+                </li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section id="notes">
+          <h2>7. 메모·링크·연결선</h2>
+          <div class="pair">
+            <figure class="small">
+              <img src="images/ko/notes.png" width="430" height="392" alt="메모 대화상자" />
+              <figcaption>메모: 일반 텍스트로 자세한 내용을 적습니다.</figcaption>
+            </figure>
+            <figure class="small">
+              <img
+                src="images/ko/connections-dialog.png"
+                width="430"
+                height="311"
+                alt="연결선 대화상자"
+              />
+              <figcaption>연결선: 다른 가지의 노드를 골라 화살표로 잇습니다.</figcaption>
+            </figure>
+          </div>
+          <figure>
+            <img
+              src="images/ko/connections.png"
+              width="805"
+              height="261"
+              alt="시장 조사에서 SNS 캠페인으로 이어진 보라색 점선 화살표"
+            />
+            <figcaption>연결선은 계층과 상관없이 보라색 점선 화살표로 그려집니다.</figcaption>
+          </figure>
+          <ul>
+            <li>
+              메모가 있으면 노드 위에 작은 문서 배지가 생기고, 마우스를 올리면 내용이 보입니다.
+            </li>
+            <li>
+              <b>링크</b>에는 <code>http</code>, <code>https</code>, <code>mailto</code> 주소만 쓸
+              수 있습니다. 링크 배지를 누르면 새 탭에서 열립니다.
+            </li>
+            <li>연결선은 연결선 대화상자에서 지우거나, 이어진 노드를 지우면 함께 사라집니다.</li>
+          </ul>
+        </section>
+
+        <section id="find">
+          <h2>8. 찾기</h2>
+          <figure>
+            <img
+              src="images/ko/find.png"
+              width="1280"
+              height="760"
+              alt="찾기 막대에 ‘출시’를 입력해 두 노드가 노란 테두리로 강조된 화면"
+            />
+            <figcaption>
+              일치하는 노드는 노란 테두리로 표시되고, 오른쪽에 “현재/전체” 개수가 나옵니다.
+            </figcaption>
+          </figure>
+          <p>
+            <kbd>Ctrl/⌘</kbd>+<kbd>F</kbd> 또는 도구 모음의 <b>찾기</b>로 엽니다. 제목에서 찾으며,
+            <kbd>Enter</kbd>는 다음, <kbd>Shift</kbd>+<kbd>Enter</kbd>는 이전 결과로 이동합니다.
+            접힌 가지 안의 결과로 가면 자동으로 펼칩니다. <kbd>Esc</kbd>로 닫습니다.
+          </p>
+        </section>
+
+        <section id="view">
+          <h2>9. 보기: 펼침 단계·가지 집중·미니맵</h2>
+          <div class="split">
+            <figure class="small">
+              <img
+                src="images/ko/view-menu.png"
+                width="258"
+                height="290"
+                alt="도구 모음의 보기 메뉴"
+              />
+              <figcaption>도구 모음의 보기 메뉴</figcaption>
+            </figure>
+            <ul class="steps">
+              <li><b>모두 펼치기</b>: 접힌 가지를 모두 엽니다.</li>
+              <li><b>주 가지만 보기</b>, <b>2·3단계까지 보기</b>: 큰 맵의 윤곽을 빠르게 봅니다.</li>
+              <li>노드 메뉴의 <b>하위 모두 펼치기</b>는 그 가지 안만 펼칩니다.</li>
+              <li><b>미니맵 보기·숨기기</b>: 선택은 이 기기에 기억됩니다.</li>
+            </ul>
+          </div>
+          <figure>
+            <img
+              src="images/ko/levels.png"
+              width="1280"
+              height="760"
+              alt="주 가지만 보이도록 접은 맵"
+            />
+            <figcaption>주 가지만 보기: 하위가 있는 가지는 + 표시로 접혀 있습니다.</figcaption>
+          </figure>
+          <figure>
+            <img
+              src="images/ko/focus.png"
+              width="1280"
+              height="760"
+              alt="개발 가지만 보이는 집중 화면"
+            />
+            <figcaption>
+              노드 메뉴의 <b>이 가지만 보기</b>. 왼쪽 위 <b>전체 맵 보기</b>로 돌아갑니다.
+            </figcaption>
+          </figure>
+          <div class="split">
+            <figure class="small">
+              <img src="images/ko/minimap.png" width="212" height="152" alt="미니맵" />
+              <figcaption>미니맵</figcaption>
+            </figure>
+            <p>
+              미니맵은 맵 전체와 지금 보는 영역(녹색 사각형)을 보여 줍니다. 누르거나 끌면 그 위치로
+              화면이 이동합니다. 드래그 중과 좁은 화면에서는 숨겨집니다.
+            </p>
+          </div>
+        </section>
+
+        <section id="files">
+          <h2>10. 파일 열기·저장·내보내기</h2>
+          <div class="split">
+            <figure class="small">
+              <img src="images/ko/file-menu.png" width="298" height="510" alt="파일 메뉴" />
+              <figcaption>파일 메뉴</figcaption>
+            </figure>
+            <div>
+              <ul>
+                <li>
+                  <b>열기</b>: <code>.maplet</code>, MindMup <code>.mup</code>, Markdown
+                  <code>.md</code>, OPML <code>.opml</code>, 들여쓰기 <code>.txt</code>. 파일을 창에
+                  끌어 놓아도 열립니다.
+                </li>
+                <li>
+                  <b>다운로드</b>(헤더 단추, <kbd>Ctrl/⌘</kbd>+<kbd>S</kbd>):
+                  <code>.maplet</code> 파일로 저장합니다. 좌표·서식·메모·연결선이 모두 들어갑니다.
+                </li>
+                <li><b>.mup 다운로드</b>: MindMup에서 열 수 있는 호환 파일.</li>
+                <li><b>PNG·SVG 이미지</b>: 지금 보이는 맵을 이미지로 저장합니다.</li>
+                <li>
+                  <b>Markdown·OPML</b>: 다른 노트·개요 앱으로 옮길 때 씁니다. 계층·메모·링크만
+                  담깁니다.
+                </li>
+                <li><b>인쇄 / PDF로 저장</b>: 인쇄 창에서 “PDF로 저장”을 고르면 PDF가 됩니다.</li>
+                <li><b>원본 백업</b>: 가져온 MindMup 파일을 손대지 않은 그대로 내려받습니다.</li>
+              </ul>
+              <p class="tip">
+                편집 내용은 이 브라우저에 초안으로 자동 보관되어 창을 닫았다 열어도 복구할 수
+                있습니다. 공용 컴퓨터라면 설정에서 초안 보관을 끄세요.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section id="drive">
+          <h2>11. Google Drive</h2>
+          <p>
+            배포에 Google 연결이 설정되어 있으면 헤더에 Drive 단추가 나타납니다. 연결 후 저장 폴더를
+            고르면 편집을 멈추고 몇 초 뒤 자동으로 저장합니다.
+          </p>
+          <div class="split">
+            <figure class="small">
+              <img
+                src="images/ko/drive-dialog.png"
+                width="430"
+                height="805"
+                alt="Google Drive 대화상자"
+              />
+              <figcaption>Google Drive 대화상자: 저장 폴더 선택, Drive에서 열기·저장</figcaption>
+            </figure>
+            <div>
+              <figure class="small">
+                <img
+                  src="images/ko/drive-status.png"
+                  width="167"
+                  height="56"
+                  alt="헤더의 Drive 동기화 상태 표시"
+                />
+                <figcaption>헤더의 동기화 상태</figcaption>
+              </figure>
+              <ol>
+                <li>헤더의 <b>Google Drive 연결</b>을 눌러 로그인합니다.</li>
+                <li><b>저장 폴더</b>를 고릅니다. 폴더만 고를 때는 파일을 만들지 않습니다.</li>
+                <li>
+                  <b>Drive에서 열기</b>로 파일을 열거나 <b>Drive에 저장</b>으로 지금 맵을
+                  저장합니다.
+                </li>
+                <li>
+                  이후 편집은 자동 저장되고, 헤더에 편집 중·저장 대기·동기화 완료가 표시됩니다.
+                </li>
+              </ol>
+              <p>
+                다른 곳에서 같은 파일이 바뀌면 겹치지 않는 변경은 자동으로 합치고, 충돌한 항목은
+                어느 쪽을 남길지 묻습니다. 보안을 위해 새로고침 후에는 <b>다시 연결</b>해야 하지만
+                저장 위치는 기억합니다.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section id="settings">
+          <h2>12. 설정·테마·언어</h2>
+          <div class="split">
+            <figure class="small">
+              <img src="images/ko/settings.png" width="430" height="418" alt="설정 대화상자" />
+              <figcaption>설정</figcaption>
+            </figure>
+            <ul class="steps">
+              <li><b>언어</b>: 한국어·English. 상태 표시줄에서도 바꿀 수 있습니다.</li>
+              <li><b>화면 테마</b>: 시스템 설정 따르기·밝게·어둡게.</li>
+              <li>
+                <b>이 기기에 편집 초안 보관</b>: 끄면 보관된 초안을 지우고 더 저장하지 않습니다.
+              </li>
+            </ul>
+          </div>
+          <figure>
+            <img src="images/ko/dark.png" width="1280" height="760" alt="어두운 테마의 편집기" />
+            <figcaption>어두운 테마. 직접 고른 배경색 노드는 그대로 밝게 표시됩니다.</figcaption>
+          </figure>
+        </section>
+
+        <section id="shortcuts">
+          <h2>13. 단축키</h2>
+          <p>도구 모음의 <kbd>?</kbd> 단추나 <kbd>?</kbd> 키로 앱에서도 볼 수 있습니다.</p>
+          <div class="split reverse">
+            <table>
+              <thead>
+                <tr>
+                  <th>키</th>
+                  <th>동작</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><kbd>Tab</kbd> / <kbd>Enter</kbd></td>
+                  <td>하위 / 형제 노드 추가</td>
+                </tr>
+                <tr>
+                  <td><kbd>F2</kbd>, 더블클릭</td>
+                  <td>제목 편집</td>
+                </tr>
+                <tr>
+                  <td>방향키</td>
+                  <td>노드 사이 이동</td>
+                </tr>
+                <tr>
+                  <td><kbd>Delete</kbd></td>
+                  <td>노드와 하위 노드 삭제</td>
+                </tr>
+                <tr>
+                  <td><kbd>Ctrl/⌘</kbd>+<kbd>Z</kbd> / <kbd>Shift</kbd>+<kbd>Z</kbd></td>
+                  <td>실행 취소 / 다시 실행</td>
+                </tr>
+                <tr>
+                  <td><kbd>Ctrl/⌘</kbd>+<kbd>S</kbd></td>
+                  <td>Drive에 저장 / 파일 다운로드</td>
+                </tr>
+                <tr>
+                  <td><kbd>Ctrl/⌘</kbd>+<kbd>C</kbd> <kbd>X</kbd> <kbd>V</kbd> <kbd>D</kbd></td>
+                  <td>복사 · 잘라내기 · 붙여넣기 · 복제</td>
+                </tr>
+                <tr>
+                  <td><kbd>Alt</kbd>+<kbd>↑</kbd>/<kbd>↓</kbd></td>
+                  <td>형제 순서 변경</td>
+                </tr>
+                <tr>
+                  <td><kbd>Ctrl/⌘</kbd>+<kbd>F</kbd></td>
+                  <td>찾기</td>
+                </tr>
+                <tr>
+                  <td><kbd>Ctrl/⌘</kbd>+<kbd>A</kbd></td>
+                  <td>보이는 노드 모두 선택</td>
+                </tr>
+                <tr>
+                  <td><kbd>Shift</kbd>/<kbd>Ctrl/⌘</kbd>+클릭</td>
+                  <td>선택에 추가·제외</td>
+                </tr>
+                <tr>
+                  <td><kbd>Shift</kbd>+방향키 / 빈 곳 드래그</td>
+                  <td>선택 넓히기 / 영역 선택</td>
+                </tr>
+                <tr>
+                  <td><kbd>Esc</kbd></td>
+                  <td>드래그 취소, 여러 노드 선택 해제</td>
+                </tr>
+                <tr>
+                  <td>우클릭, <kbd>Shift</kbd>+<kbd>F10</kbd></td>
+                  <td>노드 메뉴 · 빈 곳은 맵 메뉴</td>
+                </tr>
+                <tr>
+                  <td><kbd>Alt</kbd>(⌥)+드래그</td>
+                  <td>위치만 옮기기</td>
+                </tr>
+                <tr>
+                  <td><kbd>Space</kbd>+드래그</td>
+                  <td>캔버스 이동</td>
+                </tr>
+                <tr>
+                  <td><kbd>Ctrl/⌘</kbd>+<kbd>+</kbd> <kbd>−</kbd> <kbd>0</kbd></td>
+                  <td>확대 · 축소 · 화면에 맞추기</td>
+                </tr>
+              </tbody>
+            </table>
+            <figure class="small">
+              <img
+                src="images/ko/shortcuts.png"
+                width="430"
+                height="684"
+                alt="앱 안의 단축키 도움말"
+              />
+              <figcaption>앱 안의 단축키 도움말</figcaption>
+            </figure>
+          </div>
+        </section>
+
+        <section id="faq">
+          <h2>14. 자주 묻는 질문</h2>
+          <details>
+            <summary>편집한 내용은 어디에 저장되나요?</summary>
+            <p>
+              편집하는 동안 이 브라우저에 초안으로 보관됩니다. 다른 기기나 브라우저로 옮기려면
+              <b>다운로드</b>로 <code>.maplet</code> 파일을 저장하거나 Google Drive에 저장하세요.
+            </p>
+          </details>
+          <details>
+            <summary>노드를 다른 노드 옆에 놓고 싶은데 자꾸 하위로 들어가요.</summary>
+            <p>
+              <kbd>Alt</kbd>(맥은 ⌥)를 누른 채 끌면 부모를 바꾸지 않고 위치만 옮깁니다. 이미
+              들어갔다면 <kbd>Ctrl/⌘</kbd>+<kbd>Z</kbd>로 되돌리세요.
+            </p>
+          </details>
+          <details>
+            <summary>맵이 복잡하게 겹쳤어요.</summary>
+            <p>
+              도구 모음의 <b>자동 배치</b>를 누르면 가지 크기에 맞춰 전체를 다시 정리합니다. 실행
+              취소 한 번으로 이전 배치로 돌아갑니다.
+            </p>
+          </details>
+          <details>
+            <summary>MindMup 파일을 고쳐서 다시 MindMup에서 쓰고 싶어요.</summary>
+            <p>
+              <b>파일 → .mup 다운로드</b>로 호환 파일을 받으세요. Maplet 전용 배치 정보는 다른
+              편집기에서 다르게 보일 수 있으며, 원본은 <b>원본 백업 다운로드</b>로 언제든 받을 수
+              있습니다.
+            </p>
+          </details>
+          <details>
+            <summary>새로고침했더니 Drive 연결이 풀렸어요.</summary>
+            <p>
+              보안을 위해 인증 정보는 저장하지 않습니다. 헤더의 <b>다시 연결</b>을 누르면 기억해 둔
+              폴더와 파일로 이어서 저장합니다.
+            </p>
+          </details>
+        </section>
+        <footer class="bottom">
+          <a href="../index.html">편집기로 돌아가기</a>
+          <span>Maplet · MIT License</span>
+        </footer>
+      </main>
+    </div>
+  </body>
+</html>

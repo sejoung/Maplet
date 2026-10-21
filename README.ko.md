@@ -19,7 +19,9 @@
 
 ![자유롭게 배치한 예제 마인드맵이 열린 Maplet 에디터](docs/screenshots/free-positioning.png)
 
-[빠른 시작](#빠른-시작) · [주요 기능](#주요-기능) · [개발](#개발) · [기여](#기여)
+[빠른 시작](#빠른-시작) · [주요 기능](#주요-기능) · [사용 설명서](https://sejoung.github.io/Maplet/manual/index.html) · [개발](#개발) · [기여](#기여)
+
+화면 캡처가 포함된 [한국어](https://sejoung.github.io/Maplet/manual/index.html)·[영어](https://sejoung.github.io/Maplet/manual/en/index.html) 사용 설명서는 앱과 함께 배포됩니다(`manual/index.html`, `manual/en/index.html`). 헤더의 **사용 설명서** 단추와 단축키 도움말은 현재 화면 언어의 설명서를 엽니다. 설명서 화면은 `npm run manual:capture`가 번역 카탈로그를 이용해 두 언어 모두 샘플 맵으로 다시 캡처하므로, 화면을 바꾼 뒤 실행하세요.
 
 공식 지원 브라우저는 **데스크톱 Google Chrome**입니다. 자동 브라우저 검증에는 Chromium을 사용합니다. Firefox·Safari·모바일 브라우저는 현재 공식 지원 범위에서 제외합니다.
 

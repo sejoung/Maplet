@@ -44,3 +44,7 @@ export function initializeLanguage() {
 
 /** Each language is named in itself, whatever the interface language. */
 export const LANGUAGE_NAMES: Record<Language, string> = { ko: '한국어', en: 'English' };
+
+/** The illustrated user guide for a language, relative to the app page. */
+export const manualPath = (language: Language) =>
+  language === 'en' ? 'manual/en/index.html' : 'manual/index.html';

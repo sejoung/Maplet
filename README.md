@@ -19,7 +19,9 @@ Create `.maplet` documents or import `.mup` files, arrange your ideas, and downl
 
 ![Maplet editor with a sample mind map and freely positioned nodes](docs/screenshots/free-positioning.png)
 
-[Quick start](#quick-start) · [Features](#features) · [Development](#development) · [Contributing](#contributing)
+[Quick start](#quick-start) · [Features](#features) · [User guide](https://sejoung.github.io/Maplet/manual/en/index.html) · [Development](#development) · [Contributing](#contributing)
+
+An illustrated user guide in [English](https://sejoung.github.io/Maplet/manual/en/index.html) and [Korean](https://sejoung.github.io/Maplet/manual/index.html) is published with the app (`manual/en/index.html`, `manual/index.html`). The **User guide** button in the header and the shortcut help open it in the interface language. Its screenshots come from `npm run manual:capture`, which recaptures both languages from a sample map using the message catalogs; run it after changing the interface.
 
 The officially supported browser is **desktop Google Chrome**. Automated browser tests use Chromium. Firefox, Safari, and mobile browsers are outside the current support scope.
 

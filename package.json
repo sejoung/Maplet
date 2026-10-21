@@ -13,6 +13,7 @@
     "typecheck": "tsc -p tsconfig.app.json && tsc -p tsconfig.test.json",
     "test": "node scripts/run-tests.mjs unit",
     "test:watch": "node scripts/run-tests.mjs watch",
+    "manual:capture": "playwright test -c playwright.manual.config.ts",
     "test:coverage": "node scripts/run-tests.mjs coverage",
     "test:architecture": "node scripts/run-tests.mjs architecture",
     "test:e2e": "node scripts/run-tests.mjs e2e",
