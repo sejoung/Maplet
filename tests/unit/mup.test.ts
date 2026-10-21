@@ -53,10 +53,12 @@ describe('MUP compatibility and data ownership', () => {
     const ideas = Object.fromEntries(
       Array.from({ length: MAX_NODES }, (_, i) => [String(i + 1), { id: i + 1, title: 'x' }]),
     );
-    expect(() => parseMup(JSON.stringify({ id: 0, title: 'x', ideas }))).toThrow(/노드/);
+    expect(() => parseMup(JSON.stringify({ id: 0, title: 'x', ideas }))).toThrow(
+      'file.mapMustHaveMostNodes (max: 5,000)',
+    );
     let tree: object = { id: 150, title: 'x' };
     for (let i = 149; i >= 0; i--) tree = { id: i, title: 'x', ideas: { 1: tree } };
-    expect(() => parseMup(JSON.stringify(tree))).toThrow(/깊이/);
+    expect(() => parseMup(JSON.stringify(tree))).toThrow('file.nodeDepthMustLess');
   });
   it('reports unsupported features without removing their values', () => {
     expect(parseMup(fixture('v2-rich.mup')).warnings.length).toBeGreaterThan(0);
@@ -80,6 +82,6 @@ it('keeps unsafe hyperlinks out of the model but preserves them in an unchanged 
   });
   const map = parseMup(source);
   expect(map.nodes['1'].links).toEqual([]);
-  expect(map.warnings).toContain('안전하지 않은 링크는 열 수 없도록 제외했습니다.');
+  expect(map.warnings).toContain('file.unsafeLinksRemoved');
   expect(JSON.parse(serializeMup(map)).attr.hyperlink).toBe('javascript:alert(1)');
 });

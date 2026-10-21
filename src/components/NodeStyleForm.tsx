@@ -6,24 +6,24 @@ import { useI18n } from '../i18n/react';
 import { NodeStyleExtras } from './NodeStyleExtras';
 
 const colors = [
-  ['세이지', '#e9f1e8'],
-  ['블루', '#e8eef8'],
-  ['앰버', '#fbf0db'],
-  ['로즈', '#f7e8e7'],
-  ['라벤더', '#eee9f5'],
-  ['화이트', '#ffffff'],
+  ['style.backgroundSage', '#e9f1e8'],
+  ['style.backgroundBlue', '#e8eef8'],
+  ['style.backgroundAmber', '#fbf0db'],
+  ['style.backgroundRose', '#f7e8e7'],
+  ['style.backgroundLavender', '#eee9f5'],
+  ['style.backgroundWhite', '#ffffff'],
 ];
 const alignments = [
-  ['left', '왼쪽 정렬', AlignLeft],
-  ['center', '가운데 정렬', AlignCenter],
-  ['right', '오른쪽 정렬', AlignRight],
+  ['left', 'style.alignLeft', AlignLeft],
+  ['center', 'style.alignCenter', AlignCenter],
+  ['right', 'style.alignRight', AlignRight],
 ] as const;
 const fonts = [
-  ['sans', '기본 고딕'],
-  ['serif', '명조'],
-  ['mono', '고정폭'],
+  ['sans', 'style.systemSans'],
+  ['serif', 'style.serif'],
+  ['mono', 'style.monospace'],
 ] as const;
-const sizes = ['작게', '보통', '크게'];
+const sizes = ['style.small', 'style.normal', 'style.large'];
 
 export function NodeStyleForm({
   initialStyle,
@@ -47,7 +47,7 @@ export function NodeStyleForm({
     >
       <div className="typography-fields">
         <div>
-          <label htmlFor="node-font">{t('글꼴')}</label>
+          <label htmlFor="node-font">{t('common.font')}</label>
           <select
             id="node-font"
             data-autofocus
@@ -62,7 +62,7 @@ export function NodeStyleForm({
           </select>
         </div>
         <div>
-          <label htmlFor="node-font-size">{t('글자 크기')}</label>
+          <label htmlFor="node-font-size">{t('common.fontSize')}</label>
           <select
             id="node-font-size"
             value={typography.fontSize}
@@ -77,7 +77,7 @@ export function NodeStyleForm({
         </div>
       </div>
       <fieldset className="alignment-field">
-        <legend className="field-label">{t('텍스트 정렬')}</legend>
+        <legend className="field-label">{t('common.textAlignment')}</legend>
         <div className="alignment-options">
           {alignments.map(([value, label, Icon]) => (
             <button
@@ -95,7 +95,7 @@ export function NodeStyleForm({
         </div>
       </fieldset>
       <fieldset className="background-field">
-        <legend className="field-label">{t('배경색')}</legend>
+        <legend className="field-label">{t('common.backgroundColor')}</legend>
         <div className="color-options">
           {colors.map(([name, color]) => (
             <button
@@ -122,16 +122,16 @@ export function NodeStyleForm({
             setStyle(next);
           }}
         >
-          {t('기본 색상')}
+          {t('style.defaultColor')}
         </button>
       </fieldset>
       <NodeStyleExtras style={style} onChange={setStyle} />
       <div className="dialog-actions">
         <button className="button" type="button" onClick={onClose}>
-          {t('취소')}
+          {t('common.cancel')}
         </button>
         <button className="button primary" type="submit">
-          {t('서식 적용')}
+          {t('style.applyStyle')}
         </button>
       </div>
     </form>

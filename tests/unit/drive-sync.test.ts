@@ -13,17 +13,17 @@ const saved = {
   hasFile: true,
 };
 it.each([
-  [{}, 'synced', '동기화 완료'],
-  [{ dirty: true }, 'pending', '저장 대기'],
-  [{ busy: true, saving: true, dirty: true }, 'saving', '저장 중'],
-  [{ busy: true, awaitingRestore: true }, 'saving', '연결 복원 중'],
-  [{ busy: true }, 'saving', '확인 중'],
-  [{ awaitingRestore: true }, 'reconnect', '다시 연결 필요'],
-  [{ connected: false }, 'reconnect', '다시 연결 필요'],
-  [{ paused: true, dirty: true }, 'error', '동기화 오류'],
-  [{ paused: true, conflict: true }, 'error', '동기화 충돌'],
-  [{ hasFile: false }, 'ready', '저장 준비됨'],
-  [{ hasFolder: false, hasFile: false }, 'ready', '저장 위치 선택'],
+  [{}, 'synced', 'drive.synced'],
+  [{ dirty: true }, 'pending', 'drive.pendingSave'],
+  [{ busy: true, saving: true, dirty: true }, 'saving', 'drive.saving'],
+  [{ busy: true, awaitingRestore: true }, 'saving', 'drive.restoringConnection'],
+  [{ busy: true }, 'saving', 'drive.checking'],
+  [{ awaitingRestore: true }, 'reconnect', 'drive.reconnectRequired'],
+  [{ connected: false }, 'reconnect', 'drive.reconnectRequired'],
+  [{ paused: true, dirty: true }, 'error', 'drive.syncError'],
+  [{ paused: true, conflict: true }, 'error', 'drive.syncConflict'],
+  [{ hasFile: false }, 'ready', 'drive.readySave'],
+  [{ hasFolder: false, hasFile: false }, 'ready', 'drive.chooseSaveFolder'],
 ] as const)(
   'reports the current save state rather than just authorization: %j',
   (changes, kind, label) => {

@@ -53,10 +53,16 @@ describe('inserting beside a sibling', () => {
     const left = updateNode(base, 'c', { side: 'left' });
     const moved = insertNodes(left, ['a2'], 'root', { id: 'c', after: false });
     expect(moved.nodes.a2.side).toBe('left');
-    expect(() => insertNodes(base, ['a'], 'a1', { id: 'a2', after: true })).toThrow('순환');
+    expect(() => insertNodes(base, ['a'], 'a1', { id: 'a2', after: true })).toThrow(
+      'edit.moveCreatesCycle',
+    );
     const twoRoots = addRoot(base, 'r2', 'Second');
-    expect(() => insertNodes(twoRoots, ['r2'], 'a', { id: 'a1', after: true })).toThrow('중심');
-    expect(() => insertNodes(base, ['b'], 'a', { id: 'b1', after: true })).toThrow('형제');
+    expect(() => insertNodes(twoRoots, ['r2'], 'a', { id: 'a1', after: true })).toThrow(
+      'edit.cannotMoveCentralNodeUnder',
+    );
+    expect(() => insertNodes(base, ['b'], 'a', { id: 'b1', after: true })).toThrow(
+      'edit.selectSiblingUnderSameParent',
+    );
   });
 });
 
@@ -86,7 +92,7 @@ describe('new central topics', () => {
     expect(map.nodes.note).toMatchObject({ parentId: null, position: { x: 500, y: 40 } });
     expect(valid(map).roots).toEqual(['root', 'note']);
     expect(JSON.parse(serializeMup(map)).ideas).toHaveProperty('2');
-    expect(() => addRoot(map, 'note', 'Again')).toThrow('ID');
+    expect(() => addRoot(map, 'note', 'Again')).toThrow('common.duplicateInvalidNodeId');
   });
 });
 
@@ -97,7 +103,7 @@ describe('cross-links', () => {
     expect(addConnection(map, 'a2', 'c')).toBe(map);
     expect(removeConnection(map, 'a2', 'c').connections).toEqual([]);
     expect(removeConnection(base, 'a2', 'c')).toBe(base);
-    expect(() => addConnection(base, 'a', 'a')).toThrow('같은 노드');
+    expect(() => addConnection(base, 'a', 'a')).toThrow('edit.nodeCannotConnectItself');
   });
 
   it('drops links with deleted ends and survives native round trips', () => {
@@ -131,7 +137,7 @@ describe('cross-links', () => {
     });
     const map = parseMup(source);
     expect(map.connections).toEqual([{ from: '2', to: '3' }]);
-    expect(map.warnings).toContain('연결할 노드가 없는 교차 연결은 원본에만 보존합니다.');
+    expect(map.warnings).toContain('file.danglingLinksPreserved');
     expect(JSON.parse(serializeMup(map)).links).toEqual([
       { ideaIdFrom: 2, ideaIdTo: 3, attr: { style: { color: '#f00' } } },
     ]);

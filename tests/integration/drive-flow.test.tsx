@@ -114,7 +114,7 @@ describe('Drive autosave after choosing a native destination', () => {
     await tick(10000);
     expect(api.save).toHaveBeenCalledOnce();
     expect(options.markSaved).toHaveBeenLastCalledWith('local content');
-    expect(screen.getByText('Drive 자동 저장 중지')).toBeVisible();
+    expect(screen.getByText('drive.driveAutosavePaused')).toBeVisible();
   });
 
   it('pauses an expired token without opening sign-in automatically', async () => {
@@ -126,7 +126,7 @@ describe('Drive autosave after choosing a native destination', () => {
     expect(api.save).not.toHaveBeenCalled();
     expect(bridge.connect).toHaveBeenCalledOnce();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    expect(screen.getByText('Drive 자동 저장 중지')).toBeVisible();
+    expect(screen.getByText('drive.driveAutosavePaused')).toBeVisible();
     await tick(10000);
     expect(api.save).not.toHaveBeenCalled();
   });

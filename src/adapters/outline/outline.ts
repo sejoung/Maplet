@@ -23,7 +23,7 @@ interface Item {
 
 /** Turn an ordered outline into a map; several top-level items share a root named `title`. */
 function buildMap(items: Item[], title: string): MindMap {
-  if (!items.length) throw new AppError('가져올 항목이 없습니다.');
+  if (!items.length) throw new AppError('file.nothingToImport');
   const nodes: Record<string, MindNode> = {};
   const node = (
     id: string,
@@ -49,7 +49,7 @@ function buildMap(items: Item[], title: string): MindMap {
   const tops = items.filter((item) => item.level === minimum).length;
   const wrap = tops > 1 || items[0].level !== minimum;
   if (items.length + (wrap ? 1 : 0) > MAX_NODE_COUNT)
-    throw new AppError('노드는 {max}개 이하여야 합니다.', { max: formatCount(MAX_NODE_COUNT) });
+    throw new AppError('file.mapMustHaveMostNodes', { max: formatCount(MAX_NODE_COUNT) });
   const stack: { level: number; id: string }[] = [];
   if (wrap) {
     node('root', { title, notes: [], link: null }, null);
@@ -57,8 +57,7 @@ function buildMap(items: Item[], title: string): MindMap {
   }
   items.forEach((item, index) => {
     while (stack.length && stack.at(-1)!.level >= item.level) stack.pop();
-    if (stack.length >= MAX_DEPTH)
-      throw new AppError('노드 깊이는 {max} 이하여야 합니다.', { max: MAX_DEPTH });
+    if (stack.length >= MAX_DEPTH) throw new AppError('file.nodeDepthMustLess', { max: MAX_DEPTH });
     const parent = stack.at(-1)?.id ?? null;
     const id = `n${index + 1}`;
     node(id, item, parent);
@@ -174,14 +173,13 @@ export function mapToOpml(map: MindMap, title: string): string {
 export function opmlToMap(text: string, title: string): MindMap {
   const document = new DOMParser().parseFromString(text, 'application/xml');
   const body = document.querySelector('opml > body');
-  if (document.querySelector('parsererror') || !body)
-    throw new AppError('올바른 OPML 파일이 아닙니다.');
+  if (document.querySelector('parsererror') || !body) throw new AppError('file.notValidOpmlFile');
   const items: Item[] = [];
   const visit = (element: Element, level: number) => {
     for (const child of element.children) {
       if (child.tagName !== 'outline') continue;
       if (items.length >= MAX_NODE_COUNT)
-        throw new AppError('노드는 {max}개 이하여야 합니다.', { max: formatCount(MAX_NODE_COUNT) });
+        throw new AppError('file.mapMustHaveMostNodes', { max: formatCount(MAX_NODE_COUNT) });
       items.push({
         level,
         title: child.getAttribute('text') ?? child.getAttribute('title') ?? '',

@@ -119,7 +119,9 @@ it.each(['failure', 'timeout', 'throw'] as const)(
     });
     const connection = new GoogleConnection(config);
     await connection.connect();
-    const check = expect(connection.disconnect()).rejects.toThrow(/Google 권한/);
+    const check = expect(connection.disconnect()).rejects.toThrow(
+      'drive.disconnectedDeviceButGooglePermission',
+    );
     expect(connection.getToken()).toBeNull();
     await vi.advanceTimersByTimeAsync(10000);
     await check;
@@ -136,7 +138,7 @@ it('does not resurrect a connection from an OAuth callback received after discon
   const connection = new GoogleConnection(config);
   const pending = connection.connect();
   await connection.disconnect();
-  const check = expect(pending).rejects.toThrow(/취소/);
+  const check = expect(pending).rejects.toThrow(/^drive\.\w+Cancelled$/);
   done({ access_token: 'too-late', expires_in: 3600 });
   await check;
   expect(connection.getToken()).toBeNull();

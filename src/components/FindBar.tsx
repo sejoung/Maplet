@@ -12,13 +12,13 @@ export function FindBar({ find, onClose }: { find: FindState; onClose(): void })
     input.current?.select();
   }, []);
   return (
-    <div className="find-bar" role="search" aria-label={t('노드 찾기')}>
+    <div className="find-bar" role="search" aria-label={t('canvas.findNodes')}>
       <Search size={16} aria-hidden="true" />
       <input
         ref={input}
         type="search"
-        aria-label={t('노드 검색')}
-        placeholder={t('검색어 입력')}
+        aria-label={t('canvas.searchNodes')}
+        placeholder={t('canvas.enterSearchText')}
         value={find.query}
         onChange={(event) => find.setQuery(event.target.value)}
         onKeyDown={(event) => {
@@ -34,13 +34,17 @@ export function FindBar({ find, onClose }: { find: FindState; onClose(): void })
         }}
       />
       <output className="find-count" aria-live="polite">
-        {find.query.trim() ? (find.count ? `${find.position}/${find.count}` : t('결과 없음')) : ''}
+        {find.query.trim()
+          ? find.count
+            ? `${find.position}/${find.count}`
+            : t('canvas.noResults')
+          : ''}
       </output>
       <button
         type="button"
         className="icon-button"
-        aria-label={t('이전 결과')}
-        title={t('이전 결과 (Shift+Enter)')}
+        aria-label={t('canvas.previousResult')}
+        title={t('canvas.previousResultShiftEnter')}
         disabled={!find.count}
         onClick={find.previous}
       >
@@ -49,14 +53,19 @@ export function FindBar({ find, onClose }: { find: FindState; onClose(): void })
       <button
         type="button"
         className="icon-button"
-        aria-label={t('다음 결과')}
-        title={t('다음 결과 (Enter)')}
+        aria-label={t('canvas.nextResult')}
+        title={t('canvas.nextResultEnter')}
         disabled={!find.count}
         onClick={find.next}
       >
         <ChevronDown size={16} />
       </button>
-      <button type="button" className="icon-button" aria-label={t('찾기 닫기')} onClick={onClose}>
+      <button
+        type="button"
+        className="icon-button"
+        aria-label={t('canvas.closeFind')}
+        onClick={onClose}
+      >
         <X size={16} />
       </button>
     </div>

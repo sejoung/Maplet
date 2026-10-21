@@ -22,7 +22,7 @@ describe('browser files', () => {
   it('checks size before reading, even for renamed files', async () => {
     await expect(
       readMapFile({ size: 11 * 1024 * 1024, text: vi.fn() } as unknown as File),
-    ).rejects.toThrow(/크기/);
+    ).rejects.toThrow(/MibSmaller/);
     await expect(readMapFile({ size: 2, text: async () => '{}' } as File)).resolves.toBe('{}');
   });
   it.each(['mup', 'maplet'])(

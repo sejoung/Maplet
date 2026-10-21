@@ -47,7 +47,7 @@ export function InlineNodeEditor({
     <textarea
       ref={input}
       className="inline-node-editor"
-      aria-label={t('노드 제목')}
+      aria-label={t('common.nodeTitle')}
       data-inline-editor
       value={value}
       rows={lines}

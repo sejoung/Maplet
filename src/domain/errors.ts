@@ -1,14 +1,9 @@
 export type MessageParams = Record<string, string | number>;
-/** A user-facing message: `key` is the source-language catalog entry, never pre-translated. */
+/** A user-facing message: `key` names a catalog entry (such as `edit.nodeNotFound`). */
 export interface Message {
   key: string;
   params?: MessageParams;
 }
-
-const interpolate = (key: string, params: MessageParams) =>
-  key.replace(/\{(\w+)\}/g, (placeholder, name: string) =>
-    Object.hasOwn(params, name) ? String(params[name]) : placeholder,
-  );
 
 /** Errors carry their catalog key and parameters, so translation never parses messages. */
 export class AppError extends Error {
@@ -16,7 +11,9 @@ export class AppError extends Error {
     readonly key: string,
     readonly params: MessageParams = {},
   ) {
-    super(interpolate(key, params));
+    // The developer-facing message names the key and its values, e.g. `x.y (limit: 10)`.
+    const values = Object.entries(params).map(([name, value]) => `${name}: ${value}`);
+    super(values.length ? `${key} (${values.join(', ')})` : key);
   }
 }
 

@@ -41,8 +41,8 @@ export class DraftStore {
       const request = this.factory.open(this.name, 1);
       request.onupgradeneeded = () => request.result.createObjectStore('drafts');
       request.onerror = () =>
-        reject(request.error ?? new AppError('초안 저장소를 열 수 없습니다.'));
-      request.onblocked = () => reject(new AppError('다른 탭에서 저장소를 사용하고 있습니다.'));
+        reject(request.error ?? new AppError('drive.couldNotOpenDraftStorage'));
+      request.onblocked = () => reject(new AppError('drive.anotherTabUsingDraftStorage'));
       request.onsuccess = () => resolve(request.result);
     });
   }
@@ -61,11 +61,11 @@ export class DraftStore {
       };
       tx.onerror = () => {
         db.close();
-        reject(tx.error ?? request.error ?? new AppError('초안을 저장하지 못했습니다.'));
+        reject(tx.error ?? request.error ?? new AppError('drive.couldNotSaveDraft'));
       };
       tx.onabort = () => {
         db.close();
-        reject(tx.error ?? new AppError('초안 저장이 중단되었습니다.'));
+        reject(tx.error ?? new AppError('drive.draftSavingInterrupted'));
       };
     });
   }

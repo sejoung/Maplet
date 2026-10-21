@@ -3,7 +3,7 @@ import { sanitizeFilename, stripMapExtensions } from '../domain/filename';
 
 export function renameFilename(input: string): string {
   const name = stripMapExtensions(sanitizeFilename(input).trim()).replace(/[.\s]+$/, '');
-  if (!name) throw new AppError('파일 이름을 입력해 주세요.');
+  if (!name) throw new AppError('common.pleaseEnterFileName');
   return `${name}.maplet`;
 }
 

@@ -68,7 +68,7 @@ describe('outline files', () => {
       ['One', ['Two', ['task', ['nested']]]],
       ['Three'],
     ]);
-    expect(() => markdownToMap('just text', 'x')).toThrow('가져올 항목');
+    expect(() => markdownToMap('just text', 'x')).toThrow('file.nothingToImport');
   });
 
   it('writes OPML that reads back, escaping attributes and keeping several roots', () => {
@@ -88,7 +88,7 @@ describe('outline files', () => {
       notes: 'Two weeks\nRemote',
       links: ['https://example.com/a'],
     });
-    expect(() => opmlToMap('<opml><nope', 'x')).toThrow('OPML');
+    expect(() => opmlToMap('<opml><nope', 'x')).toThrow('file.notValidOpmlFile');
   });
 
   it('drops unsafe links and reads plain text by indentation', () => {

@@ -33,9 +33,9 @@ export function DriveConnectionButton({
   const { t } = useI18n();
   const sync =
     editing && savedStatus && ['synced', 'pending', 'ready'].includes(savedStatus.kind)
-      ? { kind: 'pending' as const, label: '편집 중' }
+      ? { kind: 'pending' as const, label: 'drive.editing' }
       : savedStatus;
-  const label = t(connected ? 'Google Drive 연결됨' : 'Google Drive 연결');
+  const label = t(connected ? 'drive.googleDriveConnected' : 'drive.connectGoogleDrive');
   const Icon = sync ? icons[sync.kind] : Cloud;
   const attention = sync?.kind === 'error' || sync?.kind === 'reconnect';
   return (
@@ -66,7 +66,7 @@ export function DriveConnectionButton({
         <span
           className={`drive-sync-state ${sync.kind}`}
           role="status"
-          aria-label={t('Drive 동기화 상태')}
+          aria-label={t('drive.driveSyncStatus')}
           aria-atomic="true"
         >
           {t(sync.label)}
@@ -76,11 +76,11 @@ export function DriveConnectionButton({
         <button
           type="button"
           className="drive-retry"
-          aria-label={t('Drive 저장 다시 시도')}
+          aria-label={t('drive.retrySavingDrive')}
           disabled={busy}
           onClick={onRetry}
         >
-          {t('다시 시도')}
+          {t('drive.retry')}
         </button>
       )}
     </div>

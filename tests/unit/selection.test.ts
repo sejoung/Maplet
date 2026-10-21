@@ -44,8 +44,8 @@ describe('multi-node selection', () => {
     expect(valid(map).nodes.root.children).toEqual(['a', 'c']);
     expect(canDeleteNodes(base, ['a', 'b'])).toBe(true);
     expect(canDeleteNodes(base, ['root', 'a'])).toBe(false);
-    expect(() => deleteNodes(base, ['root'])).toThrow('마지막 중심 노드');
-    expect(() => deleteNodes(base, ['missing'])).toThrow('노드를 찾을 수 없습니다.');
+    expect(() => deleteNodes(base, ['root'])).toThrow('edit.cannotDeleteLastCentralNode');
+    expect(() => deleteNodes(base, ['missing'])).toThrow('edit.nodeNotFound');
   });
 
   it('reparents selected branches together and picks the side under a root', () => {
@@ -107,6 +107,6 @@ describe('multi-node selection', () => {
     expect(fragment.roots).toEqual(['a1', 'b']);
     expect(Object.keys(fragment.nodes).sort()).toEqual(['a1', 'a2', 'b']);
     expect(outlineOf(fragment)).toBe('A1\n\tA2\nB');
-    expect(() => copyBranches(base, [])).toThrow('노드를 찾을 수 없습니다.');
+    expect(() => copyBranches(base, [])).toThrow('edit.nodeNotFound');
   });
 });

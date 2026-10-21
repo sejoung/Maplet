@@ -54,7 +54,9 @@ describe('Drive transport contracts', () => {
       { ...folder, id: 'other' },
     ]) {
       fetcher.mockResolvedValueOnce(response(invalid));
-      await expect(client.folder('folder')).rejects.toThrow(/폴더/);
+      await expect(client.folder('folder')).rejects.toThrow(
+        'drive.saveFolderUnavailablePleaseChoose',
+      );
     }
   });
   it('loads metadata and content and retains a conditional-write validator', async () => {
@@ -135,7 +137,7 @@ describe('Drive transport contracts', () => {
       () => 'token',
       vi.fn().mockResolvedValue(response({ size: '99999999' })),
     );
-    await expect(large.open('x')).rejects.toThrow(/크기/);
+    await expect(large.open('x')).rejects.toThrow('drive.driveFilesMustMibSmaller');
     const offline = new DriveClient(
       () => 'token',
       vi.fn().mockRejectedValue(new TypeError('offline')),

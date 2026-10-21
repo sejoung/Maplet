@@ -92,12 +92,12 @@ export function CanvasNodes(props: CanvasNodesProps) {
   return (
     <div
       role="tree"
-      aria-label={t('마인드맵')}
+      aria-label={t('canvas.mindMap')}
       aria-multiselectable="true"
       style={{ position: 'absolute', inset: 0 }}
     >
       <span id={resizeHelpId} className="visually-hidden">
-        {t('좌우 방향키로 너비 조절, Home으로 자동 크기')}
+        {t('canvas.resizeKeysHint')}
       </span>
       {layout.nodes.map((placed) => {
         const node = map.nodes[placed.id];
@@ -133,7 +133,7 @@ export function CanvasNodes(props: CanvasNodesProps) {
             aria-label={node.title}
             aria-level={depth}
             aria-selected={chosen}
-            data-drop-label={dropping === 'child' ? t('여기로 옮기기') : undefined}
+            data-drop-label={dropping === 'child' ? t('canvas.moveHere') : undefined}
             aria-expanded={node.children.length ? !node.collapsed : undefined}
             tabIndex={selected === node.id ? 0 : -1}
             data-node-id={node.id}
@@ -204,7 +204,7 @@ export function CanvasNodes(props: CanvasNodesProps) {
                     className="node-task"
                     role="checkbox"
                     aria-checked={markers.task === 'done'}
-                    aria-label={t('{title} 완료', { title: node.title })}
+                    aria-label={t('canvas.taskDone', { title: node.title })}
                     tabIndex={-1}
                     onClick={(event) => {
                       event.stopPropagation();
@@ -257,7 +257,7 @@ export function CanvasNodes(props: CanvasNodesProps) {
                   <span
                     className="node-badge"
                     role="img"
-                    aria-label={t('메모 있음')}
+                    aria-label={t('canvas.hasNotes')}
                     title={node.notes.length > 200 ? `${node.notes.slice(0, 200)}…` : node.notes}
                   >
                     <StickyNote size={11} aria-hidden="true" />
@@ -270,7 +270,7 @@ export function CanvasNodes(props: CanvasNodesProps) {
                     target="_blank"
                     rel="noopener noreferrer"
                     tabIndex={-1}
-                    aria-label={`${t('링크 열기')}: ${node.links[0]}`}
+                    aria-label={`${t('canvas.openLink')}: ${node.links[0]}`}
                     title={node.links[0]}
                     onClick={(event) => event.stopPropagation()}
                   >
@@ -282,7 +282,7 @@ export function CanvasNodes(props: CanvasNodesProps) {
             {node.children.length > 0 && (
               <button
                 className={`collapse-node ${placed.side}`}
-                aria-label={`${node.title} ${node.collapsed ? t('펼치기') : t('접기')}`}
+                aria-label={`${node.title} ${node.collapsed ? t('common.expand') : t('common.collapse')}`}
                 onClick={(event) => {
                   event.stopPropagation();
                   onToggle(node.id);
@@ -295,9 +295,9 @@ export function CanvasNodes(props: CanvasNodesProps) {
               <button
                 type="button"
                 className="resize-node"
-                aria-label={t('노드 크기 조절')}
+                aria-label={t('common.resizeNode')}
                 aria-describedby={resizeHelpId}
-                title={t('드래그로 너비 조절 · 더블클릭으로 자동 크기')}
+                title={t('canvas.resizeHint')}
                 {...resizeHandlers(node.id)}
               />
             )}

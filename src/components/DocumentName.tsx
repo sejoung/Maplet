@@ -31,7 +31,7 @@ export function DocumentName({
         onChange(renameFilename(draft));
       } catch {
         if (validate) {
-          input.current?.setCustomValidity(t('파일 이름을 입력해 주세요.'));
+          input.current?.setCustomValidity(t('common.pleaseEnterFileName'));
           input.current?.reportValidity();
           return;
         }
@@ -46,7 +46,7 @@ export function DocumentName({
     <span className="filename-editor">
       <input
         ref={input}
-        aria-label={t('파일 이름')}
+        aria-label={t('common.fileName')}
         data-filename-editor
         value={draft}
         maxLength={200}
@@ -74,8 +74,8 @@ export function DocumentName({
       ref={button}
       type="button"
       className="filename-button"
-      aria-label={`${t('파일 이름 변경')}: ${name}`}
-      title={t('파일 이름 변경')}
+      aria-label={`${t('header.renameFile')}: ${name}`}
+      title={t('header.renameFile')}
       onClick={() => {
         closed.current = false;
         setDraft(name);

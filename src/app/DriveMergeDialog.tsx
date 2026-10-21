@@ -7,26 +7,26 @@ import { parseMaplet } from '../adapters/maplet/codec';
 import { own } from '../domain/ids';
 
 const labels: Record<string, string> = {
-  title: '노드 제목',
-  notes: '메모',
-  links: '링크',
-  position: '위치',
-  parentId: '부모 노드',
-  rank: '노드 순서',
-  side: '방향',
-  collapsed: '접기',
-  style: '스타일',
-  filename: '파일 이름',
-  structure: '노드 구조',
-  document: '문서',
-  background: '배경색',
-  color: '글자 색상',
-  fontFamily: '글꼴',
-  fontSize: '글자 크기',
-  fontWeight: '글자 굵기',
-  textAlign: '텍스트 정렬',
-  width: '너비',
-  group: '그룹 위치',
+  title: 'common.nodeTitle',
+  notes: 'common.notes',
+  links: 'common.link',
+  position: 'drive.position',
+  parentId: 'drive.parentNode',
+  rank: 'drive.nodeOrder',
+  side: 'drive.direction',
+  collapsed: 'common.collapse',
+  style: 'drive.style',
+  filename: 'common.fileName',
+  structure: 'drive.nodeStructure',
+  document: 'drive.document',
+  background: 'common.backgroundColor',
+  color: 'drive.textColor',
+  fontFamily: 'common.font',
+  fontSize: 'common.fontSize',
+  fontWeight: 'drive.fontWeight',
+  textAlign: 'common.textAlignment',
+  width: 'drive.width',
+  group: 'drive.groupPositions',
 };
 export function DriveMergeDialog({
   conflict,
@@ -53,27 +53,25 @@ export function DriveMergeDialog({
     remote = parseMaplet(conflict.remote.content);
   const value = (item: unknown) =>
     item === undefined
-      ? t('삭제됨')
+      ? t('drive.deleted')
       : typeof item === 'string'
         ? item
         : JSON.stringify(item, null, 2);
   return (
-    <Dialog title={t('충돌한 변경 확인')} onClose={close}>
-      <p>
-        {t('겹치지 않는 변경은 자동으로 합쳤습니다. 충돌한 항목에서 유지할 내용을 선택해 주세요.')}
-      </p>
+    <Dialog title={t('drive.reviewConflictingChanges')} onClose={close}>
+      <p>{t('drive.nonConflictingChangesHaveMerged')}</p>
       <div className="merge-conflicts">
         {conflict.conflicts.map((item, index) => {
           const node =
             item.nodeId && (own(local.nodes, item.nodeId) ?? own(remote.nodes, item.nodeId));
           const field =
             item.path.map((part) => t(labels[part] ?? part)).join(' · ') ||
-            t('노드 삭제 또는 수정');
+            t('drive.nodeDeletionEdit');
           return (
             <fieldset key={item.id} className="merge-conflict">
               <legend>{node ? `${node.title} · ${field}` : field}</legend>
               <details>
-                <summary>{t('마지막 동기화 내용')}</summary>
+                <summary>{t('drive.lastSyncedContent')}</summary>
                 <pre>{value(item.base)}</pre>
               </details>
               {(['local', 'remote'] as const).map((side) => (
@@ -88,7 +86,7 @@ export function DriveMergeDialog({
                         setSelection({ conflict, choices: { ...choices, [item.id]: side } })
                       }
                     />
-                    {t(side === 'local' ? '내 변경 유지' : 'Drive 변경 유지')}
+                    {t(side === 'local' ? 'drive.keepMyChange' : 'drive.keepDriveChange')}
                   </span>
                   <pre>{value(item[side])}</pre>
                 </label>
@@ -103,16 +101,16 @@ export function DriveMergeDialog({
           disabled={busy || conflict.conflicts.some((item) => !choices[item.id])}
           onClick={() => resolve(choices)}
         >
-          {t('선택한 내용 병합 후 저장')}
+          {t('drive.mergeSelectionsSave')}
         </button>
         <button className="button" disabled={busy} onClick={download}>
-          {t('로컬 파일 다운로드')}
+          {t('drive.downloadLocalFile')}
         </button>
         <button className="button" disabled={busy} onClick={copy}>
-          {t('새 사본으로 저장')}
+          {t('drive.saveNewCopy')}
         </button>
         <button className="button quiet" onClick={close}>
-          {t('편집으로 돌아가기')}
+          {t('drive.backEditing')}
         </button>
       </div>
     </Dialog>

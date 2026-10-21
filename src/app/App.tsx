@@ -39,18 +39,18 @@ export function App({
   const [error, setError] = useState<Translatable | null>(null);
   const [notice, setNotice] = useState<Translatable | null>(null);
   const report = useCallback(
-    (reason: unknown) => setError(messageOf(reason, '작업을 완료하지 못했습니다.')),
+    (reason: unknown) => setError(messageOf(reason, 'app.couldNotCompleteOperation')),
     [],
   );
   const doc = useDocument({
-    title: t('중심 주제'),
-    filename: `${t('제목 없음')}.maplet`,
+    title: t('common.centralTopic'),
+    filename: `${t('app.untitled')}.maplet`,
     onEdited: () => setError(null),
     onError: report,
   });
   const { map, content, filename, selectedId } = doc;
   const [draftStatus, setDraftStatus] = useState(
-    drafts.enabled ? '이 기기에만 보관' : '기기 초안 보관 꺼짐',
+    drafts.enabled ? 'app.storedDeviceOnly' : 'app.deviceDraftStorageOff',
   );
   const draftPrivacy = useDraftPrivacy(drafts, setDraftStatus, setError);
   const [recoveryReady, setRecoveryReady] = useState(false);
@@ -90,7 +90,7 @@ export function App({
     try {
       downloadFile(content, filename);
       markDownloaded();
-      setNotice('파일 다운로드를 요청했습니다. 다운로드 폴더에서 .maplet 파일을 확인해 주세요.');
+      setNotice('app.downloadRequestedCheckDownloadsFolder');
     } catch (reason) {
       report(reason);
     }
@@ -103,11 +103,7 @@ export function App({
     // Each compatibility warning is an independent catalog message.
     setNotice(next.warnings.length ? next.warnings : null);
   };
-  const allowReplace = () =>
-    !doc.dirty ||
-    window.confirm(
-      t('아직 저장하지 않은 변경이 있습니다. 현재 맵을 바꿀까요? 취소 후 저장할 수 있습니다.'),
-    );
+  const allowReplace = () => !doc.dirty || window.confirm(t('app.confirmReplaceUnsaved'));
   const importGeneration = useRef(0);
   const open = async (file: File) => {
     const generation = ++importGeneration.current;
@@ -137,7 +133,7 @@ export function App({
       doc.setFilenamePending(recovery.filenamePending ?? false);
       driveState.restoreDraftWorkspace(recovery.drive, recovery.driveBaseline);
       setRecovery(null);
-      setNotice('이 기기의 초안을 복구했습니다. 파일로 다운로드해 보관하세요.');
+      setNotice('app.draftRecoveredDeviceDownloadFile');
     } catch (reason) {
       report(reason);
     }
@@ -247,21 +243,19 @@ export function App({
         onDismissNotice={() => setNotice(null)}
       />
       {recovery && (
-        <Dialog title={t('초안 복구')} onClose={preventRecoveryClose}>
-          <p>
-            {t('이 기기에 저장된 {filename} 초안이 있습니다.', { filename: recovery.filename })}
-          </p>
+        <Dialog title={t('app.recoverDraft')} onClose={preventRecoveryClose}>
+          <p>{t('app.draftFound', { filename: recovery.filename })}</p>
           <p className="muted">
             {new Date(recovery.updatedAt).toLocaleString(locale)}
             {' · '}
-            {t('아직 파일로 저장하지 않은 변경')}
+            {t('app.changesNotYetSavedFile')}
           </p>
           <div className="dialog-actions">
             <button className="button quiet" onClick={() => void discardRecovery()}>
-              {t('초안 삭제')}
+              {t('app.deleteDraft')}
             </button>
             <button className="button primary" onClick={recover}>
-              {t('초안 복구')}
+              {t('app.recoverDraft')}
             </button>
           </div>
         </Dialog>
@@ -272,7 +266,7 @@ export function App({
           onCreate={(title) => {
             if (allowReplace()) {
               const next = createMap(title);
-              const name = filenameFromTitle(title) ?? `${t('제목 없음')}.maplet`;
+              const name = filenameFromTitle(title) ?? `${t('app.untitled')}.maplet`;
               replace(next, name, '');
               driveState.clearFile(serializeMaplet(next), name);
               setDialog(null);

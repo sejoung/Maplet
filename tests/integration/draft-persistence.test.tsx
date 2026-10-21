@@ -55,7 +55,7 @@ it('waits until enabled and debounces edits into the latest complete draft snaps
   expect(view.save).not.toHaveBeenCalled();
   await tick(1);
   expect(view.save).toHaveBeenCalledExactlyOnceWith({ ...latest, updatedAt: Date.now() });
-  expect(view.status).toHaveBeenLastCalledWith('브라우저에 초안 저장됨');
+  expect(view.status).toHaveBeenLastCalledWith('app.draftSavedBrowser');
   expect(view.error).not.toHaveBeenCalled();
 });
 
@@ -66,7 +66,7 @@ it.each(['disable', 'unmount'] as const)('cancels pending draft writes on %s', a
   else view.unmount();
   await tick(1000);
   expect(view.save).not.toHaveBeenCalled();
-  expect(view.status).not.toHaveBeenCalledWith('브라우저에 초안 저장됨');
+  expect(view.status).not.toHaveBeenCalledWith('app.draftSavedBrowser');
 });
 
 it.each(['resolve', 'reject'] as const)(
@@ -86,7 +86,7 @@ it.each(['resolve', 'reject'] as const)(
     view.rerender({ draft: latest, enabled: true });
     await tick(250);
     expect(view.save).toHaveBeenCalledOnce();
-    expect(view.status).not.toHaveBeenCalledWith('브라우저에 초안 저장됨');
+    expect(view.status).not.toHaveBeenCalledWith('app.draftSavedBrowser');
     await act(async () => finish());
     expect(view.save).toHaveBeenCalledTimes(2);
     expect(view.save.mock.calls.map(([draft]) => draft.content)).toEqual([
@@ -94,7 +94,7 @@ it.each(['resolve', 'reject'] as const)(
       latest.content,
     ]);
     expect(
-      view.status.mock.calls.filter(([message]) => message === '브라우저에 초안 저장됨'),
+      view.status.mock.calls.filter(([message]) => message === 'app.draftSavedBrowser'),
     ).toHaveLength(1);
     expect(view.error).not.toHaveBeenCalled();
   },
@@ -104,12 +104,10 @@ it('reports a failed current save and allows the next edit to persist', async ()
   const view = setup();
   view.save.mockRejectedValueOnce(new Error('storage unavailable'));
   await tick(250);
-  expect(view.status).toHaveBeenLastCalledWith('초안 저장 실패');
-  expect(view.error).toHaveBeenCalledExactlyOnceWith(
-    '브라우저에 초안을 저장하지 못했습니다. 파일을 다운로드해 주세요.',
-  );
+  expect(view.status).toHaveBeenLastCalledWith('app.draftSaveFailed');
+  expect(view.error).toHaveBeenCalledExactlyOnceWith('app.couldNotSaveBrowserDraft');
   view.rerender({ draft: { ...view.draft, content: 'retry after editing' }, enabled: true });
   await tick(250);
   expect(view.save).toHaveBeenCalledTimes(2);
-  expect(view.status).toHaveBeenLastCalledWith('브라우저에 초안 저장됨');
+  expect(view.status).toHaveBeenLastCalledWith('app.draftSavedBrowser');
 });

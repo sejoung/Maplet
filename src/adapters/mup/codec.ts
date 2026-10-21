@@ -28,8 +28,7 @@ const validRank = (rank: string) =>
 const safeLinks = (attr: JsonObject) =>
   typeof attr.hyperlink === 'string' && safeUrl(attr.hyperlink) ? [attr.hyperlink] : [];
 
-export const MUP_JSON_ERROR =
-  '올바른 JSON 파일이 아니거나 숫자 범위를 초과했습니다. .mup 원본을 확인해 주세요.';
+export const MUP_JSON_ERROR = 'file.invalidMupJson';
 
 export function parseMup(source: string): MindMap {
   assertSize(utf8Length(source), MAX_BYTES);
@@ -44,10 +43,10 @@ export function parseMup(source: string): MindMap {
 
 /** Convert an already parsed MindMup document; `source` is kept as the original backup. */
 export function mupFromJson(raw: unknown, source: string): MindMap {
-  if (!object(raw)) throw new AppError('마인드맵은 JSON 객체여야 합니다.');
+  if (!object(raw)) throw new AppError('file.mindMapMustJsonObject');
   const version = raw.formatVersion ?? 1;
   if (version !== 1 && version !== 2 && version !== 3)
-    throw new AppError('지원하는 MindMup 버전은 1, 2, 3입니다.');
+    throw new AppError('file.unsupportedMupVersion');
   const nodes: Record<string, MindNode> = {};
   const warnings = new Set<string>();
   const seen = new Set<object>();
@@ -59,30 +58,28 @@ export function mupFromJson(raw: unknown, source: string): MindMap {
     inheritedSide: Side,
     depth: number,
   ): string => {
-    if (depth > MAX_DEPTH)
-      throw new AppError('노드 깊이는 {max} 이하여야 합니다.', { max: MAX_DEPTH });
+    if (depth > MAX_DEPTH) throw new AppError('file.nodeDepthMustLess', { max: MAX_DEPTH });
     if (++count > MAX_NODES)
-      throw new AppError('노드는 {max}개 이하여야 합니다.', { max: formatCount(MAX_NODES) });
-    if (!object(value) || seen.has(value)) throw new AppError('잘못된 노드 또는 순환 참조입니다.');
+      throw new AppError('file.mapMustHaveMostNodes', { max: formatCount(MAX_NODES) });
+    if (!object(value) || seen.has(value)) throw new AppError('file.invalidNodeCyclicReference');
     seen.add(value);
     if (
       (typeof value.id !== 'number' && typeof value.id !== 'string') ||
       String(value.id).length === 0 ||
       typeof value.title !== 'string'
     )
-      throw new AppError('모든 노드에는 ID와 텍스트 제목이 필요합니다.');
+      throw new AppError('file.everyNodeNeedsIdText');
     const id = String(value.id);
     if (isReservedId(id) || Object.hasOwn(nodes, id))
-      throw new AppError('중복되거나 사용할 수 없는 노드 ID입니다.');
+      throw new AppError('common.duplicateInvalidNodeId');
     if (value.title.length > MAX_TITLE)
-      throw new AppError('노드 제목은 {max}자 이하여야 합니다.', { max: formatCount(MAX_TITLE) });
+      throw new AppError('file.nodeTitlesMustCharactersShorter', { max: formatCount(MAX_TITLE) });
     const attr = obj(value.attr);
     const style = version === 1 ? obj(value.style) : obj(attr.style);
     const attachment = obj(attr.attachment);
     if (attachment.contentType && attachment.contentType !== 'text/plain')
-      warnings.add('일부 첨부 콘텐츠는 화면에 표시하지 않고 원본 그대로 보존합니다.');
-    if (value.resources || value.icon || attr.icon)
-      warnings.add('아이콘·리소스는 원본에 보존되며 화면 표현이 제한될 수 있습니다.');
+      warnings.add('file.attachmentsPreserved');
+    if (value.resources || value.icon || attr.icon) warnings.add('file.iconsResourcesPreserved');
     const links = safeLinks(attr);
     if (typeof attr.hyperlink === 'string' && !links.length) warnings.add(UNSAFE_LINK_WARNING);
     const side =
@@ -117,11 +114,10 @@ export function mupFromJson(raw: unknown, source: string): MindMap {
       rawExtensions,
     };
     if (value.ideas !== undefined) {
-      if (!object(value.ideas))
-        throw new AppError('ideas는 순서 키와 노드를 담은 객체여야 합니다.');
+      if (!object(value.ideas)) throw new AppError('file.ideasMustObjectContainingOrder');
       const entries = Object.entries(value.ideas);
       if (!entries.every(([key]) => validRank(key)))
-        throw new AppError('노드 순서(rank)는 0이 아닌 유한한 숫자여야 합니다.');
+        throw new AppError('file.nodeRankMustFiniteNonzero');
       entries.sort(([a], [b]) => rankMagnitude(a) - rankMagnitude(b));
       nodes[id].children = entries.map(([key, child]) => visit(child, id, key, side, depth + 1));
     }
@@ -131,16 +127,15 @@ export function mupFromJson(raw: unknown, source: string): MindMap {
   const extensions: JsonObject = version === 3 ? { ...raw } : {};
   if (version === 3) {
     if (!object(raw.ideas) || !Object.keys(raw.ideas).length)
-      throw new AppError('중심 노드가 없는 빈 맵입니다.');
+      throw new AppError('file.emptyMapNoCentralNode');
     const entries = Object.entries(raw.ideas);
-    if (!entries.every(([rank]) => validRank(rank)))
-      throw new AppError('잘못된 루트 순서(rank)입니다.');
+    if (!entries.every(([rank]) => validRank(rank))) throw new AppError('file.invalidRootRank');
     roots = entries
       .sort(([a], [b]) => Number(a) - Number(b))
       .map(([rank, child]) => visit(child, null, rank, 'right', 1));
     delete extensions.ideas;
   } else roots = [visit(raw, null, '1', 'right', 1)];
-  if (raw.resources) warnings.add('리소스는 원본에 보존되며 화면 표현이 제한될 수 있습니다.');
+  if (raw.resources) warnings.add('file.resourcesPreserved');
   const map: MindMap = {
     formatVersion: version,
     roots,
@@ -156,8 +151,7 @@ export function mupFromJson(raw: unknown, source: string): MindMap {
       to: String(link.ideaIdTo),
     }));
     const connections = cleanConnections(map, links);
-    if (connections.length < raw.links.length)
-      warnings.add('연결할 노드가 없는 교차 연결은 원본에만 보존합니다.');
+    if (connections.length < raw.links.length) warnings.add('file.danglingLinksPreserved');
     map.connections = connections;
     map.warnings = [...warnings];
   }

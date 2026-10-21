@@ -14,13 +14,10 @@ export const subscribeLanguage = (listener: () => void) => {
 function applyLanguage(next: Language) {
   language = next;
   document.documentElement.lang = next;
-  document.title = translate('Maplet — 마인드맵 에디터', next);
+  document.title = translate('meta.title', next);
   document
     .querySelector('meta[name="description"]')
-    ?.setAttribute(
-      'content',
-      translate('.maplet 문서를 편집하고 MindMup 파일을 가져오는 로컬 우선 마인드맵 에디터.', next),
-    );
+    ?.setAttribute('content', translate('meta.description', next));
   listeners.forEach((listener) => listener());
 }
 
@@ -44,3 +41,6 @@ export function initializeLanguage() {
     detectLanguage(navigator.languages.length ? navigator.languages : [navigator.language], saved),
   );
 }
+
+/** Each language is named in itself, whatever the interface language. */
+export const LANGUAGE_NAMES: Record<Language, string> = { ko: '한국어', en: 'English' };

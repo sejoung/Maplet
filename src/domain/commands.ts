@@ -14,13 +14,13 @@ import { nextRank, placeRank } from './ranks';
 import { pruneConnections } from './connections';
 
 function nodeOf(map: MindMap, id: string): MindNode {
-  if (!Object.hasOwn(map.nodes, id)) throw new AppError('노드를 찾을 수 없습니다.');
+  if (!Object.hasOwn(map.nodes, id)) throw new AppError('edit.nodeNotFound');
   return map.nodes[id];
 }
 
 function titleOf(title: string): string {
   if (!title.trim() || title.length > MAX_TITLE)
-    throw new AppError('제목은 1~{max}자로 입력해 주세요.', { max: formatCount(MAX_TITLE) });
+    throw new AppError('edit.enterTitleBetween1Characters', { max: formatCount(MAX_TITLE) });
   return title;
 }
 
@@ -57,7 +57,7 @@ function createNode(
   };
 }
 
-export function createMap(title = '중심 주제'): MindMap {
+export function createMap(title = 'Central topic'): MindMap {
   return {
     formatVersion: 2,
     roots: ['root'],
@@ -78,7 +78,7 @@ export function depthOf(map: MindMap, id: string): number {
   return depth;
 }
 
-export const depthLimit = () => new AppError('최대 노드 깊이는 {max}입니다.', { max: MAX_DEPTH });
+export const depthLimit = () => new AppError('common.depthLimit', { max: MAX_DEPTH });
 
 /**
  * Splice a node that already exists in `result` (a clone of `map`) under `parentId`, after
@@ -102,14 +102,14 @@ export function addNode(
   map: MindMap,
   parentId: string,
   id: string,
-  title = '새 노드',
+  title = 'New node',
   afterId?: string,
 ): MindMap {
   const parent = nodeOf(map, parentId);
   if (afterId && nodeOf(map, afterId).parentId !== parentId)
-    throw new AppError('같은 부모 아래의 형제 노드를 선택해 주세요.');
+    throw new AppError('edit.selectSiblingUnderSameParent');
   if (Object.hasOwn(map.nodes, id) || isReservedId(id))
-    throw new AppError('중복되거나 사용할 수 없는 노드 ID입니다.');
+    throw new AppError('common.duplicateInvalidNodeId');
   if (Object.keys(map.nodes).length >= MAX_NODE_COUNT) throw nodeLimit();
   if (depthOf(map, parentId) >= MAX_DEPTH) throw depthLimit();
   const result = structuredClone(map);
@@ -143,7 +143,7 @@ export function deleteNode(map: MindMap, id: string): MindMap {
 export function deleteNodes(map: MindMap, ids: readonly string[]): MindMap {
   ids.forEach((id) => nodeOf(map, id));
   if (map.roots.every((root) => ids.includes(root)))
-    throw new AppError('마지막 중심 노드는 삭제할 수 없습니다.');
+    throw new AppError('edit.cannotDeleteLastCentralNode');
   const result = structuredClone(map);
   const remove = (key: string) => {
     result.nodes[key].children.forEach(remove);
@@ -187,9 +187,8 @@ export function moveNode(map: MindMap, id: string, parentId: string, side?: Side
   const node = nodeOf(map, id);
   const parent = nodeOf(map, parentId);
   if (id === parentId || isDescendant(map, id, parentId))
-    throw new AppError('순환 참조가 생기는 이동은 할 수 없습니다.');
-  if (node.parentId === null)
-    throw new AppError('중심 노드는 다른 노드 아래로 이동할 수 없습니다.');
+    throw new AppError('edit.moveCreatesCycle');
+  if (node.parentId === null) throw new AppError('edit.cannotMoveCentralNodeUnder');
   if (node.parentId === parentId) return map;
   if (depthOf(map, parentId) + subtreeHeight(map, id) > MAX_DEPTH) throw depthLimit();
   const branchSide = parent.parentId === null ? (side ?? parent.side) : parent.side;
@@ -212,11 +211,11 @@ export function updateNode(
 ): MindMap {
   const node = nodeOf(map, id);
   if (patch.links?.some((link) => !safeUrl(link)))
-    throw new AppError('링크는 http, https 또는 mailto 주소만 사용할 수 있습니다.');
+    throw new AppError('common.linksMustUseHttpHttps');
   if (Object.entries(patch).every(([key, value]) => equalJson(node[key as keyof MindNode], value)))
     return map;
   if (patch.side && patch.side !== node.side && node.parentId === null)
-    throw new AppError('중심 노드는 방향을 바꿀 수 없습니다.');
+    throw new AppError('edit.rootSideFixed');
   const result = structuredClone(map);
   Object.assign(result.nodes[id], patch);
   if (patch.side && patch.side !== node.side) {
@@ -234,8 +233,7 @@ export function updateNode(
   return result;
 }
 
-export const nodeLimit = () =>
-  new AppError('최대 {max}개 노드까지 편집할 수 있습니다.', { max: formatCount(MAX_NODE_COUNT) });
+export const nodeLimit = () => new AppError('edit.nodeLimit', { max: formatCount(MAX_NODE_COUNT) });
 
 /** Swap a node with its previous (-1) or next (1) sibling on the same side. */
 export function moveSibling(map: MindMap, id: string, offset: -1 | 1): MindMap {
@@ -275,13 +273,12 @@ export function insertNodes(
 ): MindMap {
   const parent = nodeOf(map, parentId);
   if (nodeOf(map, anchor.id).parentId !== parentId || ids.includes(anchor.id))
-    throw new AppError('같은 부모 아래의 형제 노드를 선택해 주세요.');
+    throw new AppError('edit.selectSiblingUnderSameParent');
   for (const id of ids) {
     const node = nodeOf(map, id);
     if (id === parentId || isDescendant(map, id, parentId))
-      throw new AppError('순환 참조가 생기는 이동은 할 수 없습니다.');
-    if (node.parentId === null)
-      throw new AppError('중심 노드는 다른 노드 아래로 이동할 수 없습니다.');
+      throw new AppError('edit.moveCreatesCycle');
+    if (node.parentId === null) throw new AppError('edit.cannotMoveCentralNodeUnder');
     if (depthOf(map, parentId) + subtreeHeight(map, id) > MAX_DEPTH) throw depthLimit();
   }
   const side = parent.parentId === null ? map.nodes[anchor.id].side : parent.side;
@@ -306,7 +303,7 @@ export function insertNodes(
 /** Add a central topic, optionally at a map position. Several roots need MindMup v3. */
 export function addRoot(map: MindMap, id: string, title: string, position?: NodePosition) {
   if (Object.hasOwn(map.nodes, id) || isReservedId(id))
-    throw new AppError('중복되거나 사용할 수 없는 노드 ID입니다.');
+    throw new AppError('common.duplicateInvalidNodeId');
   if (Object.keys(map.nodes).length >= MAX_NODE_COUNT) throw nodeLimit();
   const node = createNode(id, title, null, 'right', nextRank(map, map.roots, 'right'));
   if (position) node.position = { x: position.x, y: position.y };

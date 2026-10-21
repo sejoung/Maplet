@@ -62,7 +62,7 @@ export function Dialog({
       >
         <div className="dialog-heading">
           <h2 id={titleId}>{title}</h2>
-          <button className="icon-button" aria-label={t('대화상자 닫기')} onClick={onClose}>
+          <button className="icon-button" aria-label={t('editor.closeDialog')} onClick={onClose}>
             <X size={20} />
           </button>
         </div>

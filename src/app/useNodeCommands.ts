@@ -41,7 +41,7 @@ export function useNodeCommands(doc: DocumentState, t: ReturnType<typeof useI18n
         current,
         asSibling ? node.parentId! : selected,
         id,
-        t('새 노드'),
+        t('common.newNode'),
         asSibling ? selected : undefined,
       );
     });
@@ -54,11 +54,8 @@ export function useNodeCommands(doc: DocumentState, t: ReturnType<typeof useI18n
     const nodes = ids.map((id) => map.nodes[id]);
     const confirmText =
       ids.length > 1
-        ? t(
-            '선택한 노드 {count}개와 모든 하위 노드를 삭제할까요? 실행 취소로 복원할 수 있습니다.',
-            { count: doc.selection.length },
-          )
-        : t('이 노드와 모든 하위 노드를 삭제할까요? 실행 취소로 복원할 수 있습니다.');
+        ? t('app.confirmDeleteSelection', { count: doc.selection.length })
+        : t('app.confirmDeleteBranch');
     if (nodes.some((node) => node.children.length) && !window.confirm(confirmText)) return;
     const fallback = nodes[0].parentId ?? map.roots.find((id) => !ids.includes(id))!;
     if (edit((current) => deleteNodes(current, ids))) doc.setSelected(fallback);
@@ -121,7 +118,7 @@ export function useNodeCommands(doc: DocumentState, t: ReturnType<typeof useI18n
             Object.fromEntries(placed.map((node) => [node.id, { x: node.x, y: node.y }])),
           );
         }
-        return addRoot(base, id, t('새 주제'), at);
+        return addRoot(base, id, t('app.newTopic'), at);
       });
       if (!added) return;
       doc.setSelected(id);

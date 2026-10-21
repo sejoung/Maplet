@@ -89,7 +89,9 @@ describe('Maplet native format v1', () => {
     expect(nativeFilename('map.mup')).toBe('map.maplet');
     expect(nativeFilename('map.maplet')).toBe('map.maplet');
     expect(mupFilename('map.maplet')).toBe('map.mup');
-    expect(() => parseDocument('{"format":"maplet","version":99}')).toThrow(/버전/);
+    expect(() => parseDocument('{"format":"maplet","version":99}')).toThrow(
+      'file.unsupportedMapletFileVersion',
+    );
   });
   it.each([
     [
@@ -196,10 +198,10 @@ describe('Maplet native format v1', () => {
     raw.nodes.child.links = ['javascript:alert(1)', 'https://example.com'];
     const map = parseMaplet(JSON.stringify(raw));
     expect(map.nodes.child.links).toEqual(['https://example.com']);
-    expect(map.warnings).toContain('안전하지 않은 링크는 열 수 없도록 제외했습니다.');
+    expect(map.warnings).toContain('file.unsafeLinksRemoved');
   });
   it('rejects malformed JSON, unsupported identifiers and non-finite extension numbers', () => {
-    expect(() => parseMaplet('{bad')).toThrow(/JSON/);
+    expect(() => parseMaplet('{bad')).toThrow('file.invalidJson');
     expect(() => parseMaplet('{"format":"other","version":1}')).toThrow();
     expect(() =>
       parseMaplet(
@@ -209,8 +211,8 @@ describe('Maplet native format v1', () => {
   });
   it('enforces file size, node count, depth and title limits', () => {
     const huge = ' '.repeat(50 * 1024 * 1024 + 1);
-    expect(() => parseMaplet(huge)).toThrow(/크기/);
-    expect(() => parseDocument(huge)).toThrow(/크기/);
+    expect(() => parseMaplet(huge)).toThrow(/MibSmaller/);
+    expect(() => parseDocument(huge)).toThrow(/MibSmaller/);
     const raw = document();
     raw.nodes.root.title = 'x'.repeat(10_001);
     expect(() => parseMaplet(JSON.stringify(raw))).toThrow();
@@ -229,7 +231,7 @@ describe('Maplet native format v1', () => {
         },
       ]),
     );
-    expect(() => parseMaplet(JSON.stringify(raw))).toThrow(/깊이/);
+    expect(() => parseMaplet(JSON.stringify(raw))).toThrow('common.depthLimit');
     raw.nodes.n99.children = [];
     delete raw.nodes.n100;
     expect(Object.keys(parseMaplet(JSON.stringify(raw)).nodes)).toHaveLength(100);

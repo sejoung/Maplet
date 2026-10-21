@@ -29,12 +29,12 @@ export function pruneConnections(map: MindMap): MindMap {
 
 export function addConnection(map: MindMap, from: string, to: string): MindMap {
   if (!Object.hasOwn(map.nodes, from) || !Object.hasOwn(map.nodes, to))
-    throw new AppError('노드를 찾을 수 없습니다.');
-  if (from === to) throw new AppError('같은 노드끼리는 연결할 수 없습니다.');
+    throw new AppError('edit.nodeNotFound');
+  if (from === to) throw new AppError('edit.nodeCannotConnectItself');
   const connections = map.connections ?? [];
   if (connections.some((other) => same(other, { from, to }))) return map;
   if (connections.length >= MAX_CONNECTIONS)
-    throw new AppError('연결선은 최대 {max}개까지 만들 수 있습니다.', {
+    throw new AppError('edit.connectionLimit', {
       max: formatCount(MAX_CONNECTIONS),
     });
   return { ...map, connections: [...connections, { from, to }] };

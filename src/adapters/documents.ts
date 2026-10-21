@@ -28,7 +28,7 @@ export function driveSaveTarget(
   name: string,
   current: { name: string } | null,
   copy: boolean,
-  copyLabel = '사본',
+  copyLabel = 'copy',
 ) {
   return {
     create: copy || !current || !/\.maplet$/i.test(current.name),

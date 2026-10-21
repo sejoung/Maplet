@@ -22,7 +22,7 @@ export async function svgToPng(svg: string, width: number, height: number): Prom
     canvas.getContext('2d')!.drawImage(image, 0, 0, canvas.width, canvas.height);
     return await new Promise<Blob>((resolve, reject) =>
       canvas.toBlob(
-        (blob) => (blob ? resolve(blob) : reject(new AppError('이미지를 만들지 못했습니다.'))),
+        (blob) => (blob ? resolve(blob) : reject(new AppError('file.couldNotCreateImage'))),
         'image/png',
       ),
     );

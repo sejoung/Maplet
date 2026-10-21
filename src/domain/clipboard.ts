@@ -17,7 +17,7 @@ export function copySubtree(map: MindMap, id: string): Fragment {
 /** Copy separate branches; `ids` must not contain each other's descendants. */
 export function copyBranches(map: MindMap, ids: readonly string[]): Fragment {
   if (!ids.length || ids.some((id) => !Object.hasOwn(map.nodes, id)))
-    throw new AppError('노드를 찾을 수 없습니다.');
+    throw new AppError('edit.nodeNotFound');
   const nodes: Record<string, MindNode> = {};
   const visit = (key: string) => {
     nodes[key] = structuredClone(map.nodes[key]);
@@ -41,7 +41,7 @@ export function pasteFragment(
   createId: () => string,
   afterId?: string,
 ): { map: MindMap; roots: string[] } {
-  if (!Object.hasOwn(map.nodes, parentId)) throw new AppError('노드를 찾을 수 없습니다.');
+  if (!Object.hasOwn(map.nodes, parentId)) throw new AppError('edit.nodeNotFound');
   if (Object.keys(map.nodes).length + Object.keys(fragment.nodes).length > MAX_NODE_COUNT)
     throw nodeLimit();
   const depth = depthOf(map, parentId);

@@ -34,7 +34,7 @@ describe('immutable editing commands', () => {
     doc = updateNode(doc, 'b', { side: 'left' });
     doc = addNode(doc, 'a', 'c');
     expect(isDescendant(doc, 'a', 'c')).toBe(true);
-    expect(() => moveNode(doc, 'a', 'c')).toThrow(/순환/);
+    expect(() => moveNode(doc, 'a', 'c')).toThrow('edit.moveCreatesCycle');
     expect(() => moveNode(doc, doc.roots[0], 'c')).toThrow();
     expect(() => moveNode(doc, 'a', 'a')).toThrow();
     const moved = moveNode(doc, 'a', 'b');
@@ -45,14 +45,14 @@ describe('immutable editing commands', () => {
   it('preserves edited notes, links, styles and collapsed state across export', () => {
     const doc = createMap();
     const edited = updateNode(doc, doc.roots[0], {
-      notes: '메모',
+      notes: 'common.notes',
       links: ['https://example.com'],
       style: { background: '#fff' },
       collapsed: true,
     });
     const root = parseMup(serializeMup(edited)).nodes[doc.roots[0]];
     expect(root).toMatchObject({
-      notes: '메모',
+      notes: 'common.notes',
       links: ['https://example.com'],
       collapsed: true,
       style: { background: '#fff' },
@@ -80,7 +80,7 @@ describe('immutable editing commands', () => {
   });
   it('refuses to change the direction of a central topic', () => {
     const doc = addNode(createMap(), 'root', 'a');
-    expect(() => updateNode(doc, 'root', { side: 'left' })).toThrow('중심 노드');
+    expect(() => updateNode(doc, 'root', { side: 'left' })).toThrow('edit.rootSideFixed');
   });
   it('inserts siblings between ranks and rejects unrelated sibling anchors', () => {
     let doc = addNode(createMap(), 'root', 'a');

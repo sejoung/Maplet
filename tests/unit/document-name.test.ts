@@ -14,7 +14,7 @@ it.each([
   expect(renameFilename(input)).toBe(expected);
 });
 it.each(['', '   ', '.maplet', '...'])('rejects an empty filename %j', (input) => {
-  expect(() => renameFilename(input)).toThrow(/파일 이름/);
+  expect(() => renameFilename(input)).toThrow('common.pleaseEnterFileName');
 });
 it.each([
   ['  첫 줄\n다음 줄  ', '첫 줄 다음 줄.maplet'],

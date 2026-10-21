@@ -26,10 +26,6 @@ export function utf8Length(text: string): number {
   return bytes;
 }
 
-export function assertSize(
-  bytes: number,
-  limit: number,
-  key = '파일 크기는 {limit} MiB 이하여야 합니다.',
-): void {
+export function assertSize(bytes: number, limit: number, key = 'file.filesMustMibSmaller'): void {
   if (bytes > limit) throw new AppError(key, { limit: limit / MiB });
 }

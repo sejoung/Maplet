@@ -22,7 +22,7 @@ export function useDraftPersistence(
   useEffect(() => {
     if (!enabled) return;
     let active = true;
-    onStatus('초안 저장 중…');
+    onStatus('app.savingDraft');
     const timer = window.setTimeout(() => {
       const snapshot = {
         content,
@@ -38,12 +38,12 @@ export function useDraftPersistence(
       queue.current = queue.current.catch(() => {}).then(() => store.save(snapshot));
       queue.current
         .then(() => {
-          if (active) onStatus('브라우저에 초안 저장됨');
+          if (active) onStatus('app.draftSavedBrowser');
         })
         .catch(() => {
           if (active) {
-            onStatus('초안 저장 실패');
-            onError('브라우저에 초안을 저장하지 못했습니다. 파일을 다운로드해 주세요.');
+            onStatus('app.draftSaveFailed');
+            onError('app.couldNotSaveBrowserDraft');
           }
         });
     }, 250);

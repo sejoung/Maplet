@@ -54,17 +54,21 @@ describe('optional Google SDK bridge', () => {
     expect(sessionStorage.getItem('maplet:drive-session:public-client')).toBeNull();
   });
   it('reports not-ready SDK, consent denial, missing token and popup cancellation', async () => {
-    await expect(new GoogleConnection(config).connect()).rejects.toThrow(/준비/);
+    await expect(new GoogleConnection(config).connect()).rejects.toThrow(
+      'drive.waitGoogleServicesLoadThen',
+    );
     for (const result of [{ error: 'access_denied' }, {}]) {
       sdk(result);
-      await expect(new GoogleConnection(config).connect()).rejects.toThrow(/취소/);
+      await expect(new GoogleConnection(config).connect()).rejects.toThrow(/^drive\.\w+Cancelled$/);
     }
     sdk({}, true);
-    await expect(new GoogleConnection(config).connect()).rejects.toThrow(/차단/);
+    await expect(new GoogleConnection(config).connect()).rejects.toThrow(
+      'drive.googleSignWindowClosedBlocked',
+    );
   });
   it('does not open Picker without a token and returns chosen file or cancel', async () => {
     const connection = new GoogleConnection(config);
-    await expect(connection.pick()).rejects.toThrow(/먼저/);
+    await expect(connection.pick()).rejects.toThrow('drive.connectGoogleDriveFirst');
     sdk();
     await connection.connect();
     let callback: (value: {
@@ -148,7 +152,7 @@ describe('optional Google SDK bridge', () => {
     vi.resetModules();
     const { GoogleConnection: Connection } = await import('../../src/adapters/drive/google');
     const ready = new Connection(config).prepare();
-    const check = expect(ready).rejects.toThrow(/네트워크/);
+    const check = expect(ready).rejects.toThrow('drive.couldNotLoadGoogleServices');
     document
       .querySelectorAll('script')
       .forEach((script) => script.dispatchEvent(new Event('error')));
@@ -160,7 +164,7 @@ describe('optional Google SDK bridge', () => {
     vi.resetModules();
     const { GoogleConnection: Connection } = await import('../../src/adapters/drive/google');
     const ready = new Connection(config).prepare();
-    const check = expect(ready).rejects.toThrow(/초과/);
+    const check = expect(ready).rejects.toThrow(/TimedOut/);
     await vi.advanceTimersByTimeAsync(15000);
     await check;
   });

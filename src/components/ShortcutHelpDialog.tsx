@@ -10,36 +10,38 @@ export function ShortcutHelpDialog({
 }) {
   const { t } = useI18n();
   return (
-    <Dialog title={t('단축키')} onClose={onClose}>
-      <p className="muted">{t('캔버스에서 노드를 선택한 뒤 사용하세요.')}</p>
+    <Dialog title={t('shortcuts.keyboardShortcuts')} onClose={onClose}>
+      <p className="muted">{t('shortcuts.selectNodeCanvasFirst')}</p>
       <dl className="shortcut-list">
         {[
-          ['Tab', '하위 노드 추가'],
-          ['Enter', '형제 노드 추가'],
-          ['F2 / 더블클릭', '제목 편집'],
-          ['방향키', '노드 사이 이동'],
-          ['Delete / ⌫', '노드와 하위 노드 삭제'],
-          ['⌘ / Ctrl + C · X · V', '가지 복사 · 잘라내기 · 붙여넣기'],
-          ['⌘ / Ctrl + D', '가지 복제'],
-          ['Alt + ↑ / ↓', '형제 사이 순서 변경'],
-          ['우클릭 / Shift + F10', '노드 메뉴 열기'],
-          ['빈 곳 우클릭', '맵 메뉴 열기'],
-          ['⌘ / Ctrl + Z', '실행 취소'],
-          ['⌘ / Ctrl + Shift + Z', '다시 실행'],
-          ['⌘ / Ctrl + S', saveToDrive ? 'Drive에 저장' : '.maplet 파일 다운로드'],
-          ['Space + 드래그', '캔버스 이동'],
-          ['Ctrl + 휠 / 핀치', '확대·축소'],
-          ['⌘ / Ctrl + + / − / 0', '확대 · 축소 · 화면에 맞추기'],
-          ['모서리 드래그', '노드 크기 조절'],
-          ['모서리 더블클릭 / Home', '자동 크기'],
-          ['노드 드래그', '위치·연결선 길이 조절'],
-          ['다른 노드 위에 놓기', '그 노드의 하위로 옮기기'],
-          ['Alt(⌥) + 드래그', '다른 노드 근처에서도 위치만 이동'],
-          ['Shift / ⌘ / Ctrl + 클릭', '노드 여러 개 선택'],
-          ['Shift + 드래그 (빈 곳)', '영역으로 선택'],
-          ['Shift + 방향키', '선택 넓히기'],
-          ['⌘ / Ctrl + A', '보이는 노드 모두 선택'],
-          ['Esc', '여러 노드 선택 해제'],
+          ['Tab', 'common.addChildNode'],
+          ['Enter', 'common.addSiblingNode'],
+          ['shortcuts.f2DoubleClick', 'common.editTitle'],
+          ['shortcuts.arrowKeys', 'shortcuts.navigateBetweenNodes'],
+          ['Delete / ⌫', 'shortcuts.deleteNodeDescendants'],
+          ['⌘ / Ctrl + C · X · V', 'shortcuts.copyCutPasteBranch'],
+          ['⌘ / Ctrl + D', 'shortcuts.duplicateBranch'],
+          ['Alt + ↑ / ↓', 'shortcuts.reorderAmongSiblings'],
+          ['shortcuts.rightClickShiftF10', 'shortcuts.openNodeMenu'],
+          ['shortcuts.rightClickEmptyCanvas', 'shortcuts.openMapMenu'],
+          ['⌘ / Ctrl + Z', 'common.undo'],
+          ['⌘ / Ctrl + Shift + Z', 'common.redo'],
+          ['⌘ / Ctrl + S', saveToDrive ? 'common.saveDrive' : 'shortcuts.downloadMapletFile'],
+          ['shortcuts.spaceDrag', 'shortcuts.panCanvas'],
+          ['shortcuts.ctrlWheelPinch', 'shortcuts.zoom'],
+          ['⌘ / Ctrl + + / − / 0', 'shortcuts.zoomZoomOutFitScreen'],
+          ['shortcuts.dragCorner', 'common.resizeNode'],
+          ['shortcuts.doubleClickCornerHome', 'shortcuts.automaticSize'],
+          ['shortcuts.dragNode', 'shortcuts.adjustPositionConnectionLength'],
+          ['shortcuts.dropAnotherNode', 'shortcuts.moveUnderNode'],
+          ['shortcuts.altDrag', 'shortcuts.movePositionOnlyEvenNear'],
+          ['shortcuts.dropAboveBelow', 'shortcuts.insertBeforeAfter'],
+          ['⌘ / Ctrl + F', 'shortcuts.findNodes'],
+          ['shortcuts.shiftCmdCtrlClick', 'shortcuts.selectSeveralNodes'],
+          ['shortcuts.shiftDragEmptyArea', 'shortcuts.selectArea'],
+          ['shortcuts.shiftArrowKeys', 'shortcuts.extendSelection'],
+          ['⌘ / Ctrl + A', 'shortcuts.selectAllVisibleNodes'],
+          ['Esc', 'shortcuts.clearMultiNodeSelection'],
         ].map(([key, action]) => (
           <div key={key}>
             <dt>

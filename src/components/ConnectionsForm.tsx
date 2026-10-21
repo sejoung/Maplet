@@ -32,22 +32,22 @@ export function ConnectionsForm({
       }}
     >
       {links.length ? (
-        <ul className="connection-list" aria-label={t('이 노드의 연결선')}>
+        <ul className="connection-list" aria-label={t('nodeTools.connectionList')}>
           {links.map((link) => {
             const outgoing = link.from === id;
             const other = map.nodes[outgoing ? link.to : link.from];
             return (
               <li key={`${link.from}>${link.to}`}>
                 {outgoing ? (
-                  <ArrowRight size={15} aria-label={t('보내는 연결')} />
+                  <ArrowRight size={15} aria-label={t('nodeTools.outgoing')} />
                 ) : (
-                  <ArrowLeft size={15} aria-label={t('받는 연결')} />
+                  <ArrowLeft size={15} aria-label={t('nodeTools.incoming')} />
                 )}
                 <span title={other.title}>{other.title}</span>
                 <button
                   type="button"
                   className="icon-button"
-                  aria-label={t('{title} 연결선 삭제', { title: other.title })}
+                  aria-label={t('nodeTools.removeConnection', { title: other.title })}
                   onClick={() => onDisconnect(link.from, link.to)}
                 >
                   <X size={15} />
@@ -57,9 +57,9 @@ export function ConnectionsForm({
           })}
         </ul>
       ) : (
-        <p className="muted">{t('다른 가지의 노드와 화살표로 이어 관계를 표시합니다.')}</p>
+        <p className="muted">{t('nodeTools.connectionsHint')}</p>
       )}
-      <label htmlFor="connection-target">{t('연결할 노드')}</label>
+      <label htmlFor="connection-target">{t('nodeTools.connectTo')}</label>
       <select
         id="connection-target"
         data-autofocus
@@ -75,7 +75,7 @@ export function ConnectionsForm({
       </select>
       <div className="dialog-actions">
         <button className="button primary" type="submit" disabled={!chosen}>
-          {t('연결선 추가')}
+          {t('nodeTools.addConnection')}
         </button>
       </div>
     </form>

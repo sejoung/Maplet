@@ -1,9 +1,14 @@
 import english from './locales/en.json';
+import korean from './locales/ko.json';
 
 export type Language = 'ko' | 'en';
 export type Parameters = Record<string, string | number>;
 type CatalogEntry = string | { one: string; other: string };
-const messages: Record<string, CatalogEntry> = english;
+/** Messages are looked up by stable keys such as `menu.copy`; Korean is the fallback language. */
+const catalogs: Record<Language, Record<string, CatalogEntry>> = { ko: korean, en: english };
+export type MessageKey = keyof typeof korean;
+// Releases before keys stored Korean source sentences (e.g. import warnings in saved files).
+const legacyKeys = new Map(Object.entries(korean).map(([key, text]) => [text, key]));
 
 export function detectLanguage(preferred: readonly string[], saved?: string | null): Language {
   if (saved === 'ko' || saved === 'en') return saved;
@@ -25,9 +30,10 @@ export function translate(
   language: Language,
   parameters: Parameters = {},
 ): string {
-  if (language === 'ko' || !Object.hasOwn(messages, message))
-    return interpolate(message, parameters);
-  const value = messages[message];
+  const key = Object.hasOwn(catalogs.ko, message) ? message : legacyKeys.get(message);
+  // Text that is not a catalog message (such as a browser error) is shown as it is.
+  if (key === undefined) return interpolate(message, parameters);
+  const value = Object.hasOwn(catalogs[language], key) ? catalogs[language][key] : catalogs.ko[key];
   const translated =
     typeof value === 'string' ? value : Number(parameters.count) === 1 ? value.one : value.other;
   return interpolate(translated, parameters);

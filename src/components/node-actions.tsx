@@ -97,20 +97,20 @@ export function nodeActionGroups(
   return {
     create: [
       {
-        label: t('하위 노드 추가'),
+        label: t('common.addChildNode'),
         icon: <CornerDownRight size={17} />,
         shortcut: { label: 'Tab', aria: 'Tab' },
         run: () => handlers.onAdd(),
       },
       {
-        label: t('형제 노드 추가'),
+        label: t('common.addSiblingNode'),
         icon: <Plus size={17} />,
         shortcut: { label: 'Enter', aria: 'Enter' },
         disabled: root,
         run: () => handlers.onAdd(true),
       },
       {
-        label: t('제목 편집'),
+        label: t('common.editTitle'),
         icon: <CaseSensitive size={17} />,
         shortcut: { label: 'F2', aria: 'F2' },
         run: () => handlers.onEdit(id),
@@ -118,41 +118,45 @@ export function nodeActionGroups(
     ],
     tools: [
       {
-        label: t('메모'),
+        label: t('common.notes'),
         icon: <MessageSquare size={17} />,
         run: () => handlers.openTool('notes'),
       },
-      { label: t('링크'), icon: <Link2 size={17} />, run: () => handlers.openTool('link') },
-      { label: t('서식'), icon: <Palette size={17} />, run: () => handlers.openTool('style') },
+      { label: t('common.link'), icon: <Link2 size={17} />, run: () => handlers.openTool('link') },
       {
-        label: t('연결선'),
+        label: t('common.style'),
+        icon: <Palette size={17} />,
+        run: () => handlers.openTool('style'),
+      },
+      {
+        label: t('common.connections'),
         icon: <Spline size={17} />,
         run: () => handlers.openTool('connections'),
       },
     ],
     clipboard: [
       {
-        label: t('복사'),
+        label: t('menu.copy'),
         icon: <Copy size={17} />,
         shortcut: mod('C'),
         run: () => handlers.onCopy(id),
       },
       {
-        label: t('잘라내기'),
+        label: t('menu.cut'),
         icon: <Scissors size={17} />,
         shortcut: mod('X'),
         disabled: undeletable,
         run: () => handlers.onCut(id),
       },
       {
-        label: t('붙여넣기'),
+        label: t('menu.paste'),
         icon: <ClipboardPaste size={17} />,
         shortcut: mod('V'),
         disabled: !handlers.canPaste,
         run: () => handlers.onPaste(id),
       },
       {
-        label: t('복제'),
+        label: t('menu.duplicate'),
         icon: <CopyPlus size={17} />,
         shortcut: mod('D'),
         disabled: !children.length,
@@ -161,39 +165,39 @@ export function nodeActionGroups(
     ],
     arrange: [
       {
-        label: t('위로 이동'),
+        label: t('menu.moveUp'),
         icon: <ArrowUp size={17} />,
         shortcut: { label: 'Alt ↑', aria: 'Alt+ArrowUp' },
         disabled: group || index < 1,
         run: () => handlers.onReorder(id, -1),
       },
       {
-        label: t('아래로 이동'),
+        label: t('menu.moveDown'),
         icon: <ArrowDown size={17} />,
         shortcut: { label: 'Alt ↓', aria: 'Alt+ArrowDown' },
         disabled: group || root || index === siblings.length - 1,
         run: () => handlers.onReorder(id, 1),
       },
       {
-        label: t('노드 이동'),
+        label: t('common.moveNode'),
         icon: <ListTree size={17} />,
         disabled: !children.length,
         run: () => handlers.openTool('move'),
       },
       {
-        label: t('왼쪽 배치'),
+        label: t('menu.placeLeft'),
         icon: <ArrowLeft size={17} />,
         disabled: onSide('left'),
         run: () => handlers.onSide(id, 'left'),
       },
       {
-        label: t('오른쪽 배치'),
+        label: t('menu.placeRight'),
         icon: <ArrowRight size={17} />,
         disabled: onSide('right'),
         run: () => handlers.onSide(id, 'right'),
       },
       {
-        label: node.collapsed ? t('펼치기') : t('접기'),
+        label: node.collapsed ? t('common.expand') : t('common.collapse'),
         icon: node.collapsed ? <ChevronsUpDown size={17} /> : <ChevronsDownUp size={17} />,
         disabled: !node.children.length,
         run: () => handlers.onToggle(id),
@@ -201,13 +205,13 @@ export function nodeActionGroups(
     ],
     view: [
       {
-        label: t('이 가지만 보기'),
+        label: t('menu.showOnlyBranch'),
         icon: <Crosshair size={17} />,
         disabled: !node.children.length,
         run: () => handlers.onFocus(id),
       },
       {
-        label: t('하위 모두 펼치기'),
+        label: t('menu.expandAllBelow'),
         icon: <ChevronsUpDown size={17} />,
         disabled: !node.children.length,
         run: () => handlers.onExpandAll(id),
@@ -216,8 +220,8 @@ export function nodeActionGroups(
     remove: [
       {
         label: group
-          ? t('선택한 노드 {count}개 삭제', { count: selection.length })
-          : t('노드 삭제'),
+          ? t('menu.deleteSelectedNodes', { count: selection.length })
+          : t('menu.deleteNode'),
         icon: <Trash2 size={17} />,
         shortcut: { label: 'Delete', aria: 'Delete' },
         disabled: undeletable,
@@ -262,14 +266,14 @@ export function canvasActionGroups(
   return {
     history: [
       {
-        label: t('실행 취소'),
+        label: t('common.undo'),
         icon: <Undo2 size={17} />,
         shortcut: mod('Z'),
         disabled: !handlers.canUndo,
         run: handlers.onUndo,
       },
       {
-        label: t('다시 실행'),
+        label: t('common.redo'),
         icon: <Redo2 size={17} />,
         shortcut: { label: 'Ctrl/⌘ Shift Z', aria: 'Control+Shift+Z Meta+Shift+Z' },
         disabled: !handlers.canRedo,
@@ -278,23 +282,29 @@ export function canvasActionGroups(
     ],
     edit: [
       ...(handlers.onAddTopic
-        ? [{ label: t('여기에 새 주제'), icon: <SquarePlus size={17} />, run: handlers.onAddTopic }]
+        ? [
+            {
+              label: t('menu.newTopicHere'),
+              icon: <SquarePlus size={17} />,
+              run: handlers.onAddTopic,
+            },
+          ]
         : []),
       {
-        label: t('선택한 노드에 붙여넣기'),
+        label: t('menu.pasteIntoSelectedNode'),
         icon: <ClipboardPaste size={17} />,
         shortcut: mod('V'),
         disabled: !handlers.canPaste,
         run: handlers.onPaste,
       },
       {
-        label: t('모두 선택'),
+        label: t('menu.selectAll'),
         icon: <BoxSelect size={17} />,
         shortcut: mod('A'),
         run: handlers.onSelectAll,
       },
       {
-        label: t('찾기'),
+        label: t('common.find'),
         icon: <Search size={17} />,
         shortcut: mod('F'),
         run: handlers.onSearch,
@@ -302,47 +312,52 @@ export function canvasActionGroups(
     ],
     levels: [
       {
-        label: t('모두 펼치기'),
+        label: t('menu.expandAll'),
         icon: <ChevronsUpDown size={17} />,
         run: () => handlers.onLevels(null),
       },
       {
-        label: t('주 가지만 보기'),
+        label: t('menu.mainBranchesOnly'),
         icon: <ListCollapse size={17} />,
         run: () => handlers.onLevels(2),
       },
       {
-        label: t('2단계까지 보기'),
+        label: t('menu.show2Levels'),
         icon: <ListTree size={17} />,
         run: () => handlers.onLevels(3),
       },
       {
-        label: t('3단계까지 보기'),
+        label: t('menu.show3Levels'),
         icon: <ListTree size={17} />,
         run: () => handlers.onLevels(4),
       },
     ],
     display: [
       ...(handlers.focused
-        ? [{ label: t('전체 맵 보기'), icon: <Eye size={17} />, run: handlers.onExitFocus }]
+        ? [{ label: t('common.showWholeMap'), icon: <Eye size={17} />, run: handlers.onExitFocus }]
         : []),
       {
-        label: handlers.minimap ? t('미니맵 숨기기') : t('미니맵 보기'),
+        label: handlers.minimap ? t('menu.hideMinimap') : t('menu.showMinimap'),
         icon: handlers.minimap ? <EyeOff size={17} /> : <MapIcon size={17} />,
         run: handlers.onToggleMinimap,
       },
     ],
     layout: [
-      { label: t('자동 배치'), icon: <WandSparkles size={17} />, run: handlers.onArrange },
+      { label: t('common.autoArrange'), icon: <WandSparkles size={17} />, run: handlers.onArrange },
       {
-        label: t('화면에 맞추기'),
+        label: t('common.fitScreen'),
         icon: <Focus size={17} />,
         shortcut: mod('0'),
         run: handlers.onFit,
       },
-      { label: t('확대'), icon: <ZoomIn size={17} />, shortcut: mod('+'), run: handlers.onZoomIn },
       {
-        label: t('축소'),
+        label: t('common.zoomIn'),
+        icon: <ZoomIn size={17} />,
+        shortcut: mod('+'),
+        run: handlers.onZoomIn,
+      },
+      {
+        label: t('common.zoomOut'),
         icon: <ZoomOut size={17} />,
         shortcut: mod('-'),
         run: handlers.onZoomOut,

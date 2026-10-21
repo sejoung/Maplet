@@ -17,11 +17,11 @@ export interface NodeToolActions {
   onDisconnect(from: string, to: string): boolean;
 }
 const titles: Record<NodeTool, string> = {
-  notes: '메모',
-  link: '링크',
-  style: '노드 서식',
-  move: '노드 이동',
-  connections: '연결선',
+  notes: 'common.notes',
+  link: 'common.link',
+  style: 'nodeTools.nodeStyle',
+  move: 'common.moveNode',
+  connections: 'common.connections',
 };
 
 export function NodeToolsDialog({
@@ -61,7 +61,7 @@ export function NodeToolsDialog({
     <Dialog title={t(titles[tool])} onClose={onClose}>
       <p className="tool-selection" title={node.title}>
         {group
-          ? t('{title} 외 {count}개', { title: node.title, count: selection.length - 1 })
+          ? t('nodeTools.selectionSummary', { title: node.title, count: selection.length - 1 })
           : node.title}
       </p>
       {error && (
@@ -76,7 +76,7 @@ export function NodeToolsDialog({
             if (onUpdate(selected, { notes })) onClose();
           }}
         >
-          <label htmlFor="node-notes">{t('메모')}</label>
+          <label htmlFor="node-notes">{t('common.notes')}</label>
           <textarea
             id="node-notes"
             data-autofocus
@@ -86,10 +86,10 @@ export function NodeToolsDialog({
           />
           <div className="dialog-actions">
             <button className="button" type="button" onClick={onClose}>
-              {t('취소')}
+              {t('common.cancel')}
             </button>
             <button className="button primary" type="submit">
-              {t('메모 저장')}
+              {t('nodeTools.saveNotes')}
             </button>
           </div>
         </form>
@@ -100,13 +100,13 @@ export function NodeToolsDialog({
             event.preventDefault();
             const value = link.trim();
             if (value && !safeUrl(value)) {
-              setError('링크는 http, https 또는 mailto 주소만 사용할 수 있습니다.');
+              setError('common.linksMustUseHttpHttps');
               return;
             }
             if (onUpdate(selected, { links: value ? [value] : [] })) onClose();
           }}
         >
-          <label htmlFor="node-link">{t('링크')}</label>
+          <label htmlFor="node-link">{t('common.link')}</label>
           <input
             id="node-link"
             data-autofocus
@@ -124,15 +124,15 @@ export function NodeToolsDialog({
               target="_blank"
               rel="noopener noreferrer"
             >
-              {t('현재 링크 열기 ↗')}
+              {t('nodeTools.openCurrentLink')}
             </a>
           )}
           <div className="dialog-actions">
             <button className="button" type="button" onClick={onClose}>
-              {t('취소')}
+              {t('common.cancel')}
             </button>
             <button className="button primary" type="submit">
-              {t('링크 적용')}
+              {t('nodeTools.applyLink')}
             </button>
           </div>
         </form>
@@ -151,7 +151,7 @@ export function NodeToolsDialog({
             if (onMove(selected, parent)) onClose();
           }}
         >
-          <label htmlFor="parent-node">{t('상위 노드')}</label>
+          <label htmlFor="parent-node">{t('nodeTools.parentNode')}</label>
           <select
             id="parent-node"
             data-autofocus
@@ -166,10 +166,10 @@ export function NodeToolsDialog({
           </select>
           <div className="dialog-actions">
             <button className="button" type="button" onClick={onClose}>
-              {t('취소')}
+              {t('common.cancel')}
             </button>
             <button className="button primary" type="submit">
-              {t('이동')}
+              {t('nodeTools.moveSubmit')}
             </button>
           </div>
         </form>

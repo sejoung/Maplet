@@ -15,28 +15,24 @@ export interface DriveFile {
 }
 export class DriveConflict extends AppError {
   constructor() {
-    super('Drive의 파일이 변경되었습니다. 로컬 사본을 유지하고 저장 방법을 선택해 주세요.');
+    super('drive.driveFileChangedKeepLocal');
   }
 }
 export class DriveAuthError extends AppError {
   constructor() {
-    super(
-      'Google Drive 연결이 만료되었거나 취소되었습니다. 다시 연결해 주세요. 현재 편집은 유지됩니다.',
-    );
+    super('drive.googleDriveAccessExpiredRevoked');
   }
 }
 
 export class DriveRequestError extends AppError {
   constructor(readonly status: number) {
-    super('Drive 요청이 실패했습니다 ({status}). 로컬 사본은 유지됩니다.', { status });
+    super('drive.driveRequestFailedLocalCopy', { status });
   }
 }
 
 export class DrivePermissionError extends AppError {
   constructor() {
-    super(
-      '이 파일 또는 폴더에 접근할 수 없거나 Drive 요청이 제한되었습니다. 공유 권한과 저장 위치를 확인해 주세요. 현재 편집은 유지됩니다.',
-    );
+    super('drive.fileFolderInaccessibleDriveRequests');
   }
 }
 
@@ -106,11 +102,7 @@ export class DriveClient {
       `${endpoint}?fields=id,name,version,size,parents`,
       json<{ id: string; name: string; version: string; size: string; parents?: string[] }>,
     );
-    assertSize(
-      Number(meta.size),
-      byteLimitFor(meta.name ?? ''),
-      'Drive 파일 크기는 {limit} MiB 이하여야 합니다.',
-    );
+    assertSize(Number(meta.size), byteLimitFor(meta.name ?? ''), 'drive.driveFilesMustMibSmaller');
     const { data: content } = await this.request(`${endpoint}?alt=media`, text);
     // A media download validator must not be used to condition a metadata update.
     return { ...meta, etag, content };
@@ -134,7 +126,7 @@ export class DriveClient {
       meta.trashed ||
       meta.capabilities?.canAddChildren === false
     )
-      throw new AppError('저장 폴더를 사용할 수 없습니다. 다른 폴더를 선택해 주세요.');
+      throw new AppError('drive.saveFolderUnavailablePleaseChoose');
     return { id: meta.id, name: meta.name };
   }
 
@@ -149,7 +141,7 @@ export class DriveClient {
       json<{ version: string }>,
     );
     if (!overwrite && (!file.version || !meta.version))
-      throw new AppError('Drive 파일의 버전을 확인하지 못했습니다. 다시 연결한 뒤 저장해 주세요.');
+      throw new AppError('drive.versionCheckFailed');
     if (!overwrite && meta.version !== file.version) throw new DriveConflict();
     // Drive v3 does not require an exposed ETag; use only the fresh metadata header if present.
     const upload = name === file.name ? null : multipartUpload({ name }, content);
@@ -180,8 +172,7 @@ export class DriveClient {
         `${API}/generateIds?count=1&space=drive&type=files`,
         json<{ ids?: string[] }>,
       );
-      if (!generated.ids?.[0])
-        throw new AppError('Drive 파일 ID를 준비하지 못했습니다. 다시 저장해 주세요.');
+      if (!generated.ids?.[0]) throw new AppError('drive.couldNotPrepareDriveFile');
       pending = { id: generated.ids[0], content, name };
       this.creations.set(operation, pending);
     }
@@ -205,7 +196,7 @@ export class DriveClient {
             body: upload.body,
           },
         );
-        if (file.id !== pending.id) throw new AppError('Drive 저장 대상이 일치하지 않습니다.');
+        if (file.id !== pending.id) throw new AppError('drive.saveTargetMismatch');
         this.creations.delete(operation);
         return { ...file, etag };
       } catch (error) {
@@ -243,6 +234,6 @@ export class DriveClient {
         return saved;
       }
     }
-    throw new AppError('Drive 저장을 완료하지 못했습니다. 다시 저장해 주세요.');
+    throw new AppError('drive.couldNotFinishSavingDrive');
   }
 }

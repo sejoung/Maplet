@@ -1,5 +1,5 @@
 import { useI18n } from '../i18n/react';
-import { setLanguage } from '../i18n/locale';
+import { LANGUAGE_NAMES, setLanguage } from '../i18n/locale';
 
 export function LanguageSwitcher({
   id,
@@ -15,17 +15,16 @@ export function LanguageSwitcher({
     <select
       id={id}
       className={variant === 'compact' ? 'language-select' : 'settings-language-select'}
-      aria-label={t('언어')}
+      aria-label={t('settings.language')}
       aria-describedby={describedBy}
       value={language}
       onChange={(event) => setLanguage(event.target.value === 'ko' ? 'ko' : 'en')}
     >
-      <option value="ko" lang="ko">
-        한국어
-      </option>
-      <option value="en" lang="en">
-        English
-      </option>
+      {(['ko', 'en'] as const).map((code) => (
+        <option key={code} value={code} lang={code}>
+          {LANGUAGE_NAMES[code]}
+        </option>
+      ))}
     </select>
   );
 }

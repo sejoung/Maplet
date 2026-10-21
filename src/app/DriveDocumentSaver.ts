@@ -51,7 +51,7 @@ export class DriveDocumentSaver {
       work = local;
     let base: DriveSnapshot | null = baseline?.fileId === file.id ? baseline : null;
     for (let attempt = 0; attempt < 3; attempt++) {
-      if (!current()) throw new AppError('저장 대상 문서가 변경되었습니다.');
+      if (!current()) throw new AppError('drive.documentBeingSavedHasChanged');
       try {
         attempting?.(work);
         const saved =

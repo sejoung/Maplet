@@ -14,7 +14,7 @@ export function driveDisconnect(
     try {
       await revoked;
     } catch (reason) {
-      error(messageOf(reason, 'Google 권한 철회를 확인하지 못했습니다.'));
+      error(messageOf(reason, 'drive.revokeUnconfirmed'));
     } finally {
       busy(false);
     }

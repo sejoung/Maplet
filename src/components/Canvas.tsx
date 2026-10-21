@@ -168,7 +168,7 @@ export function Canvas(props: CanvasProps) {
     <div
       ref={viewport}
       role="application"
-      aria-label={t('마인드맵 캔버스')}
+      aria-label={t('canvas.mindMapCanvas')}
       tabIndex={0}
       className={`canvas ${pointer.panning || panMode ? 'is-panning' : ''} ${dragPreview ? 'is-dragging' : ''} ${dragPreview?.target ? 'has-drop-target' : ''}`}
       onKeyDown={keydown}
@@ -204,7 +204,7 @@ export function Canvas(props: CanvasProps) {
         {dropLine && (
           <div
             className="drop-line"
-            data-drop-label={t('여기에 넣기')}
+            data-drop-label={t('canvas.insertHere')}
             style={{ left: dropLine.x, top: dropLine.y, width: dropLine.width }}
           />
         )}
@@ -235,11 +235,7 @@ export function Canvas(props: CanvasProps) {
       </div>
       {dragPreview && (
         <p className={`drag-hint ${dragPreview.free ? 'free' : ''}`} role="status">
-          {dragPreview.free
-            ? t('위치만 옮기는 중 · Alt(⌥)를 떼면 부모 바꾸기')
-            : t(
-                '노드에 붙여 놓으면 하위로 이동 · 점선은 놓을 때 비켜날 자리 · Alt(⌥): 위치만 이동',
-              )}
+          {dragPreview.free ? t('canvas.dragHintFree') : t('canvas.dragHint')}
         </p>
       )}
       {props.minimap && !dragPreview && (

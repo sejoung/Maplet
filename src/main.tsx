@@ -15,8 +15,7 @@ clearDriveSession();
 const root = document.getElementById('root')!;
 // Static hosting cannot send `frame-ancestors`; refuse to run inside another site's frame
 // so the editor cannot be overlaid for clickjacking.
-if (window.top !== window.self)
-  root.textContent = translate('Maplet은 다른 사이트 안에서 열 수 없습니다.', getLanguage());
+if (window.top !== window.self) root.textContent = translate('app.framedRefused', getLanguage());
 else
   createRoot(root).render(
     <StrictMode>

@@ -50,27 +50,27 @@ export function EditorHeader(props: HeaderProps) {
   const { t } = useI18n();
   const input = useRef<HTMLInputElement>(null);
   const { command } = props;
-  const download = t('.maplet 다운로드');
+  const download = t('header.downloadMaplet');
   return (
     <header className="app-header">
-      <h1 className="visually-hidden">{t('Maplet 마인드맵 편집기')}</h1>
+      <h1 className="visually-hidden">{t('header.mapletMindMapEditor')}</h1>
       <div className="brand">
         <img src={`${import.meta.env.BASE_URL}icon.svg`} width="25" height="25" alt="" />
         <span>Maplet</span>
       </div>
-      <ToolbarMenu label={t('파일')} className="file-menu">
+      <ToolbarMenu label={t('header.file')} className="file-menu">
         <button onClick={command(props.onNew)}>
           <FilePlus2 size={17} />
-          {t('새 맵')}
+          {t('header.newMap')}
         </button>
         <button onClick={command(() => input.current?.click())}>
           <FolderOpen size={17} />
-          {t('열기')}
+          {t('header.open')}
         </button>
         {props.driveConfigured && (
           <button onClick={command(props.onOpenDrive)}>
             <Cloud size={17} />
-            {t('Drive에서 열기')}
+            {t('common.openDrive')}
           </button>
         )}
         {props.saveToDrive && (
@@ -78,20 +78,20 @@ export function EditorHeader(props: HeaderProps) {
             <hr />
             <button onClick={command(props.onSave)} aria-keyshortcuts="Control+S Meta+S">
               <CloudUpload size={17} />
-              {t('지금 저장')}
+              {t('header.saveNow')}
               <kbd aria-hidden="true">Ctrl/⌘ S</kbd>
             </button>
             {props.canSaveCopy && (
               <button onClick={command(props.onSaveCopy)}>
                 <Copy size={17} />
-                {t('다른 위치에 사본 저장')}
+                {t('header.saveCopyElsewhere')}
               </button>
             )}
           </>
         )}
         <hr />
         <span className="menu-label" aria-hidden="true">
-          {t('다운로드')}
+          {t('header.download')}
         </span>
         <button onClick={command(props.onDownload)}>
           <ArrowDownToLine size={17} />
@@ -99,32 +99,32 @@ export function EditorHeader(props: HeaderProps) {
         </button>
         <button onClick={command(props.onExportMup)}>
           <ArrowDownToLine size={17} />
-          {t('.mup 다운로드 (MindMup 호환)')}
+          {t('header.downloadMupMindmupCompatible')}
         </button>
         <button onClick={command(() => props.onExportImage('png'))}>
           <Image size={17} />
-          {t('PNG 이미지 다운로드')}
+          {t('header.downloadPngImage')}
         </button>
         <button onClick={command(() => props.onExportImage('svg'))}>
           <Image size={17} />
-          {t('SVG 이미지 다운로드')}
+          {t('header.downloadSvgImage')}
         </button>
         <button onClick={command(() => props.onExportOutline('md'))}>
           <FileText size={17} />
-          {t('Markdown 다운로드 (.md)')}
+          {t('header.downloadMarkdownMd')}
         </button>
         <button onClick={command(() => props.onExportOutline('opml'))}>
           <ListTree size={17} />
-          {t('OPML 다운로드 (.opml)')}
+          {t('header.downloadOpmlOpml')}
         </button>
         <button onClick={command(props.onPrint)}>
           <Printer size={17} />
-          {t('인쇄 / PDF로 저장')}
+          {t('header.printSavePdf')}
         </button>
         {props.original && (
           <button onClick={command(props.onBackup)}>
             <ArrowDownToLine size={17} />
-            {t('원본 백업 다운로드')}
+            {t('header.downloadOriginalBackup')}
           </button>
         )}
       </ToolbarMenu>
@@ -135,7 +135,7 @@ export function EditorHeader(props: HeaderProps) {
           onChange={props.onFilenameChange}
         />
         {props.dirty && (
-          <span className="unsaved-marker" aria-label={t('저장하지 않은 변경')}>
+          <span className="unsaved-marker" aria-label={t('common.unsavedChanges')}>
             •
           </span>
         )}
@@ -160,25 +160,25 @@ export function EditorHeader(props: HeaderProps) {
             onClick={props.onSave}
           >
             <ArrowDownToLine size={16} />
-            <span>{t('다운로드')}</span>
+            <span>{t('header.download')}</span>
           </button>
         )}
         <button
           className="button settings-button"
-          aria-label={t('설정')}
-          title={t('설정')}
+          aria-label={t('common.settings')}
+          title={t('common.settings')}
           aria-haspopup="dialog"
           onClick={command(props.onSettings)}
         >
           <Settings size={16} />
-          <span>{t('설정')}</span>
+          <span>{t('common.settings')}</span>
         </button>
       </div>
       <input
         ref={input}
         type="file"
         accept=".maplet,.mup,.json,.md,.markdown,.opml,.txt,application/json"
-        aria-label={t('마인드맵 파일 열기')}
+        aria-label={t('header.openMindMapFile')}
         className="visually-hidden"
         tabIndex={-1}
         onChange={(event) => {

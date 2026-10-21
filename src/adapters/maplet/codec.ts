@@ -16,7 +16,7 @@ import { cleanConnections } from '../../domain/connections';
 import { assertSize, MAX_MAPLET_BYTES, utf8Length } from '../limits';
 
 export { MAX_MAPLET_BYTES } from '../limits';
-export const UNSAFE_LINK_WARNING = '안전하지 않은 링크는 열 수 없도록 제외했습니다.';
+export const UNSAFE_LINK_WARNING = 'file.unsafeLinksRemoved';
 const nodeFields = [
   'id',
   'title',
@@ -41,14 +41,14 @@ const extensions = (raw: JsonObject, known: string[]): JsonObject =>
   Object.fromEntries(Object.entries(raw).filter(([key]) => !known.includes(key)));
 const validId = isNodeId;
 function invalid(): never {
-  throw new AppError('Maplet 문서의 노드·계층·속성 형식이 올바르지 않습니다.');
+  throw new AppError('file.mapletDocumentHasInvalidNodes');
 }
 
 /** Children order is authoritative; colliding ranks (older releases could create them) are repaired. */
 function validateTree(map: MindMap) {
   const visited = new Set<string>();
   const visit = (id: string, parent: string | null, depth: number) => {
-    if (depth > MAX_DEPTH) throw new AppError('최대 노드 깊이는 {max}입니다.', { max: MAX_DEPTH });
+    if (depth > MAX_DEPTH) throw new AppError('common.depthLimit', { max: MAX_DEPTH });
     if (!Object.hasOwn(map.nodes, id) || visited.has(id)) invalid();
     const node = map.nodes[id];
     if (node.parentId !== parent) invalid();
@@ -62,29 +62,25 @@ function validateTree(map: MindMap) {
 }
 
 export function parseMaplet(source: string): MindMap {
-  assertSize(
-    utf8Length(source),
-    MAX_MAPLET_BYTES,
-    'Maplet 파일 크기는 {limit} MiB 이하여야 합니다.',
-  );
+  assertSize(utf8Length(source), MAX_MAPLET_BYTES, 'file.mapletFilesMustMibSmaller');
   let raw: unknown;
   try {
     raw = parseFiniteJson(source);
   } catch {
-    throw new AppError('올바른 JSON 파일이 아니거나 숫자 범위를 초과했습니다.');
+    throw new AppError('file.invalidJson');
   }
   return mapletFromJson(raw);
 }
 
 /** Validate an already parsed document; callers own the size check. */
 export function mapletFromJson(raw: unknown): MindMap {
-  if (!object(raw) || raw.format !== 'maplet') throw new AppError('Maplet 문서가 아닙니다.');
-  if (raw.version !== 1) throw new AppError('지원하지 않는 Maplet 파일 버전입니다.');
+  if (!object(raw) || raw.format !== 'maplet') throw new AppError('file.notMapletDocument');
+  if (raw.version !== 1) throw new AppError('file.unsupportedMapletFileVersion');
   if (!strings(raw.roots) || !raw.roots.length || !raw.roots.every(validId) || !object(raw.nodes))
     invalid();
   const entries = Object.entries(raw.nodes);
   if (!entries.length || entries.length > MAX_NODE_COUNT)
-    throw new AppError('노드는 1~{max}개여야 합니다.', { max: formatCount(MAX_NODE_COUNT) });
+    throw new AppError('file.mapMustHaveBetween1', { max: formatCount(MAX_NODE_COUNT) });
   if (raw.compatibility !== undefined && !object(raw.compatibility)) invalid();
   const compatibility = obj(raw.compatibility);
   const legacy = obj(compatibility.mindmup);

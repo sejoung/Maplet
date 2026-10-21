@@ -93,7 +93,7 @@ it.each([
     { ...file, version: stored },
     'local',
   );
-  await expect(result).rejects.toThrow(/버전을 확인/);
+  await expect(result).rejects.toThrow('drive.versionCheckFailed');
   await expect(result).rejects.not.toBeInstanceOf(DriveConflict);
   expect(fetcher).toHaveBeenCalledTimes(1);
 });

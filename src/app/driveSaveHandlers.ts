@@ -50,7 +50,7 @@ export function driveSaveHandlers(state: State) {
       if (result.filename === requested.filename) state.markSaved(result.content);
       else state.markSaved(result.content, result.filename);
       state.setActivity('saved');
-      if (!automatic) state.setNotice('Google Drive에 저장했습니다.');
+      if (!automatic) state.setNotice('drive.savedGoogleDrive');
     },
     resolved: (merged: DriveSnapshot, remote: DriveSnapshot, file: DriveFile) => {
       state.applyMerge?.(state.current(), merged);
@@ -77,10 +77,7 @@ export function driveSaveHandlers(state: State) {
         state.setActivity('conflict');
       } else {
         state.fail(reason, !automatic);
-        if (automatic)
-          state.setNotice(
-            'Drive 자동 저장이 중지되었습니다. Google Drive에서 다시 저장해 주세요. 현재 편집은 유지됩니다.',
-          );
+        if (automatic) state.setNotice('drive.driveAutosaveStoppedSaveAgain');
         state.setActivity('saveFailed');
       }
     },

@@ -30,7 +30,7 @@ export function useExports(
   return {
     onExportMup: attempt(() => {
       downloadFile(serializeMup(map), mupFilename(filename));
-      setNotice('.mup 호환 파일을 내보냈습니다. Maplet 원본은 .maplet 저장으로 보관하세요.');
+      setNotice('app.exportedCompatibleMupFileUse');
     }),
     onExportImage: (format: 'png' | 'svg') =>
       void attempt(async () => {

@@ -77,7 +77,7 @@ export function Editor(props: EditorProps) {
       }}
     >
       <a className="skip-link" href="#workspace">
-        {t('마인드맵으로 건너뛰기')}
+        {t('editor.skipMindMap')}
       </a>
       <EditorHeader
         filename={props.filename}
@@ -132,7 +132,7 @@ export function Editor(props: EditorProps) {
           <span>{t(props.error)}</span>
           <button
             className="icon-button"
-            aria-label={t('오류 닫기')}
+            aria-label={t('editor.dismissError')}
             onClick={props.onDismissError}
           >
             <X size={16} />
@@ -144,7 +144,7 @@ export function Editor(props: EditorProps) {
           <span>{t(props.notice)}</span>
           <button
             className="icon-button"
-            aria-label={t('안내 닫기')}
+            aria-label={t('editor.dismissNotification')}
             onClick={props.onDismissNotice}
           >
             <X size={16} />
@@ -155,10 +155,10 @@ export function Editor(props: EditorProps) {
         {view.focus && (
           <div className="focus-banner" role="status">
             <span>
-              {t('‘{title}’ 가지만 보는 중', { title: map.nodes[view.focus].title.split('\n')[0] })}
+              {t('editor.focusedBranch', { title: map.nodes[view.focus].title.split('\n')[0] })}
             </span>
             <button type="button" className="text-button" onClick={view.exitFocus}>
-              {t('전체 맵 보기')}
+              {t('common.showWholeMap')}
             </button>
           </div>
         )}
@@ -215,18 +215,18 @@ export function Editor(props: EditorProps) {
           aria-live={props.driveSaveStatus ? 'off' : 'polite'}
         >
           <span className={`status-dot ${props.dirty ? 'pending' : ''}`} />
-          <span>{props.dirty ? t('저장하지 않은 변경') : t('파일 변경 없음')}</span>
+          <span>{props.dirty ? t('common.unsavedChanges') : t('editor.noFileChanges')}</span>
           <span className="status-separator">·</span>
           <span title={t(props.draftStatus)}>{t(props.driveSaveStatus ?? props.draftStatus)}</span>
         </div>
         <div className="status-tools">
           {props.selection.length > 1 && (
             <span className="selection-count" role="status">
-              {t('{count}개 선택됨', { count: props.selection.length })}
+              {t('editor.selectedCount', { count: props.selection.length })}
             </span>
           )}
           <span className="node-count">
-            {t('노드 {count}개', { count: Object.keys(map.nodes).length })}
+            {t('editor.nodeCount', { count: Object.keys(map.nodes).length })}
           </span>
           <LanguageSwitcher />
         </div>
@@ -260,7 +260,7 @@ export function Editor(props: EditorProps) {
                   actions.remove,
                 ]
           }
-          label={menu.canvas ? '캔버스 메뉴' : '노드 메뉴'}
+          label={menu.canvas ? 'editor.canvasMenu' : 'common.nodeMenu'}
           at={menu}
           onClose={closeMenu}
         />
@@ -268,7 +268,7 @@ export function Editor(props: EditorProps) {
       {dragging && (
         <div className="file-drop-overlay">
           <FolderOpen size={36} />
-          <p>{t('.maplet·.mup·Markdown·OPML 파일을 놓아 열기')}</p>
+          <p>{t('editor.dropMapletMupMarkdownOpml')}</p>
         </div>
       )}
     </div>

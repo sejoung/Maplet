@@ -65,7 +65,7 @@ If you start writing before choosing a filename, the first committed root title 
 
 Local editing works without environment variables. To enable Drive, copy [`.env.example`](.env.example) to `.env.local`, fill in the public Google configuration, and follow the [Drive setup guide](docs/google-drive.md) (Korean). Never include a client secret in a browser build.
 
-The interface supports Korean and English, initially following your browser language. Open **Settings → Language** in the top-right corner to change it immediately; your choice is remembered for future visits. The footer also provides a quick language selector. Changing language preserves document contents. Translations use Korean source messages as keys in [`src/i18n/locales/en.json`](src/i18n/locales/en.json).
+The interface supports Korean and English, initially following your browser language. Open **Settings → Language** in the top-right corner to change it immediately; your choice is remembered for future visits. The footer also provides a quick language selector. Changing language preserves document contents. Interface text is looked up by stable keys such as `menu.copy` in [`ko.json`](src/i18n/locales/ko.json) and [`en.json`](src/i18n/locales/en.json); code never contains display text. To add a language, add a catalog with the same keys and register it in `src/i18n/core.ts`.
 
 ## Keyboard shortcuts
 

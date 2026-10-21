@@ -14,9 +14,9 @@ export function useDraftPrivacy(
     setEnabled(next);
     try {
       await store.configure(next);
-      status(next ? '초안 자동 보관을 켰습니다.' : '기기 초안 보관 꺼짐');
+      status(next ? 'app.automaticDraftStorageEnabled' : 'app.deviceDraftStorageOff');
     } catch {
-      error('기기 초안을 삭제하지 못했습니다. 브라우저의 사이트 데이터 설정에서 삭제해 주세요.');
+      error('app.couldNotDeleteDeviceDrafts');
     } finally {
       setBusy(false);
     }

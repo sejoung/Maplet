@@ -101,7 +101,7 @@ export function useDrive(
       google
         .prepare()
         .then(() => setDriveReady(true))
-        .catch((reason) => setDriveError(messageOf(reason, 'Drive를 준비하지 못했습니다.')))
+        .catch((reason) => setDriveError(messageOf(reason, 'drive.couldNotPrepareDrive')))
         .finally(() => setBusy(false));
     }
   };
@@ -113,7 +113,7 @@ export function useDrive(
   const fail = (reason: unknown, showDialog = true) => {
     if (reason instanceof DriveAuthError) google?.clearToken();
     if (reason instanceof DriveAuthError || !google?.getToken()) setConnected(false);
-    setDriveError(messageOf(reason, 'Drive 작업을 완료하지 못했습니다.'));
+    setDriveError(messageOf(reason, 'drive.couldNotCompleteDriveOperation'));
     if (showDialog) setDialog('drive');
   };
   const resumeDrive = async (automatic = false) => {
@@ -271,7 +271,7 @@ export function useDrive(
     autosave: Boolean(connected && !pending && !dialog && !autoPaused),
     inFlight,
     generation,
-    copyLabel: t('사본'),
+    copyLabel: t('common.copySuffix'),
     authorize: async (automatic) => {
       if (automatic) {
         if (!google?.getToken()) throw new DriveAuthError();

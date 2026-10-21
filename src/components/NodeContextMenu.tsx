@@ -10,7 +10,7 @@ const items = (menu: HTMLElement) => [
 export function NodeContextMenu({
   groups,
   at,
-  label = '노드 메뉴',
+  label = 'common.nodeMenu',
   onClose,
 }: {
   groups: NodeAction[][];

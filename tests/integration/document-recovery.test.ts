@@ -43,7 +43,7 @@ it('creates a new native Drive file when the imported file is MUP and updates na
   });
   expect(driveSaveTarget('old.maplet', { name: 'old.maplet' }, true)).toEqual({
     create: true,
-    name: 'old (사본).maplet',
+    name: 'old (copy).maplet',
   });
   expect(driveSaveTarget('new', null, false)).toEqual({ create: true, name: 'new.maplet' });
 });
