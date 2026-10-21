@@ -1,8 +1,8 @@
-import { useCallback, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { parseDocument, nativeFilename } from '../adapters/documents';
 import { serializeMaplet } from '../adapters/maplet/codec';
 import { DriveConflict, DriveAuthError, type DriveClient } from '../adapters/drive/client';
-import type { GoogleConfig, GoogleConnection } from '../adapters/drive/google';
+import type { AuthEvent, GoogleConfig, GoogleConnection } from '../adapters/drive/google';
 import { parseDriveBaseline } from '../adapters/storage/drive-baseline';
 import {
   AUTO_SAVE_LABELS,
@@ -332,18 +332,29 @@ export function useDrive(
     setAutoPaused(false);
     setDriveError(null);
   };
-  const disconnect = driveDisconnect(
-    google,
-    () => {
-      setConnected(false);
-      setSaveFolder(null);
-      clearFile();
-      setActivity('disconnected');
-      setDriveError(null);
-    },
-    setBusy,
-    setDriveError,
-  );
+  const resetConnection = () => {
+    setConnected(false);
+    setSaveFolder(null);
+    clearFile();
+    setActivity('disconnected');
+    setDriveError(null);
+  };
+  const disconnect = driveDisconnect(google, resetConnection, setBusy, setDriveError);
+  const onAuthEvent = useRef<(event: AuthEvent) => void>(() => {});
+  useLayoutEffect(() => {
+    onAuthEvent.current = (event) => {
+      if (event === 'connected') setConnected(true);
+      else if (event === 'expired') setConnected(false);
+      else resetConnection();
+    };
+  });
+  useEffect(() => {
+    if (!google) return;
+    const unsubscribe = google.subscribe((event) => onAuthEvent.current(event));
+    // Another tab may have answered before this hook subscribed.
+    if (google.getToken()) setConnected(true);
+    return unsubscribe;
+  }, [google]);
   return {
     dialog,
     closeDialog,

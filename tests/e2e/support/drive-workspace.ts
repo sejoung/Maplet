@@ -25,7 +25,8 @@ export async function setupDriveWorkspace(
     updates: [] as string[],
     creates: [] as { parents: string[]; content: string; name: string }[],
   };
-  await page.route('https://www.googleapis.com/**', async (route) => {
+  // Context-wide so tabs opened by a test share the same Drive.
+  await page.context().route('https://www.googleapis.com/**', async (route) => {
     const request = route.request(),
       url = new URL(request.url());
     if (state.authStatus !== 200) return route.fulfill({ status: state.authStatus, body: '{}' });

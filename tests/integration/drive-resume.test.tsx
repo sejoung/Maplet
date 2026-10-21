@@ -25,6 +25,7 @@ vi.mock('../../src/adapters/drive/google', () => ({
     getToken = bridge.getToken;
     disconnect = bridge.disconnect;
     clearToken = bridge.clearToken;
+    subscribe = () => () => {};
   },
 }));
 vi.mock('../../src/adapters/drive/client', async (original) => ({

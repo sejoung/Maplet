@@ -157,3 +157,28 @@ test('clears local authentication even if Google refuses revocation and provides
   await expect(page.getByRole('button', { name: 'Google Drive 연결', exact: true })).toBeEnabled();
   await expect(page.getByRole('button', { name: '다시 연결', exact: true })).toHaveCount(0);
 });
+
+test('shares the connection with a new tab without storing it and disconnects every tab', async ({
+  page,
+  context,
+}) => {
+  const { state } = await setupDriveWorkspace(page);
+  const other = await context.newPage();
+  await other.goto('/');
+  await expect(other.locator('.drive-button.connected')).toBeEnabled();
+  await expect(other.getByRole('treeitem', { name: 'Drive original', exact: true })).toBeVisible();
+  await expect(other.locator('.save-status')).not.toContainText('Drive 다시 연결 필요');
+  await expect(other.locator('html')).not.toHaveAttribute('data-authorizations');
+  await expect(page.locator('html')).toHaveAttribute('data-authorizations', '1');
+  expect(
+    await other.evaluate(() => JSON.stringify({ ...localStorage, ...sessionStorage })),
+  ).not.toContain('browser-test-token');
+  await page.getByRole('button', { name: 'Google Drive 연결됨', exact: true }).click();
+  await page.getByRole('button', { name: '연결 해제', exact: true }).click();
+  await expect(other.getByRole('button', { name: 'Google Drive 연결', exact: true })).toBeEnabled();
+  await expect(other.locator('.save-status')).not.toContainText('Drive 다시 연결 필요');
+  expect(await other.evaluate(() => localStorage.getItem('maplet:drive:public-test-client'))).toBe(
+    null,
+  );
+  expect(state.updates).toHaveLength(0);
+});

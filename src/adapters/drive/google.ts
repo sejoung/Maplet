@@ -1,6 +1,7 @@
 import { AppError } from '../../domain/errors';
 import { translate, type Language } from '../../i18n/core';
 import { clearDriveSession } from './session';
+import type { AuthChannel, AuthMessage } from './auth-channel';
 
 export interface GoogleConfig {
   clientId: string;
@@ -16,6 +17,7 @@ interface PickerResult {
   action: string;
   docs?: { id: string; name: string }[];
 }
+export type AuthEvent = 'connected' | 'expired' | 'disconnected';
 export interface GoogleSelection {
   id: string;
   name: string;
@@ -115,9 +117,16 @@ export class GoogleConnection {
   private token: string | null = null;
   private expiresAt = 0;
   private generation = 0;
-  constructor(readonly config: GoogleConfig) {
+  private readonly listeners = new Set<(event: AuthEvent) => void>();
+  constructor(
+    readonly config: GoogleConfig,
+    private readonly channel: AuthChannel | null = null,
+  ) {
     // Every connection starts memory-only, even if an older release stored credentials.
     clearDriveSession();
+    // Open tabs hand over their in-memory token; it never reaches browser storage.
+    channel?.listen(this.receive);
+    channel?.post({ type: 'request' });
   }
   getToken = (): string | null => {
     if (Date.now() < this.expiresAt) return this.token;
@@ -125,11 +134,45 @@ export class GoogleConnection {
     this.expiresAt = 0;
     return null;
   };
+  subscribe(listener: (event: AuthEvent) => void): () => void {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  }
   clearToken(): void {
+    const token = this.token;
+    this.forget();
+    if (token) this.channel?.post({ type: 'expired', token });
+  }
+  private forget(): void {
     this.generation++;
     this.token = null;
     this.expiresAt = 0;
     clearDriveSession();
+  }
+  private share(): void {
+    const token = this.getToken();
+    if (token) this.channel?.post({ type: 'token', token, expiresIn: this.expiresAt - Date.now() });
+  }
+  private receive = (message: AuthMessage): void => {
+    if (message.type === 'request') this.share();
+    else if (message.type === 'token') {
+      // Remaining lifetime, not a timestamp, so tabs never extend Google's expiry.
+      const expiresAt = Date.now() + message.expiresIn;
+      if (this.getToken() && expiresAt <= this.expiresAt) return;
+      this.token = message.token;
+      this.expiresAt = expiresAt;
+      this.emit('connected');
+    } else if (message.type === 'expired') {
+      if (message.token !== this.token) return;
+      this.forget();
+      this.emit('expired');
+    } else {
+      this.forget();
+      this.emit('disconnected');
+    }
+  };
+  private emit(event: AuthEvent): void {
+    this.listeners.forEach((listener) => listener(event));
   }
 
   async prepare(): Promise<void> {
@@ -165,6 +208,7 @@ export class GoogleConnection {
           }
           this.token = result.access_token;
           this.expiresAt = Date.now() + Math.max(0, (result.expires_in ?? 3600) - 30) * 1000;
+          this.share();
           resolve();
         },
         error_callback: () => reject(new AppError('drive.googleSignWindowClosedBlocked')),
@@ -213,7 +257,8 @@ export class GoogleConnection {
 
   async disconnect(): Promise<void> {
     const token = this.getToken();
-    this.clearToken();
+    this.forget();
+    this.channel?.post({ type: 'disconnected' });
     if (!token) return;
     try {
       if (!window.google?.accounts?.oauth2) {
