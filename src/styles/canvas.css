@@ -21,6 +21,10 @@
   left: 0;
   top: 0;
   transform-origin: 0 0;
+}
+/* A permanent will-change freezes the text raster at one scale, so zooming in
+   blurs it; only hint while panning, when the scale stays fixed. */
+.canvas.is-panning .map-layer {
   will-change: transform;
 }
 .connections {
