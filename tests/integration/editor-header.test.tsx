@@ -31,6 +31,7 @@ function header(overrides: Partial<Parameters<typeof EditorHeader>[0]> = {}) {
     onExportOutline: vi.fn(),
     onPrint: vi.fn(),
     onDrive: vi.fn(),
+    onDriveRenew: vi.fn(),
     onSettings: vi.fn(),
     command: (action: () => void) => action,
     ...overrides,
@@ -82,6 +83,23 @@ it('asks for attention and offers a retry only when saving failed', () => {
   expect(screen.getByRole('banner').querySelector('.drive-control')).toHaveClass('needs-attention');
   fireEvent.click(screen.getByRole('button', { name: 'Drive 저장 다시 시도' }));
   expect(props.onSave).toHaveBeenCalledOnce();
+});
+
+it('offers to extend an expiring connection without treating it as a failure', () => {
+  const props = header({
+    saveToDrive: true,
+    driveConnected: true,
+    editingText: true,
+    driveSync: { kind: 'expiring', label: 'drive.connectionExpiring' },
+  });
+  expect(screen.getByRole('banner').querySelector('.drive-control')).not.toHaveClass(
+    'needs-attention',
+  );
+  expect(screen.getByRole('status', { name: 'Drive 동기화 상태' })).toHaveTextContent('곧 만료');
+  expect(screen.queryByRole('button', { name: 'Drive 저장 다시 시도' })).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Drive 연결 연장' }));
+  expect(props.onDriveRenew).toHaveBeenCalledOnce();
+  expect(props.onDrive).not.toHaveBeenCalled();
 });
 
 it('hides Drive controls in deployments without Google configuration', () => {

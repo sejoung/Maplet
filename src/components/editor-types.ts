@@ -51,6 +51,7 @@ interface DriveIndicators {
   saveToDrive: boolean;
   driveSync: DriveSyncStatus | null;
   onDrive(): void;
+  onDriveRenew(): void;
   driveConnected: boolean;
   driveBusy: boolean;
   driveSaveStatus: string | null;

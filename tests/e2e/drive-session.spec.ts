@@ -213,3 +213,40 @@ test('a new map tab keeps the folder and connection but leaves the open file to 
   await expect(third.getByRole('treeitem', { name: 'Second map', exact: true })).toHaveCount(0);
   await expect(third.getByRole('treeitem', { name: 'Drive original', exact: true })).toHaveCount(0);
 });
+
+test('extends an expiring connection on the next click and keeps autosaving', async ({ page }) => {
+  const { state } = await setupDriveWorkspace(page);
+  const status = page.getByRole('status', { name: 'Drive 동기화 상태' });
+  await page.clock.fastForward(50 * 60_000);
+  await expect(status).toHaveText('곧 만료');
+  await expect(page.locator('html')).toHaveAttribute('data-authorizations', '1');
+  await page.locator('.canvas').click({ position: { x: 20, y: 20 } });
+  await expect(page.locator('html')).toHaveAttribute('data-authorizations', '2');
+  await expect(status).not.toHaveText('곧 만료');
+  // The renewed token outlives the original expiry.
+  await page.clock.fastForward(15 * 60_000);
+  await expect(page.getByRole('button', { name: 'Google Drive 연결됨' })).toBeVisible();
+  await renameRoot(page, 'Saved with renewed token');
+  await page.clock.runFor(5100);
+  await expect.poll(() => state.updates.length).toBe(1);
+});
+
+test('shows the expiry before autosave fails and extends from the header', async ({ page }) => {
+  const { state } = await setupDriveWorkspace(page);
+  const status = page.getByRole('status', { name: 'Drive 동기화 상태' });
+  await page.clock.fastForward(50 * 60_000);
+  await page.getByRole('button', { name: 'Drive 연결 연장', exact: true }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-authorizations', '2');
+  await expect(status).not.toHaveText('곧 만료');
+  await page.clock.fastForward(60 * 60_000);
+  await expect(status).toHaveText('다시 연결 필요');
+  await expect(page.locator('html')).toHaveAttribute('data-authorizations', '2');
+  await renameRoot(page, 'Edited after expiry');
+  await page.clock.runFor(5100);
+  expect(state.updates).toHaveLength(0);
+  await page.getByRole('button', { name: 'Google Drive 연결', exact: true }).click();
+  await page.getByRole('button', { name: '다시 연결', exact: true }).click();
+  await waitForDriveResume(page);
+  await page.clock.runFor(5100);
+  await expect.poll(() => state.updates.length).toBe(1);
+});

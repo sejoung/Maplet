@@ -17,7 +17,9 @@ interface PickerResult {
   action: string;
   docs?: { id: string; name: string }[];
 }
-export type AuthEvent = 'connected' | 'expired' | 'disconnected';
+export type AuthEvent = 'connected' | 'expiring' | 'expired' | 'disconnected';
+/** Google's popup needs a user gesture, so renewal is offered this long before expiry. */
+export const RENEW_BEFORE = 10 * 60_000;
 export interface GoogleSelection {
   id: string;
   name: string;
@@ -116,6 +118,7 @@ function script(src: string): Promise<void> {
 export class GoogleConnection {
   private token: string | null = null;
   private expiresAt = 0;
+  private timers: number[] = [];
   private generation = 0;
   private readonly listeners = new Set<(event: AuthEvent) => void>();
   constructor(
@@ -134,6 +137,7 @@ export class GoogleConnection {
     this.expiresAt = 0;
     return null;
   };
+  expiring = (): boolean => Boolean(this.getToken()) && this.expiresAt - Date.now() <= RENEW_BEFORE;
   subscribe(listener: (event: AuthEvent) => void): () => void {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
@@ -145,9 +149,25 @@ export class GoogleConnection {
   }
   private forget(): void {
     this.generation++;
-    this.token = null;
-    this.expiresAt = 0;
+    this.keep(null, 0);
     clearDriveSession();
+  }
+  /** Announce the renewal window and the expiry itself instead of waiting for a failed request. */
+  private keep(token: string | null, expiresAt: number): void {
+    this.token = token;
+    this.expiresAt = expiresAt;
+    this.timers.forEach((timer) => clearTimeout(timer));
+    const left = expiresAt - Date.now();
+    this.timers = token
+      ? [
+          window.setTimeout(() => this.emit('expiring'), Math.max(0, left - RENEW_BEFORE)),
+          window.setTimeout(() => {
+            // A renewal popup may still be open, so pending OAuth responses stay valid.
+            this.keep(null, 0);
+            this.emit('expired');
+          }, left),
+        ]
+      : [];
   }
   private share(): void {
     const token = this.getToken();
@@ -159,8 +179,7 @@ export class GoogleConnection {
       // Remaining lifetime, not a timestamp, so tabs never extend Google's expiry.
       const expiresAt = Date.now() + message.expiresIn;
       if (this.getToken() && expiresAt <= this.expiresAt) return;
-      this.token = message.token;
-      this.expiresAt = expiresAt;
+      this.keep(message.token, expiresAt);
       this.emit('connected');
     } else if (message.type === 'expired') {
       if (message.token !== this.token) return;
@@ -206,8 +225,10 @@ export class GoogleConnection {
             reject(new AppError('drive.googleDriveAuthorizationCancelled'));
             return;
           }
-          this.token = result.access_token;
-          this.expiresAt = Date.now() + Math.max(0, (result.expires_in ?? 3600) - 30) * 1000;
+          this.keep(
+            result.access_token,
+            Date.now() + Math.max(0, (result.expires_in ?? 3600) - 30) * 1000,
+          );
           this.share();
           resolve();
         },

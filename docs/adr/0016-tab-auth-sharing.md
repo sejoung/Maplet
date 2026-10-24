@@ -22,7 +22,7 @@
 ## 한계
 
 - 같은 origin의 다른 페이지도 채널에 참여해 토큰을 요청할 수 있다. 예를 들어 `username.github.io`의 다른 프로젝트 페이지가 그렇다. 이런 페이지는 이미 같은 origin의 초안 저장소에 접근할 수 있지만, 이 결정으로 토큰 획득이 쉬워진다. 배포는 Maplet 전용 origin(사용자 지정 도메인 등)을 권장한다.
-- 모든 탭을 닫은 뒤에는 사용자 클릭으로 다시 인증해야 한다. Google token model은 refresh token을 발급하지 않는다.
+- 모든 탭을 닫은 뒤에는 사용자 클릭으로 다시 인증해야 한다. Google token model은 refresh token을 발급하지 않는다. 열린 탭의 만료 전 연장은 [ADR 0018](0018-gesture-auth-renewal.md)에서 다룬다.
 - Drive 작업 위치(localStorage)와 초안(IndexedDB `current`)은 아직 기기당 한 개다. 새 탭이 다른 탭의 최근 파일을 복원해 두 탭이 같은 파일을 저장할 수 있다. 버전 검사가 충돌로 막지만, 탭별 작업 위치·초안 분리는 새 탭 새 맵 결정에서 다룬다.
 
 ## 검증

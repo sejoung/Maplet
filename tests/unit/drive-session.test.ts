@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, expect, it, vi } from 'vitest';
-import { GoogleConnection } from '../../src/adapters/drive/google';
+import { GoogleConnection, RENEW_BEFORE } from '../../src/adapters/drive/google';
 
 const config = { clientId: 'session-client', apiKey: 'key', appId: 'project' };
 const key = 'maplet:drive-session:session-client';
@@ -65,6 +65,71 @@ it('expires authentication without silently renewing it', async () => {
   await vi.advanceTimersByTimeAsync(3570000);
   expect(connection.getToken()).toBeNull();
   expect(request).toHaveBeenCalledOnce();
+});
+
+it('announces the renewal window and the expiry without waiting for a failed request', async () => {
+  vi.useFakeTimers();
+  sdk();
+  const connection = new GoogleConnection(config);
+  const events: string[] = [];
+  connection.subscribe((event) => events.push(event));
+  await connection.connect();
+  expect(connection.expiring()).toBe(false);
+  await vi.advanceTimersByTimeAsync(3570000 - RENEW_BEFORE - 1);
+  expect(events).toEqual([]);
+  await vi.advanceTimersByTimeAsync(1);
+  expect(events).toEqual(['expiring']);
+  expect(connection.expiring()).toBe(true);
+  await vi.advanceTimersByTimeAsync(RENEW_BEFORE);
+  expect(events).toEqual(['expiring', 'expired']);
+  expect(connection.getToken()).toBeNull();
+  expect(connection.expiring()).toBe(false);
+});
+
+it('restarts the expiry schedule when authorization is renewed', async () => {
+  vi.useFakeTimers();
+  const { request } = sdk();
+  const connection = new GoogleConnection(config);
+  const events: string[] = [];
+  connection.subscribe((event) => events.push(event));
+  await connection.connect();
+  await vi.advanceTimersByTimeAsync(3570000 - RENEW_BEFORE);
+  await connection.connect();
+  expect(request).toHaveBeenCalledTimes(2);
+  expect(connection.expiring()).toBe(false);
+  await vi.advanceTimersByTimeAsync(RENEW_BEFORE);
+  expect(connection.getToken()).toBe('memory-token');
+  expect(events).toEqual(['expiring']);
+});
+
+it('keeps an open renewal popup valid when the previous token expires', async () => {
+  vi.useFakeTimers();
+  sdk();
+  const connection = new GoogleConnection(config);
+  await connection.connect();
+  let done!: (result: object) => void;
+  window.google!.accounts.oauth2.initTokenClient = (options) => {
+    done = options.callback;
+    return { requestAccessToken: () => {} };
+  };
+  const pending = connection.connect();
+  await vi.advanceTimersByTimeAsync(3570000);
+  expect(connection.getToken()).toBeNull();
+  done({ access_token: 'renewed', expires_in: 3600 });
+  await pending;
+  expect(connection.getToken()).toBe('renewed');
+});
+
+it('stops the expiry schedule after a disconnect', async () => {
+  vi.useFakeTimers();
+  sdk();
+  const connection = new GoogleConnection(config);
+  const events: string[] = [];
+  await connection.connect();
+  connection.subscribe((event) => events.push(event));
+  await connection.disconnect();
+  await vi.advanceTimersByTimeAsync(3600000);
+  expect(events).toEqual([]);
 });
 
 it('clears rejected authentication without revoking unrelated consent', async () => {

@@ -1,9 +1,10 @@
 export interface DriveSyncStatus {
-  kind: 'ready' | 'pending' | 'saving' | 'synced' | 'error' | 'reconnect';
+  kind: 'ready' | 'pending' | 'saving' | 'synced' | 'error' | 'reconnect' | 'expiring';
   label: string;
 }
 interface SyncInput {
   connected: boolean;
+  expiring: boolean;
   hasFolder: boolean;
   awaitingRestore: boolean;
   busy: boolean;
@@ -27,6 +28,7 @@ export function driveSyncStatus(state: SyncInput): DriveSyncStatus {
     return { kind: 'reconnect', label: 'drive.reconnectRequired' };
   if (state.paused)
     return { kind: 'error', label: state.conflict ? 'drive.syncConflict' : 'drive.syncError' };
+  if (state.expiring) return { kind: 'expiring', label: 'drive.connectionExpiring' };
   if (!state.hasFolder) return { kind: 'ready', label: 'drive.chooseSaveFolder' };
   if (state.dirty) return { kind: 'pending', label: 'drive.pendingSave' };
   if (!state.hasFile) return { kind: 'ready', label: 'drive.readySave' };

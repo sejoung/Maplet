@@ -27,6 +27,7 @@ export function usePrimarySave(drive: DriveController, download: () => void, doc
     sync: saveToDrive
       ? driveSyncStatus({
           connected: drive.connected,
+          expiring: drive.expiring,
           hasFolder: Boolean(drive.saveFolder),
           awaitingRestore: drive.awaitingRestore,
           busy: drive.busy,

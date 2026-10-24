@@ -1,4 +1,4 @@
-import { Cloud, Check, CloudUpload, CloudAlert, LoaderCircle } from 'lucide-react';
+import { Cloud, Check, Clock, CloudUpload, CloudAlert, LoaderCircle } from 'lucide-react';
 import type { DriveSyncStatus } from '../application/drive-sync';
 import { useI18n } from '../i18n/react';
 
@@ -8,6 +8,7 @@ const icons = {
   pending: CloudUpload,
   error: CloudAlert,
   reconnect: CloudAlert,
+  expiring: Clock,
   ready: Cloud,
 } as const;
 
@@ -22,6 +23,7 @@ export function DriveConnectionButton({
   editing,
   onClick,
   onRetry,
+  onRenew,
 }: {
   connected: boolean;
   busy: boolean;
@@ -29,6 +31,7 @@ export function DriveConnectionButton({
   editing: boolean;
   onClick(): void;
   onRetry(): void;
+  onRenew(): void;
 }) {
   const { t } = useI18n();
   const sync =
@@ -81,6 +84,17 @@ export function DriveConnectionButton({
           onClick={onRetry}
         >
           {t('drive.retry')}
+        </button>
+      )}
+      {sync?.kind === 'expiring' && (
+        <button
+          type="button"
+          className="drive-retry drive-renew"
+          aria-label={t('drive.renewDriveConnection')}
+          disabled={busy}
+          onClick={onRenew}
+        >
+          {t('drive.renewConnection')}
         </button>
       )}
     </div>

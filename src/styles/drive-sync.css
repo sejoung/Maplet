@@ -64,6 +64,10 @@
 .drive-sync-state.pending {
   color: var(--warning);
 }
+.drive-sync-state.expiring {
+  color: var(--warning);
+  font-weight: 600;
+}
 .drive-sync-state.error,
 .drive-sync-state.reconnect {
   color: var(--danger);
@@ -84,6 +88,13 @@
 }
 .drive-retry:hover {
   background: var(--danger-soft);
+}
+.drive-renew {
+  border-color: var(--warning);
+  color: var(--warning);
+}
+.drive-renew:hover {
+  background: var(--surface-muted);
 }
 .sync-spinner {
   animation: drive-spin 1s linear infinite;

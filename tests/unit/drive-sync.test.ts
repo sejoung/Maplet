@@ -3,6 +3,7 @@ import { autoSaveState, driveSyncStatus } from '../../src/application/drive-sync
 
 const saved = {
   connected: true,
+  expiring: false,
   hasFolder: true,
   awaitingRestore: false,
   busy: false,
@@ -22,6 +23,9 @@ it.each([
   [{ connected: false }, 'reconnect', 'drive.reconnectRequired'],
   [{ paused: true, dirty: true }, 'error', 'drive.syncError'],
   [{ paused: true, conflict: true }, 'error', 'drive.syncConflict'],
+  [{ expiring: true, dirty: true }, 'expiring', 'drive.connectionExpiring'],
+  [{ expiring: true, paused: true }, 'error', 'drive.syncError'],
+  [{ expiring: true, busy: true, saving: true }, 'saving', 'drive.saving'],
   [{ hasFile: false }, 'ready', 'drive.readySave'],
   [{ hasFolder: false, hasFile: false }, 'ready', 'drive.chooseSaveFolder'],
 ] as const)(

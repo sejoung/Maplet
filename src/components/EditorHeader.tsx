@@ -45,6 +45,7 @@ interface HeaderProps {
   onExportOutline(format: 'md' | 'opml'): void;
   onPrint(): void;
   onDrive(): void;
+  onDriveRenew(): void;
   onSettings(): void;
   command(action: () => void): () => void;
 }
@@ -151,6 +152,7 @@ export function EditorHeader(props: HeaderProps) {
             editing={props.editingText}
             onClick={command(props.onDrive)}
             onRetry={props.onSave}
+            onRenew={props.onDriveRenew}
           />
         )}
         {!props.saveToDrive && (

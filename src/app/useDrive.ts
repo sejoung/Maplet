@@ -20,6 +20,7 @@ import type { DriveBaseline } from './driveMerge';
 import { useDriveStartup } from './useDriveStartup';
 import { useDriveBaseline } from './useDriveBaseline';
 import { useAuthEvents } from './useAuthEvents';
+import { useAuthRenewal } from './useAuthRenewal';
 import { driveDisconnect } from './driveDisconnect';
 import * as connection from './driveConnection';
 import type { DriveOptions } from './DriveOptions';
@@ -351,8 +352,9 @@ export function useDrive(
   useAuthEvents(google, (event) => {
     if (event === 'connected') setConnected(true);
     else if (event === 'expired') setConnected(false);
-    else resetConnection();
+    else if (event === 'disconnected') resetConnection();
   });
+  const renewal = useAuthRenewal(google, connected && !busy, setNotice);
   return {
     dialog,
     closeDialog,
@@ -361,6 +363,8 @@ export function useDrive(
     busy,
     driveReady,
     connected,
+    expiring: connected && renewal.expiring,
+    renewDrive: renewal.renew,
     saveFolder,
     driveFile,
     rememberedFile: pending?.workspace.file ?? pending?.workspace.source ?? null,

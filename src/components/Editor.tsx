@@ -104,6 +104,7 @@ export function Editor(props: EditorProps) {
         onExportOutline={props.onExportOutline}
         onPrint={props.onPrint}
         onDrive={props.onDrive}
+        onDriveRenew={props.onDriveRenew}
         onSettings={() => setSettingsOpen(true)}
         command={command}
       />

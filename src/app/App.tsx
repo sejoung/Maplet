@@ -272,6 +272,7 @@ export function App({
         canPaste={clipboard.canPaste}
         onHelp={() => setDialog('help')}
         onDrive={driveState.showDrive}
+        onDriveRenew={() => void driveState.renewDrive()}
         driveConfigured={driveState.configured}
         onOpenDrive={() =>
           driveState.driveReady && driveState.saveFolder && !driveState.awaitingRestore
