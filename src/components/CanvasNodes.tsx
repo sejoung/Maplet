@@ -167,9 +167,11 @@ export function CanvasNodes(props: CanvasNodesProps) {
             }}
             onMouseDown={(event) => {
               // Keep focus where it is so the click can extend the selection instead.
-              if (additive(event)) event.preventDefault();
+              if (editingId !== node.id && additive(event)) event.preventDefault();
             }}
             onClick={(event) => {
+              // While the title is edited, clicks belong to the text, not to node selection.
+              if (editingId === node.id) return;
               if (!additive(event)) return onSelect(node.id);
               onToggleSelect(node.id);
               requestAnimationFrame(() =>
@@ -178,7 +180,9 @@ export function CanvasNodes(props: CanvasNodesProps) {
                   ?.focus({ preventScroll: true }),
               );
             }}
-            onDoubleClick={() => onEdit(node.id)}
+            onDoubleClick={() => {
+              if (editingId !== node.id) onEdit(node.id);
+            }}
             onKeyDown={(event) => {
               if (!event.metaKey && !event.ctrlKey) {
                 event.stopPropagation();

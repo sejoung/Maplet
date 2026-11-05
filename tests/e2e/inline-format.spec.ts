@@ -124,3 +124,48 @@ test('keeps the browser menu, plain paste and line breaks in the editor', async 
   await input.press('Enter');
   await expect(root.locator('.node-text > span')).toHaveText(['첫 줄', '둘째 붙임']);
 });
+
+test('keeps editing and selects text when a drag starts or ends outside the text', async ({
+  page,
+}) => {
+  const { root, input } = await startEditing(page, '예산 확정은 금요일까지 승인 완료');
+  const selected = () => page.evaluate(() => String(getSelection()));
+  const box = (await input.boundingBox())!;
+  const node = (await root.boundingBox())!;
+  const middle = box.y + box.height / 2;
+  const drag = async (from: [number, number], to: [number, number] | null) => {
+    await page.mouse.move(...from);
+    await page.mouse.down();
+    if (to) await page.mouse.move(...to, { steps: 8 });
+    await page.mouse.up();
+  };
+
+  // Starting in the node padding used to focus the node and end editing.
+  await drag([node.x + 4, middle], [box.x + 60, middle]);
+  await expect(input).toBeFocused();
+  expect(await selected()).toMatch(/^예산/);
+  await drag([node.x + 4, middle], null);
+  await expect(input).toBeFocused();
+  expect(await selected()).toBe('');
+
+  // Leaving the node or the canvas side keeps the selection up to the nearest text end.
+  await drag([box.x + 1, middle], [node.x + node.width + 150, middle]);
+  expect(await selected()).toBe('예산 확정은 금요일까지 승인 완료');
+  await drag([node.x + node.width - 4, middle], [node.x - 80, middle]);
+  expect(await selected()).toBe('예산 확정은 금요일까지 승인 완료');
+  // Pressing on the selection starts a new one instead of dragging the selected text.
+  await drag([box.x + 60, middle], [node.x - 60, middle]);
+  const partial = await selected();
+  expect(partial.length).toBeGreaterThan(0);
+  expect('예산 확정은 금요일까지 승인 완료'.startsWith(partial)).toBe(true);
+  expect(partial.length).toBeLessThan(18);
+
+  await page.mouse.dblclick(box.x + 30, middle);
+  expect(await selected()).toBe('확정은');
+  await page.waitForTimeout(600);
+  await page.mouse.click(box.x + 30, middle, { clickCount: 3 });
+  expect(await selected()).toBe('예산 확정은 금요일까지 승인 완료');
+  await input.press('ControlOrMeta+b');
+  await expect(input.locator('strong')).toHaveText('예산 확정은 금요일까지 승인 완료');
+  await expect(input).toBeFocused();
+});

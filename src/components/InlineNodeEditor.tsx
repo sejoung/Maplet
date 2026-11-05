@@ -17,6 +17,7 @@ import {
   type FormatCommand,
 } from './rich-editing';
 import { FormatMenu } from './FormatMenu';
+import { useEditorSelectionDrag } from './useEditorSelectionDrag';
 
 interface MenuState {
   at: { x: number; y: number };
@@ -55,6 +56,7 @@ export function InlineNodeEditor({
   const pendingFormat = useRef<FormatCommand | null>(null);
   const [menu, setMenu] = useState<MenuState | null>(null);
   const initialTitle = useRef(title);
+  useEditorSelectionDrag(input);
 
   const state = useCallback((): EditorState => {
     const element = input.current!;

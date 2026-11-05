@@ -105,7 +105,7 @@ export function readSelection(editor: HTMLElement): TextSelection | null {
 }
 
 /** Find the DOM point for a plain-text offset. */
-function pointAt(editor: HTMLElement, target: number): [Node, number] {
+export function pointAt(editor: HTMLElement, target: number): [Node, number] {
   let seen = 0;
   const walker = editor.ownerDocument.createTreeWalker(editor, NodeFilter.SHOW_ALL);
   for (let node = walker.nextNode(); node; node = walker.nextNode()) {
