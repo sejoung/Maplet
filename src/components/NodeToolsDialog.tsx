@@ -2,6 +2,7 @@ import { useI18n } from '../i18n/react';
 import { useState } from 'react';
 import type { MindMap, MindNode } from '../domain/model';
 import { isDescendant, safeUrl } from '../domain/commands';
+import { plainTitle } from '../domain/rich-text';
 import { Dialog } from './Dialog';
 import { NodeStyleForm } from './NodeStyleForm';
 import { ConnectionsForm } from './ConnectionsForm';
@@ -59,10 +60,13 @@ export function NodeToolsDialog({
   const [error, setError] = useState<string | null>(null);
   return (
     <Dialog title={t(titles[tool])} onClose={onClose}>
-      <p className="tool-selection" title={node.title}>
+      <p className="tool-selection" title={plainTitle(node.title)}>
         {group
-          ? t('nodeTools.selectionSummary', { title: node.title, count: selection.length - 1 })
-          : node.title}
+          ? t('nodeTools.selectionSummary', {
+              title: plainTitle(node.title),
+              count: selection.length - 1,
+            })
+          : plainTitle(node.title)}
       </p>
       {error && (
         <p className="form-error" role="alert">
@@ -160,7 +164,7 @@ export function NodeToolsDialog({
           >
             {parents.map((candidate) => (
               <option key={candidate.id} value={candidate.id}>
-                {candidate.title.slice(0, 70)}
+                {plainTitle(candidate.title).slice(0, 70)}
               </option>
             ))}
           </select>

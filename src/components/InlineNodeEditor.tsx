@@ -1,5 +1,6 @@
 import { useI18n } from '../i18n/react';
 import { useLayoutEffect, useRef, useState } from 'react';
+import { applyRichFormat, richShortcut, type RichFormat } from './rich-shortcuts';
 
 export function InlineNodeEditor({
   title,
@@ -22,6 +23,15 @@ export function InlineNodeEditor({
   const [value, setValue] = useState(title);
   const input = useRef<HTMLTextAreaElement>(null);
   const finished = useRef(false);
+  // A shortcut pressed mid-composition waits until the composed text is in the value.
+  const pendingFormat = useRef<RichFormat | null>(null);
+  const format = (action: RichFormat) => {
+    if (!input.current) return;
+    applyRichFormat(input.current, action, (next) => {
+      setValue(next);
+      onDraftChange(next);
+    });
+  };
   useLayoutEffect(() => {
     input.current?.focus({ preventScroll: true });
     input.current?.select();
@@ -66,7 +76,21 @@ export function InlineNodeEditor({
       onClick={(event) => event.stopPropagation()}
       onDoubleClick={(event) => event.stopPropagation()}
       onPointerDown={(event) => event.stopPropagation()}
+      onCompositionEnd={() => {
+        const action = pendingFormat.current;
+        pendingFormat.current = null;
+        if (action) setTimeout(() => format(action), 0);
+      }}
       onKeyDown={(event) => {
+        const action = richShortcut(event);
+        if (action) {
+          event.preventDefault();
+          event.stopPropagation();
+          if (event.nativeEvent.isComposing || event.nativeEvent.keyCode === 229)
+            pendingFormat.current = action;
+          else format(action);
+          return;
+        }
         if (event.metaKey || event.ctrlKey) return;
         event.stopPropagation();
         if (event.nativeEvent.isComposing || event.nativeEvent.keyCode === 229) return;

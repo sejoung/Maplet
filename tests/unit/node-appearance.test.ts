@@ -75,6 +75,7 @@ describe('focus and cross-link geometry', () => {
       width: 100,
       height: 40,
       lines: [],
+      runs: [],
       branch: 0,
       side: 'right' as const,
     };

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ArrowLeft, ArrowRight, X } from 'lucide-react';
 import type { MindMap } from '../domain/model';
+import { plainTitle } from '../domain/rich-text';
 import { useI18n } from '../i18n/react';
 
 /** Cross-links from and to one node, with a picker to add another. */
@@ -36,6 +37,7 @@ export function ConnectionsForm({
           {links.map((link) => {
             const outgoing = link.from === id;
             const other = map.nodes[outgoing ? link.to : link.from];
+            const otherTitle = plainTitle(other.title);
             return (
               <li key={`${link.from}>${link.to}`}>
                 {outgoing ? (
@@ -43,11 +45,11 @@ export function ConnectionsForm({
                 ) : (
                   <ArrowLeft size={15} aria-label={t('nodeTools.incoming')} />
                 )}
-                <span title={other.title}>{other.title}</span>
+                <span title={otherTitle}>{otherTitle}</span>
                 <button
                   type="button"
                   className="icon-button"
-                  aria-label={t('nodeTools.removeConnection', { title: other.title })}
+                  aria-label={t('nodeTools.removeConnection', { title: otherTitle })}
                   onClick={() => onDisconnect(link.from, link.to)}
                 >
                   <X size={15} />
@@ -69,7 +71,7 @@ export function ConnectionsForm({
       >
         {candidates.map((node) => (
           <option key={node.id} value={node.id}>
-            {node.title.slice(0, 70)}
+            {plainTitle(node.title).slice(0, 70)}
           </option>
         ))}
       </select>

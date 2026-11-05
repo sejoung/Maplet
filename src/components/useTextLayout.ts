@@ -3,14 +3,15 @@ import type { MindMap } from '../domain/model';
 import { layoutMap } from '../engine/layout';
 import { clearTextMeasurements, measureNodeText } from './text-measure';
 
-export function useTextLayout(map: MindMap) {
+export function useTextLayout(map: MindMap, rawId: string | null = null) {
   const [measureText, setMeasureText] = useState(() => measureNodeText);
   useEffect(() => {
     let active = true;
     const refresh = () => {
       if (!active) return;
       clearTextMeasurements();
-      const refreshed: typeof measureNodeText = (text, node) => measureNodeText(text, node);
+      const refreshed: typeof measureNodeText = (text, node, bold) =>
+        measureNodeText(text, node, bold);
       setMeasureText(() => refreshed);
     };
     void document.fonts?.ready.then(refresh);
@@ -20,5 +21,5 @@ export function useTextLayout(map: MindMap) {
       document.fonts?.removeEventListener('loadingdone', refresh);
     };
   }, []);
-  return useMemo(() => layoutMap(map, measureText), [map, measureText]);
+  return useMemo(() => layoutMap(map, measureText, rawId), [map, measureText, rawId]);
 }

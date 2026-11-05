@@ -8,11 +8,16 @@ export interface TreeSize extends ReturnType<typeof measureNode> {
   span: number;
 }
 
-export function measureTree(map: MindMap, measureText?: TextMeasurer, includeHidden = false) {
+export function measureTree(
+  map: MindMap,
+  measureText?: TextMeasurer,
+  includeHidden = false,
+  rawId: string | null = null,
+) {
   const sizes = new Map<string, TreeSize>();
   const visit = (id: string): number => {
     const node = map.nodes[id];
-    const size = measureNode(node, measureText);
+    const size = measureNode(node, measureText, id === rawId);
     if (includeHidden || !node.collapsed) node.children.forEach(visit);
     const children = node.collapsed ? [] : node.children;
     const childrenSpan = children.reduce(

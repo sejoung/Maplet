@@ -11,6 +11,7 @@ import { NodeContextMenu } from './NodeContextMenu';
 import { FindBar } from './FindBar';
 import { useEditorView } from './useEditorView';
 import type { EditorProps } from './editor-types';
+import { plainTitle } from '../domain/rich-text';
 export type { EditorProps } from './editor-types';
 
 export function Editor(props: EditorProps) {
@@ -156,7 +157,9 @@ export function Editor(props: EditorProps) {
         {view.focus && (
           <div className="focus-banner" role="status">
             <span>
-              {t('editor.focusedBranch', { title: map.nodes[view.focus].title.split('\n')[0] })}
+              {t('editor.focusedBranch', {
+                title: plainTitle(map.nodes[view.focus].title).split('\n')[0],
+              })}
             </span>
             <button type="button" className="text-button" onClick={view.exitFocus}>
               {t('common.showWholeMap')}

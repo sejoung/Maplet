@@ -162,3 +162,13 @@
     display: none;
   }
 }
+/* Inline title emphasis: no padding, so the measured line widths stay exact. */
+.rich-bold {
+  font-weight: 700;
+}
+.rich-mark {
+  padding: 0;
+  border-radius: 3px;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}

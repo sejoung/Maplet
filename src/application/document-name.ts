@@ -1,5 +1,6 @@
 import { AppError } from '../domain/errors';
 import { sanitizeFilename, stripMapExtensions } from '../domain/filename';
+import { plainTitle } from '../domain/rich-text';
 
 export function renameFilename(input: string): string {
   const name = stripMapExtensions(sanitizeFilename(input).trim()).replace(/[.\s]+$/, '');
@@ -9,7 +10,7 @@ export function renameFilename(input: string): string {
 
 export function filenameFromTitle(title: string): string | null {
   try {
-    return renameFilename([...title.trim().replace(/\s+/g, ' ')].slice(0, 80).join(''));
+    return renameFilename([...plainTitle(title).trim().replace(/\s+/g, ' ')].slice(0, 80).join(''));
   } catch {
     return null;
   }

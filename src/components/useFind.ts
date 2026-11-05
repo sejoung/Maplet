@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { MindMap } from '../domain/model';
+import { plainTitle } from '../domain/rich-text';
 
 /** Find-as-you-type over node titles, in document order, stepping with next and previous. */
 export function useFind(map: MindMap, selected: string, select: (id: string) => void) {
@@ -10,7 +11,7 @@ export function useFind(map: MindMap, selected: string, select: (id: string) => 
     if (!open || !term) return [];
     const result: string[] = [];
     const visit = (id: string) => {
-      if (map.nodes[id].title.toLocaleLowerCase().includes(term)) result.push(id);
+      if (plainTitle(map.nodes[id].title).toLocaleLowerCase().includes(term)) result.push(id);
       map.nodes[id].children.forEach(visit);
     };
     map.roots.forEach(visit);

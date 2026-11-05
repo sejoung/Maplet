@@ -1,5 +1,5 @@
 import type { MindMap, NodePosition, Side } from '../domain/model';
-import type { TextMeasurer } from './node-measure';
+import type { MeasuredRun, TextMeasurer } from './node-measure';
 import { positionsForSubtreeMove } from '../domain/positions';
 import { BRANCH_GAP, LEVEL_GAP, NODE_GAP, measureTree } from './tree-measure';
 
@@ -10,6 +10,8 @@ export interface LayoutNode {
   width: number;
   height: number;
   lines: string[];
+  /** The same lines split into formatted runs with their measured widths. */
+  runs: MeasuredRun[][];
   branch: number;
   side: Side;
 }
@@ -28,9 +30,14 @@ export interface Layout {
   minY: number;
 }
 
-export function layoutMap(map: MindMap, measureText?: TextMeasurer): Layout {
+/** `rawId` is the node being edited inline: it is measured with its markers visible. */
+export function layoutMap(
+  map: MindMap,
+  measureText?: TextMeasurer,
+  rawId: string | null = null,
+): Layout {
   const nodes: LayoutNode[] = [];
-  const sizes = measureTree(map, measureText);
+  const sizes = measureTree(map, measureText, false, rawId);
   let rootTop = 80;
   let branch = 0;
   const place = (id: string, x: number, cy: number, side: Side, branchId: number) => {
@@ -42,6 +49,7 @@ export function layoutMap(map: MindMap, measureText?: TextMeasurer): Layout {
       width: size.width,
       height: size.height,
       lines: size.lines,
+      runs: size.runs,
       branch: branchId,
       side,
     });
@@ -84,6 +92,7 @@ export function layoutMap(map: MindMap, measureText?: TextMeasurer): Layout {
       width: rootSize.width,
       height: rootSize.height,
       lines: rootSize.lines,
+      runs: rootSize.runs,
       branch: -1,
       side: 'right',
     });

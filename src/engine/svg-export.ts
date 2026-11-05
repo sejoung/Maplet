@@ -3,6 +3,7 @@ import { FONT_FAMILIES, nodeTypography } from '../domain/typography';
 import { NODE_BORDER, NODE_PADDING_X } from '../domain/node-size';
 import { DASHES, branchLine, nodeBackground, nodeBorder } from '../domain/node-colors';
 import { MARKER_GAP, TASK_SIZE, nodeMarkers } from '../domain/node-markers';
+import { HIGHLIGHT_FILLS } from '../domain/rich-text';
 import { connectionLines } from './connections';
 import type { Layout } from './layout';
 
@@ -65,10 +66,30 @@ export function renderSvg(map: MindMap, layout: Layout) {
         `<text x="${markerX + markers.iconSize / 2}" y="${middle}" text-anchor="middle" dominant-baseline="central" font-size="${typography.fontSize}">${escape(markers.icon)}</text>`,
       );
     const top = placed.y + (placed.height - placed.lines.length * typography.lineHeight) / 2;
-    const lines = placed.lines.map(
-      (line, index) =>
-        `<tspan x="${x}" y="${top + (index + 0.5) * typography.lineHeight}">${escape(line)}</tspan>`,
-    );
+    const lines = placed.runs.map((runs, index) => {
+      const y = top + (index + 0.5) * typography.lineHeight;
+      const at = `x="${x}" y="${y}"`;
+      if (!runs.length) return `<tspan ${at}></tspan>`;
+      // Later runs continue the first one, so the whole line keeps its alignment anchor.
+      return runs
+        .map(
+          (run, part) =>
+            `<tspan${part ? '' : ` ${at}`}${run.bold ? ' font-weight="700"' : ''}>${escape(run.text)}</tspan>`,
+        )
+        .join('');
+    });
+    // Text has no background in SVG; highlighter boxes are drawn behind each line instead.
+    placed.runs.forEach((runs, index) => {
+      const lineWidth = runs.reduce((sum, run) => sum + run.width, 0);
+      let runX = { left: x, center: x - lineWidth / 2, right: x - lineWidth }[typography.textAlign];
+      for (const run of runs) {
+        if (run.highlight)
+          marks.push(
+            `<rect x="${runX}" y="${top + index * typography.lineHeight}" width="${run.width}" height="${typography.lineHeight}" rx="3" fill="${HIGHLIGHT_FILLS[run.highlight]}"/>`,
+          );
+        runX += run.width;
+      }
+    });
     return [
       `<rect x="${placed.x + 0.5}" y="${placed.y + 0.5}" width="${placed.width - 1}" height="${placed.height - 1}" rx="8"`,
       ` fill="${nodeBackground(node.style, root)}" stroke="${nodeBorder(node.style) ?? (root ? '#9cab9f' : '#d1d9d5')}"/>`,

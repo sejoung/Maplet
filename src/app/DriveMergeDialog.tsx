@@ -5,6 +5,7 @@ import type { DriveMergeConflict } from './driveMerge';
 import type { MergeChoices } from '../domain/merge';
 import { parseMaplet } from '../adapters/maplet/codec';
 import { own } from '../domain/ids';
+import { plainTitle } from '../domain/rich-text';
 
 const labels: Record<string, string> = {
   title: 'common.nodeTitle',
@@ -69,7 +70,7 @@ export function DriveMergeDialog({
             t('drive.nodeDeletionEdit');
           return (
             <fieldset key={item.id} className="merge-conflict">
-              <legend>{node ? `${node.title} · ${field}` : field}</legend>
+              <legend>{node ? `${plainTitle(node.title)} · ${field}` : field}</legend>
               <details>
                 <summary>{t('drive.lastSyncedContent')}</summary>
                 <pre>{value(item.base)}</pre>

@@ -19,6 +19,8 @@ import type { Layout } from '../engine/layout';
 import type { DropTarget } from '../engine/branch-drag';
 import { nodeMarkers } from '../domain/node-markers';
 import { nodeBorder, readableBackground } from '../domain/node-colors';
+import { plainTitle } from '../domain/rich-text';
+import { RichLine } from './RichLine';
 
 type CanvasNodesProps = Pick<
   CanvasProps,
@@ -102,6 +104,7 @@ export function CanvasNodes(props: CanvasNodesProps) {
       {layout.nodes.map((placed) => {
         const node = map.nodes[placed.id];
         const typography = nodeTypography(node.style);
+        const label = plainTitle(node.title);
         let depth = 1;
         let parent = node.parentId;
         while (parent) {
@@ -130,7 +133,7 @@ export function CanvasNodes(props: CanvasNodesProps) {
             key={node.id}
             className={classes.filter(Boolean).join(' ')}
             role="treeitem"
-            aria-label={node.title}
+            aria-label={label}
             aria-level={depth}
             aria-selected={chosen}
             data-drop-label={dropping === 'child' ? t('canvas.moveHere') : undefined}
@@ -204,7 +207,7 @@ export function CanvasNodes(props: CanvasNodesProps) {
                     className="node-task"
                     role="checkbox"
                     aria-checked={markers.task === 'done'}
-                    aria-label={t('canvas.taskDone', { title: node.title })}
+                    aria-label={t('canvas.taskDone', { title: label })}
                     tabIndex={-1}
                     onClick={(event) => {
                       event.stopPropagation();
@@ -246,8 +249,8 @@ export function CanvasNodes(props: CanvasNodesProps) {
               />
             ) : (
               <span className="node-text">
-                {placed.lines.map((line, index) => (
-                  <span key={index}>{line || '\u00a0'}</span>
+                {placed.runs.map((runs, index) => (
+                  <RichLine key={index} runs={runs} />
                 ))}
               </span>
             )}
@@ -282,7 +285,7 @@ export function CanvasNodes(props: CanvasNodesProps) {
             {node.children.length > 0 && (
               <button
                 className={`collapse-node ${placed.side}`}
-                aria-label={`${node.title} ${node.collapsed ? t('common.expand') : t('common.collapse')}`}
+                aria-label={`${label} ${node.collapsed ? t('common.expand') : t('common.collapse')}`}
                 onClick={(event) => {
                   event.stopPropagation();
                   onToggle(node.id);
