@@ -145,7 +145,6 @@ export function layoutMap(map: MindMap, measureText?: TextMeasurer): Layout {
     nodes
       .filter((node) => map.nodes[node.id].parentId !== null)
       .map((node) => ({ from: map.nodes[node.id].parentId!, to: node.id, branch: node.branch })),
-    !manual,
   );
 }
 
@@ -194,21 +193,30 @@ class OccupiedRows {
   }
 }
 
-function finishLayout(
-  nodes: LayoutNode[],
-  relations: Omit<LayoutEdge, 'path'>[],
-  horizontalTree = false,
-): Layout {
+/**
+ * Whether a connector leaves the parent's side rather than its top or bottom. A child beside
+ * the parent, however far up or down, keeps the side-to-side curve the automatic layout
+ * draws, so pinning or moving nodes does not turn a tidy fan of branches into vertical lines.
+ * Only a child overlapping the parent's columns is joined top to bottom.
+ */
+function joinsSideways(parent: LayoutNode, child: LayoutNode, dx: number, dy: number) {
+  const gap = Math.max(child.x - parent.x - parent.width, parent.x - child.x - child.width);
+  if (gap >= 0) return true;
+  // Overlapping boxes: whichever axis separates their centers more.
+  return (
+    Math.abs(dx) / ((parent.width + child.width) / 2) >=
+    Math.abs(dy) / ((parent.height + child.height) / 2)
+  );
+}
+
+function finishLayout(nodes: LayoutNode[], relations: Omit<LayoutEdge, 'path'>[]): Layout {
   const byId = new Map(nodes.map((node) => [node.id, node]));
   const edges = relations.map((edge) => {
     const parent = byId.get(edge.from)!;
     const child = byId.get(edge.to)!;
     const dx = child.x + child.width / 2 - parent.x - parent.width / 2;
     const dy = child.y + child.height / 2 - parent.y - parent.height / 2;
-    const horizontal =
-      horizontalTree ||
-      Math.abs(dx) / ((parent.width + child.width) / 2) >=
-        Math.abs(dy) / ((parent.height + child.height) / 2);
+    const horizontal = joinsSideways(parent, child, dx, dy);
     child.side = dx < 0 ? 'left' : 'right';
     let path: string;
     if (horizontal) {

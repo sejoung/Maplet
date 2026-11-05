@@ -36,6 +36,30 @@ describe('manual node positions and connection lengths', () => {
       layoutMap(original).edges.find((edge) => edge.to === 'a')!.path,
     );
   });
+  it('draws the same connectors once the automatic layout is pinned in place', () => {
+    let source = createMap();
+    for (let i = 0; i < 6; i++) {
+      source = addNode(source, 'root', `b${i}`, `가지 ${i}`);
+      for (let j = 0; j < 4; j++) source = addNode(source, `b${i}`, `b${i}-${j}`, `하위 ${j}`);
+    }
+    const pinned = layoutMap(setNodePositions(source, positionsOf(source)));
+    expect(pinned.edges).toEqual(layoutMap(source).edges);
+  });
+  it('joins a child beside its parent sideways however far it sits below', () => {
+    const source = example();
+    const positions = positionsOf(source);
+    const root = layoutMap(source).nodes.find((node) => node.id === 'root')!;
+    const besideFarBelow = { x: root.x + root.width + 10, y: root.y + 600 };
+    const under = { x: root.x, y: root.y + 200 };
+    const layout = layoutMap(
+      setNodePositions(source, { ...positions, a: besideFarBelow, b: under }),
+    );
+    const path = (id: string) => layout.edges.find((edge) => edge.to === id)!.path;
+    // Leaves the root's right side at its middle row...
+    expect(path('a')).toMatch(new RegExp(`^M ${root.x + root.width} ${root.y + root.height / 2} `));
+    // ...while a child overlapping the root's columns hangs from its bottom.
+    expect(path('b')).toMatch(new RegExp(`^M ${root.x + root.width / 2} ${root.y + root.height} `));
+  });
   it('supports negative coordinates and routes connections to the new side', () => {
     const source = example();
     const positions = positionsOf(source);
