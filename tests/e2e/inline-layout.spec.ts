@@ -111,6 +111,6 @@ test('previews height and connectors while typing and commits the same layout as
   await input.press('Escape');
   expect(await geometry(node)).toEqual(preview);
   await node.press('F2');
-  await expect(input).toHaveValue(title);
+  await expect(input).toHaveText(title);
   await input.press('Escape');
 });

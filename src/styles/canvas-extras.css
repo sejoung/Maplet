@@ -166,9 +166,43 @@
 .rich-bold {
   font-weight: 700;
 }
+.root-node .rich-bold,
+.bold-node .rich-bold {
+  font-weight: 800;
+}
 .rich-mark {
   padding: 0;
   border-radius: 3px;
   -webkit-box-decoration-break: clone;
   box-decoration-break: clone;
+}
+.format-menu {
+  width: 210px;
+}
+.format-swatches {
+  display: flex;
+  gap: 8px;
+  padding: 4px 10px 6px;
+}
+.menu-items .format-swatch {
+  width: 26px;
+  height: 26px;
+  min-height: 0;
+  padding: 0;
+  border: 1px solid #0000001f;
+  border-radius: 50%;
+}
+.menu-items .format-swatch:hover:not(:disabled),
+.menu-items .format-swatch:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.menu-items .format-swatch[aria-checked='true'] {
+  box-shadow:
+    0 0 0 2px var(--surface),
+    0 0 0 4px var(--accent-2);
+}
+.menu-items [role='menuitemcheckbox'][aria-checked='true'] {
+  color: var(--accent-strong);
+  font-weight: 600;
 }

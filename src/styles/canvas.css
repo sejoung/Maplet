@@ -91,7 +91,6 @@
   display: block;
   width: 100%;
   min-height: 0;
-  resize: none;
   padding: 0;
   margin: 0;
   border: 0;
@@ -214,6 +213,8 @@ a.node-badge:hover {
 }
 .inline-node-editor {
   cursor: text;
+  -webkit-user-select: text;
+  user-select: text;
 }
 .branch-region {
   position: absolute;

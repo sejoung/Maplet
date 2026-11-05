@@ -126,6 +126,7 @@ export function CanvasNodes(props: CanvasNodesProps) {
           dropping && dropping !== 'child' && 'drop-sibling',
           matches?.has(node.id) && 'search-match',
           markers.task === 'done' && 'task-done',
+          typography.bold && 'bold-node',
           custom && 'custom-bg',
         ];
         return (

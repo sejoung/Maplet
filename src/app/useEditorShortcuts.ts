@@ -25,7 +25,7 @@ export function useEditorShortcuts(actions: Shortcuts) {
     const shortcut = (event: KeyboardEvent) => {
       if (event.isComposing) return;
       const input = (event.target as HTMLElement).closest(
-        'input,textarea,select,[contenteditable=true]',
+        'input,textarea,select,[contenteditable]:not([contenteditable=false])',
       );
       const modifier = event.ctrlKey || event.metaKey;
       const key = event.key.toLowerCase();

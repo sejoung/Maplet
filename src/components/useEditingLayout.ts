@@ -24,6 +24,5 @@ export function useEditingLayout(map: MindMap, editingId: string | null, documen
     },
     [map],
   );
-  // The node being edited shows its markers, so it is measured as typed.
-  return { layout: useTextLayout(previewMap, editingId), onDraftChange };
+  return { layout: useTextLayout(previewMap), onDraftChange };
 }

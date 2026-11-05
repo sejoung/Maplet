@@ -26,6 +26,7 @@ export function ShortcutHelpDialog({
           ['⌘ / Ctrl + B', 'shortcuts.boldSelection'],
           ['⌘ / Ctrl + Shift + H', 'shortcuts.highlightSelection'],
           ['⌘ / Ctrl + \\', 'shortcuts.clearInlineFormat'],
+          ['shortcuts.rightClickSelection', 'shortcuts.formatMenu'],
           ['shortcuts.arrowKeys', 'shortcuts.navigateBetweenNodes'],
           ['Delete / ⌫', 'shortcuts.deleteNodeDescendants'],
           ['⌘ / Ctrl + C · X · V', 'shortcuts.copyCutPasteBranch'],

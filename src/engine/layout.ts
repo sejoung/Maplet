@@ -30,14 +30,9 @@ export interface Layout {
   minY: number;
 }
 
-/** `rawId` is the node being edited inline: it is measured with its markers visible. */
-export function layoutMap(
-  map: MindMap,
-  measureText?: TextMeasurer,
-  rawId: string | null = null,
-): Layout {
+export function layoutMap(map: MindMap, measureText?: TextMeasurer): Layout {
   const nodes: LayoutNode[] = [];
-  const sizes = measureTree(map, measureText, false, rawId);
+  const sizes = measureTree(map, measureText);
   let rootTop = 80;
   let branch = 0;
   const place = (id: string, x: number, cy: number, side: Side, branchId: number) => {

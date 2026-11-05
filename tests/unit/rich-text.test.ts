@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
   HIGHLIGHT_COLORS,
-  clearFormatting,
+  formatRange,
   formatRuns,
-  cycleHighlight,
   plainTitle,
+  rangeFormat,
+  replaceRange,
   richRuns,
-  toggleBold,
+  wordAt,
   type HighlightColor,
 } from '../../src/domain/rich-text';
 import { addNode, createMap } from '../../src/domain/commands';
@@ -20,10 +21,6 @@ const run = (text: string, bold = false, highlight: HighlightColor | null = null
   bold,
   highlight,
 });
-const selectText = (raw: string, text: string) => {
-  const start = raw.indexOf(text);
-  return [start, start + text.length] as const;
-};
 
 describe('parsing inline formatting', () => {
   it('reads bold, default and colored highlights, and their combinations', () => {
@@ -53,84 +50,41 @@ describe('parsing inline formatting', () => {
   });
 });
 
-describe('formatting shortcuts', () => {
-  it('toggles bold on the selection and keeps the same text selected', () => {
-    const raw = '회의는 금요일까지';
-    const bold = toggleBold(raw, ...selectText(raw, '금요일'))!;
-    expect(bold.value).toBe('회의는 **금요일**까지');
-    expect(bold.value.slice(bold.start, bold.end)).toBe('금요일');
-    const plain = toggleBold(bold.value, bold.start, bold.end)!;
-    expect(plain.value).toBe(raw);
+describe('formatting visible text ranges', () => {
+  const runs = richRuns('회의 **금요일** 마감');
+
+  it('reports the formatting a range shares, or undefined where it is mixed', () => {
+    expect(rangeFormat(runs, 3, 6)).toEqual({ bold: true, highlight: null });
+    expect(rangeFormat(runs, 0, 6)).toEqual({ bold: undefined, highlight: null });
+    expect(rangeFormat(runs, 2, 2)).toEqual({ bold: undefined, highlight: undefined });
   });
 
-  it('bolds a partly bold selection first, then removes it', () => {
-    const raw = 'a **bc** d';
-    const all = toggleBold(raw, 0, raw.length)!;
-    expect(all.value).toBe('**a bc d**');
-    expect(toggleBold(all.value, all.start, all.end)!.value).toBe('a bc d');
+  it('formats a range and writes it back as markers', () => {
+    const marked = formatRange(runs, 7, 9, { highlight: 'green' });
+    expect(formatRuns(marked)).toBe('회의 **금요일** =={green}마감==');
+    expect(formatRuns(formatRange(marked, 0, 9, { bold: false, highlight: null }))).toBe(
+      '회의 금요일 마감',
+    );
+    expect(formatRuns(formatRange(runs, 0, 9, { bold: true }))).toBe('**회의 금요일 마감**');
   });
 
-  it('cycles through every highlighter color and back to none', () => {
-    let edit = { value: '중요한 일정', start: 0, end: 3 };
-    const seen: string[] = [];
-    for (let press = 0; press <= HIGHLIGHT_COLORS.length; press++) {
-      edit = cycleHighlight(edit.value, edit.start, edit.end)!;
-      seen.push(edit.value);
-      expect(edit.value.slice(edit.start, edit.end)).toBe('중요한');
-    }
-    expect(seen).toEqual([
-      '==중요한== 일정',
-      '=={green}중요한== 일정',
-      '=={blue}중요한== 일정',
-      '=={pink}중요한== 일정',
-      '중요한 일정',
-    ]);
+  it('inserts text with the formatting of the character before it', () => {
+    expect(formatRuns(replaceRange(runs, 6, 6, '!'))).toBe('회의 **금요일!** 마감');
+    expect(formatRuns(replaceRange(runs, 0, 0, '>'))).toBe('>회의 **금요일** 마감');
+    expect(formatRuns(replaceRange(runs, 3, 6, '\n'))).toBe('회의 \n 마감');
   });
 
-  it('applies to the word at the caret when nothing is selected', () => {
-    const raw = 'alpha 베타 gamma';
-    const caret = raw.indexOf('타');
-    expect(toggleBold(raw, caret, caret)!.value).toBe('alpha **베타** gamma');
-    expect(cycleHighlight(raw, raw.length, raw.length)!.value).toBe('alpha 베타 ==gamma==');
-    expect(toggleBold('a  b', 2, 2)).toBeNull();
+  it('finds the word at a caret, including just after it', () => {
+    expect(wordAt('alpha 베타 gamma', 7)).toEqual([6, 8]);
+    expect(wordAt('alpha 베타 gamma', 14)).toEqual([9, 14]);
+    expect(wordAt('a  b', 2)).toBeNull();
   });
 
-  it('treats a selection that includes the markers like the text inside them', () => {
-    const raw = 'x **bold** y';
-    const edit = cycleHighlight(raw, ...selectText(raw, '**bold**'))!;
-    expect(edit.value).toBe('x ==**bold**== y');
-    expect(clearFormatting(edit.value, 0, edit.value.length)!.value).toBe('x bold y');
-  });
-
-  it('escapes literal marker characters so formatting never changes the visible text', () => {
+  it('escapes literal marker characters so the visible text never changes', () => {
     const raw = 'a**b == c\\';
-    const edit = toggleBold(raw, 0, raw.length)!;
-    expect(plainTitle(edit.value)).toBe(raw);
-    expect(richRuns(edit.value)).toEqual([run(raw, true)]);
-  });
-
-  it('round-trips random titles and formats without changing their text', () => {
-    let seed = 7;
-    const random = (limit: number) => {
-      seed = (seed * 1103515245 + 12345) % 2 ** 31;
-      return seed % limit;
-    };
-    const alphabet = ['*', '=', '\\', '{', '}', 'a', '가', ' ', 'yellow', '\n'];
-    const actions = [toggleBold, cycleHighlight, clearFormatting];
-    for (let trial = 0; trial < 400; trial++) {
-      let raw = Array.from({ length: random(14) }, () => alphabet[random(alphabet.length)]).join(
-        '',
-      );
-      const text = plainTitle(raw);
-      for (let step = 0; step < 4; step++) {
-        const a = random(raw.length + 1);
-        const b = random(raw.length + 1);
-        const edit = actions[random(actions.length)](raw, Math.min(a, b), Math.max(a, b));
-        if (!edit) continue;
-        expect(plainTitle(edit.value)).toBe(text);
-        raw = edit.value;
-      }
-    }
+    const bold = formatRange(richRuns(raw), 0, plainTitle(raw).length, { bold: true });
+    expect(plainTitle(formatRuns(bold))).toBe(raw);
+    expect(richRuns(formatRuns(bold))).toEqual([run(raw, true)]);
   });
 
   it('writes any formatting back so it reads as the same runs', () => {
@@ -175,8 +129,6 @@ describe('measuring and drawing formatted titles', () => {
       ['ef', 20],
     ]);
     expect(measured.width).toBe(84 + 26);
-    // The inline editor shows the markers, so it measures the title as typed.
-    expect(measureNode(node, width, true).lines).toEqual(['ab **cd** ==ef==']);
   });
 
   it('keeps formatting across wrapped and explicit line breaks', () => {
@@ -191,17 +143,12 @@ describe('measuring and drawing formatted titles', () => {
     expect(measured.runs[2][0].highlight).toBe('yellow');
   });
 
-  it('measures only the node being edited with its markers', () => {
-    const map = addNode(createMap('**Root**'), 'root', 'a', '**Child**');
-    const layout = layoutMap(map, width, 'a');
-    const lines = Object.fromEntries(layout.nodes.map((node) => [node.id, node.lines]));
-    expect(lines).toEqual({ root: ['Root'], a: ['**Child**'] });
-  });
-
   it('exports bold runs and highlighter boxes to SVG', () => {
-    const map = createMap('plain **bold** =={blue}note==');
+    const map = addNode(createMap('plain **bold** =={blue}note=='), 'root', 'a', 'a **child**');
     const { svg } = renderSvg(map, layoutMap(map));
-    expect(svg).toContain('<tspan font-weight="700">bold</tspan>');
+    // The root is already semibold, so inline bold goes one step heavier there.
+    expect(svg).toContain('<tspan font-weight="800">bold</tspan>');
+    expect(svg).toContain('<tspan font-weight="700">child</tspan>');
     expect(svg).toContain('fill="#bfdbfe"');
     expect(svg).not.toContain('**');
     expect(svg).not.toContain('{blue}');

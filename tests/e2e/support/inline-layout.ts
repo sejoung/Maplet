@@ -52,32 +52,23 @@ export async function inspectInlineLayoutMatrix({ cases, title }: MatrixInput) {
       failures.push({ id, style, before, reason: 'selection or typography' });
     key(node, 'F2');
     await frame();
-    const input = node.querySelector<HTMLTextAreaElement>('.inline-node-editor');
+    const input = node.querySelector<HTMLElement>('.inline-node-editor');
     if (!input) {
       failures.push({ id, style, reason: 'editor did not open' });
       continue;
     }
-    if (document.activeElement !== input || input.value !== title)
+    if (document.activeElement !== input || input.textContent !== title)
       failures.push({ id, style, reason: 'editor focus or title' });
     const during = geometry(node);
     if (JSON.stringify(before) !== JSON.stringify(during))
       failures.push({ id, style, before, during });
-    const probe = input.cloneNode() as HTMLTextAreaElement;
-    probe.value = input.value;
-    probe.rows = 1;
-    Object.assign(probe.style, {
-      position: 'absolute',
-      visibility: 'hidden',
-      width: `${input.clientWidth}px`,
-      height: '0px',
-    });
-    input.parentElement!.append(probe);
+    // The editor wraps by itself; the unchanged geometry above shows it matches the
+    // measured lines, and nothing may overflow it.
     const nativeHeight = {
-      actual: probe.scrollHeight,
+      actual: input.scrollHeight,
       expected: input.clientHeight,
       horizontalOverflow: input.scrollWidth > input.clientWidth,
     };
-    probe.remove();
     if (nativeHeight.actual !== nativeHeight.expected || nativeHeight.horizontalOverflow)
       failures.push({ id, style, nativeHeight });
     key(input, 'Escape');

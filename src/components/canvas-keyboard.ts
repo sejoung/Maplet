@@ -13,7 +13,8 @@ export function canvasKeydown(
     selectAll(): void;
   },
 ) {
-  if ((event.target as HTMLElement).closest('button,input,textarea,select')) return;
+  if ((event.target as HTMLElement).closest('button,input,textarea,select,[data-inline-editor]'))
+    return;
   if (event.nativeEvent.isComposing) return;
   const { map, selected, onSelect, onAdd, onEdit, onDelete, onToggle } = props;
   const node = map.nodes[selected];
@@ -89,7 +90,8 @@ export function canvasKeydown(
 }
 
 const isEditable = (target: EventTarget | null) =>
-  target instanceof Element && Boolean(target.closest('input,textarea,select'));
+  target instanceof Element &&
+  Boolean(target.closest('input,textarea,select,[data-inline-editor]'));
 
 /** Copy and cut share the selected branch with other apps as an indented outline. */
 export function canvasClipboard(props: CanvasProps, selected: string, editingId: string | null) {

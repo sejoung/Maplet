@@ -108,7 +108,7 @@ test('selects a node with the mouse and edits inline', async ({ page }) => {
   await root.click();
   await expect(root).toHaveAttribute('aria-selected', 'true');
   await root.press('F2');
-  await expect(page.getByRole('textbox', { name: '노드 제목' })).toHaveValue('중심');
+  await expect(page.getByRole('textbox', { name: '노드 제목' })).toHaveText('중심');
 });
 
 test('runs document keyboard shortcuts while a canvas node has focus', async ({ page }) => {

@@ -23,15 +23,8 @@ export interface MeasuredRun extends TextRun {
 }
 const graphemes = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
 
-/**
- * Wrap the formatted title into lines. `raw` measures the title as typed, markers included,
- * which is what the inline editor shows.
- */
-export function measureNode(
-  node: MindNode,
-  measureText: TextMeasurer = estimateTextWidth,
-  raw = false,
-) {
+/** Wrap the formatted title into lines of runs. */
+export function measureNode(node: MindNode, measureText: TextMeasurer = estimateTextWidth) {
   const typography = nodeTypography(node.style);
   const width = sizeValue(node.style.width, MIN_NODE_WIDTH);
   // Icons and task boxes sit before the text and take part of the content width.
@@ -46,7 +39,7 @@ export function measureNode(
     line = [];
     lineWidth = 0;
   };
-  const source = raw ? [{ text: node.title, bold: false, highlight: null }] : richRuns(node.title);
+  const source = richRuns(node.title);
   for (const [index, run] of source.entries()) {
     const measure = (text: string) => measureText(text, node, run.bold);
     let piece = '';

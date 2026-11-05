@@ -115,13 +115,7 @@ const sameFormat = (a: Format, b: Format) => a.bold === b.bold && a.highlight ==
 
 /** The title split into consecutive runs of the same formatting. */
 export function richRuns(raw: string): TextRun[] {
-  const runs: TextRun[] = [];
-  for (const { char, bold, highlight } of parseChars(raw)) {
-    const last = runs.at(-1);
-    if (last && sameFormat(last, { bold, highlight })) last.text += char;
-    else runs.push({ text: char, bold, highlight });
-  }
-  return runs;
+  return runsOf(parseChars(raw));
 }
 
 /** The visible title without formatting markers, for labels, search and filenames. */
@@ -133,10 +127,26 @@ export function plainTitle(raw: string): string {
     : raw;
 }
 
-type Piece = { marker: string } | { char: string; index: number };
+type Piece = { marker: string } | { char: string };
+type FormattedChar = Format & { char: string };
 
-/** Write formatted characters back as a title, recording where each character lands. */
-function serialize(chars: (Format & { char: string })[]) {
+const charsOf = (runs: TextRun[]): FormattedChar[] =>
+  runs.flatMap(({ text, bold, highlight }) =>
+    text.split('').map((char) => ({ char, bold, highlight })),
+  );
+const runsOf = (chars: FormattedChar[]): TextRun[] => {
+  const runs: TextRun[] = [];
+  for (const { char, bold, highlight } of chars) {
+    const last = runs.at(-1);
+    if (last && sameFormat(last, { bold, highlight })) last.text += char;
+    else runs.push({ text: char, bold, highlight });
+  }
+  return runs;
+};
+
+/** Write runs back as a title that reads back as the same runs. */
+export function formatRuns(runs: TextRun[]): string {
+  const chars = charsOf(runs);
   const pieces: Piece[] = [];
   let i = 0;
   while (i < chars.length) {
@@ -150,15 +160,13 @@ function serialize(chars: (Format & { char: string })[]) {
     while (i < end) {
       const bold = chars[i].bold;
       if (bold) pieces.push({ marker: '**' });
-      while (i < end && chars[i].bold === bold) pieces.push({ char: chars[i].char, index: i++ });
+      while (i < end && chars[i].bold === bold) pieces.push({ char: chars[i++].char });
       if (bold) pieces.push({ marker: '**' });
     }
     if (highlight) pieces.push({ marker: '==' });
   }
   const text = (piece: Piece | undefined) =>
     piece ? ('marker' in piece ? piece.marker : piece.char) : '';
-  const starts: number[] = [];
-  const ends: number[] = [];
   // Build from the end so each character knows exactly what follows it.
   let out = '';
   for (let k = pieces.length - 1; k >= 0; k--) {
@@ -174,35 +182,16 @@ function serialize(chars: (Format & { char: string })[]) {
       ((char === '*' || char === '=') && (next === char || previous === char)) ||
       (char === '\\' && ESCAPABLE.has(next));
     out = (escaped ? '\\' : '') + char + out;
-    starts[piece.index] = out.length;
-    ends[piece.index] = out.length - (escaped ? 2 : 1);
   }
-  // Positions were counted from the end; turn them into offsets from the start.
-  return {
-    raw: out,
-    starts: starts.map((fromEnd) => out.length - fromEnd),
-    ends: ends.map((fromEnd) => out.length - fromEnd),
-  };
+  return out;
 }
 
-/** Write runs back as a title that reads back as the same runs. */
-export function formatRuns(runs: TextRun[]): string {
-  return serialize(
-    runs.flatMap(({ text, ...format }) => text.split('').map((char) => ({ char, ...format }))),
-  ).raw;
-}
-
-export interface RichEdit {
-  value: string;
-  start: number;
-  end: number;
-}
-type Change = (selected: Format[]) => (format: Format) => Format;
+export const runsText = (runs: TextRun[]) => runs.map((run) => run.text).join('');
 
 const words = new Intl.Segmenter(undefined, { granularity: 'word' });
 
-/** The word around a caret, so a shortcut without a selection still has a target. */
-function wordAt(text: string, at: number): [number, number] | null {
+/** The word around a caret, so a command without a selection still has a target. */
+export function wordAt(text: string, at: number): [number, number] | null {
   let found: [number, number] | null = null;
   for (const { segment, index, isWordLike } of words.segment(text)) {
     if (!isWordLike) continue;
@@ -213,41 +202,34 @@ function wordAt(text: string, at: number): [number, number] | null {
   return found;
 }
 
-function applyFormat(raw: string, start: number, end: number, change: Change): RichEdit | null {
-  const chars = parseChars(raw);
-  const plainAt = (offset: number) => chars.filter((char) => char.start < offset).length;
-  let from = plainAt(Math.min(start, end));
-  let to = plainAt(Math.max(start, end));
-  if (from === to) {
-    const word = wordAt(chars.map((char) => char.char).join(''), from);
-    if (!word) return null;
-    [from, to] = word;
-  }
-  const update = change(chars.slice(from, to));
-  const next = chars.map((char, index) =>
-    index >= from && index < to ? { ...char, ...update(char) } : char,
-  );
-  const written = serialize(next);
-  return { value: written.raw, start: written.starts[from], end: written.ends[to - 1] };
+/** Formatting shared by every character in `[from, to)`; `undefined` where it is mixed. */
+export function rangeFormat(runs: TextRun[], from: number, to: number) {
+  const chars = charsOf(runs).slice(from, to);
+  const shared = <K extends keyof Format>(key: K) =>
+    chars.length && chars.every((char) => char[key] === chars[0][key]) ? chars[0][key] : undefined;
+  return { bold: shared('bold'), highlight: shared('highlight') };
 }
 
-/** Make the selection bold, or plain again when it is already all bold. */
-export const toggleBold = (raw: string, start: number, end: number) =>
-  applyFormat(raw, start, end, (selected) => {
-    const bold = !selected.every((format) => format.bold);
-    return (format) => ({ ...format, bold });
-  });
+/** Apply `patch` to the visible characters `[from, to)`. */
+export function formatRange(
+  runs: TextRun[],
+  from: number,
+  to: number,
+  patch: Partial<Format>,
+): TextRun[] {
+  return runsOf(
+    charsOf(runs).map((char, index) =>
+      index >= from && index < to ? { ...char, ...patch } : char,
+    ),
+  );
+}
 
-/** Step the selection through the highlight colors and then back to none. */
-export const cycleHighlight = (raw: string, start: number, end: number) =>
-  applyFormat(raw, start, end, (selected) => {
-    const colors = new Set(selected.map((format) => format.highlight));
-    const [current] = colors;
-    const index = colors.size === 1 && current ? HIGHLIGHT_COLORS.indexOf(current) : -1;
-    const highlight = index < 0 ? HIGHLIGHT_COLORS[0] : (HIGHLIGHT_COLORS[index + 1] ?? null);
-    return (format) => ({ ...format, highlight });
-  });
-
-/** Remove bold and highlights from the selection. */
-export const clearFormatting = (raw: string, start: number, end: number) =>
-  applyFormat(raw, start, end, () => () => ({ bold: false, highlight: null }));
+/** Replace `[from, to)` with plain `text`, taking the formatting of the character before. */
+export function replaceRange(runs: TextRun[], from: number, to: number, text: string): TextRun[] {
+  const chars = charsOf(runs);
+  const format = chars[from - 1] ?? chars[to] ?? { bold: false, highlight: null };
+  const inserted = text
+    .split('')
+    .map((char) => ({ char, bold: format.bold, highlight: format.highlight }));
+  return runsOf([...chars.slice(0, from), ...inserted, ...chars.slice(to)]);
+}
