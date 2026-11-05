@@ -16,6 +16,8 @@ import { autoArrange } from '../engine/auto-arrange';
 import { layoutMap } from '../engine/layout';
 import { measureNodeText } from '../components/text-measure';
 import { filenameFromTitle } from '../application/document-name';
+import type { FormatCommand } from '../domain/rich-text';
+import { formatNodeTitles, withoutLegacyEmphasis } from '../domain/title-format';
 import type { useI18n } from '../i18n/react';
 import type { DocumentState } from './useDocument';
 
@@ -76,7 +78,14 @@ export function useNodeCommands(doc: DocumentState, t: ReturnType<typeof useI18n
     onShowLevels: (depth: number | null, under?: string) =>
       reveal((current) => showLevels(current, depth, under)),
     onRename: (id: string, title: string) => {
-      const renamed = edit((current) => renameNode(current, id, title));
+      const renamed = edit((current) => {
+        const next = renameNode(current, id, title);
+        // The inline editor writes whole-node emphasis into the changed title.
+        const style = withoutLegacyEmphasis(current.nodes[id].style);
+        return next === current || style === current.nodes[id].style
+          ? next
+          : updateNode(next, id, { style });
+      });
       if (renamed && doc.filenamePending && id === map.roots[0] && title !== map.nodes[id].title) {
         const name = filenameFromTitle(title);
         if (name) doc.rename(name);
@@ -131,6 +140,8 @@ export function useNodeCommands(doc: DocumentState, t: ReturnType<typeof useI18n
           style: { ...style, task: style.task === 'done' ? 'todo' : 'done' },
         });
       }),
+    onFormatNodes: (command: FormatCommand) =>
+      edit((current) => formatNodeTitles(current, doc.selection, command)),
     onConnect: (from: string, to: string) => edit((current) => addConnection(current, from, to)),
     onDisconnect: (from: string, to: string) =>
       edit((current) => removeConnection(current, from, to)),

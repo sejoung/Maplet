@@ -98,8 +98,8 @@ test('picks a highlighter color from the right-click menu on a selection', async
   await selectText(input, '금요일');
   await input.press('Shift+F10');
   await expect(menu.getByRole('menuitemcheckbox', { name: /굵게/ })).toBeFocused();
-  await page.keyboard.press('ArrowDown');
-  await page.keyboard.press('ArrowDown');
+  // Bold, italic, then the yellow and green swatches.
+  for (let step = 0; step < 3; step++) await page.keyboard.press('ArrowDown');
   await page.keyboard.press('Enter');
   await expect(input.locator('mark[data-highlight="green"]')).toHaveText('금요일');
   await expect(input).toBeFocused();
@@ -168,4 +168,91 @@ test('keeps editing and selects text when a drag starts or ends outside the text
   await input.press('ControlOrMeta+b');
   await expect(input.locator('strong')).toHaveText('예산 확정은 금요일까지 승인 완료');
   await expect(input).toBeFocused();
+});
+
+test('formats whole nodes or selected text from the toolbar with one shared color', async ({
+  page,
+}) => {
+  await page.goto('/');
+  // An older document stored bold for the whole node in its style.
+  await page.locator('input[type=file]').setInputFiles({
+    name: 'old-bold.maplet',
+    mimeType: 'application/json',
+    buffer: Buffer.from(
+      JSON.stringify({
+        format: 'maplet',
+        version: 1,
+        roots: ['root'],
+        nodes: {
+          root: {
+            id: 'root',
+            title: '중심',
+            parentId: null,
+            children: ['a'],
+            rank: '1',
+            side: 'right',
+            collapsed: false,
+            position: null,
+            style: {},
+            notes: '',
+            links: [],
+          },
+          a: {
+            id: 'a',
+            title: '디자인 검토',
+            parentId: 'root',
+            children: [],
+            rank: '1',
+            side: 'right',
+            collapsed: false,
+            position: null,
+            style: { fontWeight: 'bold' },
+            notes: '',
+            links: [],
+          },
+        },
+      }),
+    ),
+  });
+  const toolbar = page.getByRole('toolbar', { name: '편집 도구' });
+  const tool = (name: string) => toolbar.getByRole('button', { name, exact: true });
+  const node = page.getByRole('treeitem', { name: '디자인 검토', exact: true });
+  await node.click();
+  await expect(tool('굵게')).toHaveAttribute('aria-pressed', 'true');
+
+  // Editing the old bold node shows it as bold text, so part of it can be made plain.
+  await node.press('F2');
+  const input = page.getByRole('textbox', { name: '노드 제목' });
+  await expect(input.locator('strong')).toHaveText('디자인 검토');
+  await selectText(input, '검토');
+  await tool('굵게').click();
+  await expect(input).toBeFocused();
+  await expect(input.locator('strong')).toHaveText('디자인 ');
+  // The toolbar color is shared: pick green, and it applies to the selection.
+  await toolbar.getByRole('button', { name: '형광펜 색 선택' }).click();
+  await toolbar.getByRole('button', { name: '초록 형광펜', exact: true }).click();
+  await expect(input.locator('mark')).toHaveAttribute('data-highlight', 'green');
+  await expect(input).toBeFocused();
+  await input.press('Enter');
+  await expect(node.locator('.node-text strong')).toHaveText('디자인 ');
+  await expect(node.locator('.node-text mark')).toHaveAttribute('data-highlight', 'green');
+  await expect(node).not.toHaveCSS('font-weight', '700');
+
+  // Without an editor, the same tools and shortcuts format the whole selected node.
+  const root = page.getByRole('treeitem', { name: '중심', exact: true });
+  await root.click();
+  await tool('기울임').click();
+  await expect(root.locator('.node-text em')).toHaveText('중심');
+  await root.press('ControlOrMeta+b');
+  await expect(root.locator('.node-text strong')).toHaveText('중심');
+  await expect(tool('굵게')).toHaveAttribute('aria-pressed', 'true');
+  // The shortcut uses the shared color picked above.
+  await root.press('ControlOrMeta+Shift+H');
+  await expect(root.locator('.node-text mark')).toHaveAttribute('data-highlight', 'green');
+  await root.press('ControlOrMeta+\\');
+  await expect(root.locator('.node-text strong, .node-text em, .node-text mark')).toHaveCount(0);
+  await expect(page.locator('.node-text mark')).toHaveCount(1);
+  // The chosen color is a preference of this browser and survives a reload.
+  await page.reload();
+  await expect(toolbar.getByRole('button', { name: '초록 형광펜으로 칠하기' })).toBeVisible();
 });

@@ -156,7 +156,8 @@ test('styles nodes with markers, emphasis, borders and branch lines', async ({ p
   await open(page);
   await nodeMenu(page, '기획', '서식');
   const dialog = page.getByRole('dialog');
-  await dialog.getByRole('button', { name: '굵게' }).click();
+  // Emphasis is text formatting in the toolbar now, not part of the style dialog.
+  await expect(dialog.getByRole('button', { name: '굵게' })).toHaveCount(0);
   await dialog.getByRole('combobox', { name: '할 일' }).selectOption('todo');
   await dialog.getByRole('button', { name: '⭐' }).click();
   await dialog.locator('.line-color-field').nth(0).getByRole('button', { name: '빨강' }).click();
@@ -164,9 +165,13 @@ test('styles nodes with markers, emphasis, borders and branch lines', async ({ p
   await dialog.getByRole('combobox', { name: '가지 선 모양' }).selectOption('dashed');
   await dialog.getByRole('button', { name: '서식 적용' }).click();
   const plan = node(page, '기획');
+  await page
+    .getByRole('toolbar', { name: '편집 도구' })
+    .getByRole('button', { name: '굵게', exact: true })
+    .click();
   // Select another node so the border shows its own color, not the selection.
   await node(page, '디자인').click();
-  await expect(plan).toHaveCSS('font-weight', '700');
+  await expect(plan.locator('.node-text strong')).toHaveCSS('font-weight', '700');
   await expect(plan).toHaveCSS('border-top-color', 'rgb(192, 80, 77)');
   await expect(plan.locator('.node-icon')).toHaveText('⭐');
   for (const id of ['a', 'a1', 'a2'])

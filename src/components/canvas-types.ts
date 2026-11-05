@@ -1,6 +1,7 @@
 import type { ResizeAction } from './useNodeResize';
 import type { Ref } from 'react';
 import type { MindMap, NodePosition, Side } from '../domain/model';
+import type { FormatCommand } from '../domain/rich-text';
 
 export interface CanvasView {
   x: number;
@@ -52,6 +53,8 @@ export interface CanvasProps {
   ): boolean;
   onContextMenu(id: string, at: { x: number; y: number }): void;
   onToggleTask(id: string): void;
+  /** Bold, italic, highlight or clear the whole titles of the selected nodes. */
+  onFormatNodes(command: FormatCommand): void;
   /** Show only this branch. */
   focusId?: string | null;
   /** Nodes matching the find bar. */

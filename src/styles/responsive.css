@@ -160,3 +160,15 @@
     right: auto;
   }
 }
+/* Between tablet and wide screens the text tools keep their place as icons with tooltips. */
+@media (min-width: 1101px) and (max-width: 1360px) {
+  .editor-toolbar .desktop-tool > span:not(.tool-dot),
+  .auto-layout-button > span {
+    display: none;
+  }
+  .editor-toolbar .tool-button.desktop-tool,
+  .auto-layout-button {
+    width: 34px;
+    padding: 0;
+  }
+}

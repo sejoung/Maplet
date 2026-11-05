@@ -74,7 +74,7 @@ export function renderSvg(map: MindMap, layout: Layout) {
       return runs
         .map(
           (run, part) =>
-            `<tspan${part ? '' : ` ${at}`}${run.bold ? ` font-weight="${typography.bold || root ? 800 : 700}"` : ''}>${escape(run.text)}</tspan>`,
+            `<tspan${part ? '' : ` ${at}`}${run.bold ? ` font-weight="${typography.bold || root ? 800 : 700}"` : ''}${run.italic ? ' font-style="italic"' : ''}>${escape(run.text)}</tspan>`,
         )
         .join('');
     });

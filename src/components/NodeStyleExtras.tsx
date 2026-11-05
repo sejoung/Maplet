@@ -1,4 +1,4 @@
-import { Bold, Check, Italic } from 'lucide-react';
+import { Check } from 'lucide-react';
 import type { JsonObject } from '../domain/model';
 import { LINE_COLORS, LINE_STYLES } from '../domain/node-colors';
 import { NODE_ICONS } from '../domain/node-markers';
@@ -14,7 +14,10 @@ const colorNames = [
 ];
 const lineNames = { solid: 'style.solid', dashed: 'style.dashed', dotted: 'style.dotted' } as const;
 
-/** Emphasis, markers, borders and branch lines; each control sets or clears one style key. */
+/**
+ * Markers, borders and branch lines; each control sets or clears one style key. Bold,
+ * italic and highlights are text formatting in the toolbar, not node style.
+ */
 export function NodeStyleExtras({
   style,
   onChange,
@@ -59,31 +62,6 @@ export function NodeStyleExtras({
   return (
     <>
       <div className="style-row">
-        <fieldset>
-          <legend className="field-label">{t('style.emphasis')}</legend>
-          <div className="alignment-options">
-            <button
-              type="button"
-              className="button"
-              aria-label={t('style.bold')}
-              title={t('style.bold')}
-              aria-pressed={style.fontWeight === 'bold'}
-              onClick={() => set('fontWeight', style.fontWeight === 'bold' ? null : 'bold')}
-            >
-              <Bold size={18} aria-hidden="true" />
-            </button>
-            <button
-              type="button"
-              className="button"
-              aria-label={t('style.italic')}
-              title={t('style.italic')}
-              aria-pressed={style.fontStyle === 'italic'}
-              onClick={() => set('fontStyle', style.fontStyle === 'italic' ? null : 'italic')}
-            >
-              <Italic size={18} aria-hidden="true" />
-            </button>
-          </div>
-        </fieldset>
         <div>
           <label htmlFor="node-task">{t('style.taskTodo')}</label>
           <select

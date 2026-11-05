@@ -20,6 +20,7 @@ import type { DropTarget } from '../engine/branch-drag';
 import { nodeMarkers } from '../domain/node-markers';
 import { nodeBorder, readableBackground } from '../domain/node-colors';
 import { plainTitle } from '../domain/rich-text';
+import { effectiveTitle } from '../domain/title-format';
 import { RichLine } from './RichLine';
 
 type CanvasNodesProps = Pick<
@@ -103,7 +104,11 @@ export function CanvasNodes(props: CanvasNodesProps) {
       </span>
       {layout.nodes.map((placed) => {
         const node = map.nodes[placed.id];
-        const typography = nodeTypography(node.style);
+        const editing = editingId === node.id;
+        // While editing, whole-node emphasis lives in the editor's text instead.
+        const typography = nodeTypography(
+          editing ? { ...node.style, fontWeight: null, fontStyle: null } : node.style,
+        );
         const label = plainTitle(node.title);
         let depth = 1;
         let parent = node.parentId;
@@ -237,7 +242,8 @@ export function CanvasNodes(props: CanvasNodesProps) {
             {editingId === node.id ? (
               <InlineNodeEditor
                 key={node.id}
-                title={node.title}
+                title={effectiveTitle(node)}
+                storedTitle={node.title}
                 lines={placed.lines.length}
                 lineHeight={typography.lineHeight}
                 onDraftChange={(title) => onDraftChange(node.id, title)}

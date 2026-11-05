@@ -1,5 +1,5 @@
-import { HIGHLIGHT_COLORS, HIGHLIGHT_FILLS, HIGHLIGHT_TEXT } from '../domain/rich-text';
-import type { HighlightColor, TextRun } from '../domain/rich-text';
+import { HIGHLIGHT_COLORS, HIGHLIGHT_FILLS, HIGHLIGHT_TEXT, PLAIN } from '../domain/rich-text';
+import type { HighlightColor, TextFormat, TextRun } from '../domain/rich-text';
 
 /** Plain-text position of the selection inside the editor, in UTF-16 units. */
 export interface TextSelection {
@@ -19,27 +19,30 @@ const lastLeaf = (root: Node): Node | null => {
 };
 const isBlock = (node: Node) => node instanceof HTMLElement && /^(DIV|P)$/.test(node.tagName);
 
+/** Wrap text in the elements the node display uses for its formatting. */
+export function richElement(run: TextRun): Node {
+  let node: Node = document.createTextNode(run.text);
+  const wrap = (tag: string, className: string) => {
+    const element = document.createElement(tag);
+    element.className = className;
+    element.append(node);
+    node = element;
+    return element;
+  };
+  if (run.italic) wrap('em', 'rich-italic');
+  if (run.bold) wrap('strong', 'rich-bold');
+  if (run.highlight) {
+    const mark = wrap('mark', 'rich-mark');
+    mark.dataset.highlight = run.highlight;
+    mark.style.background = HIGHLIGHT_FILLS[run.highlight];
+    mark.style.color = HIGHLIGHT_TEXT;
+  }
+  return node;
+}
+
 /** Draw runs as editable DOM using the same elements as the node display. */
 export function renderRuns(editor: HTMLElement, runs: TextRun[]) {
-  const nodes = runs.map((run) => {
-    let node: Node = document.createTextNode(run.text);
-    if (run.bold) {
-      const strong = document.createElement('strong');
-      strong.className = 'rich-bold';
-      strong.append(node);
-      node = strong;
-    }
-    if (run.highlight) {
-      const mark = document.createElement('mark');
-      mark.className = 'rich-mark';
-      mark.dataset.highlight = run.highlight;
-      mark.style.background = HIGHLIGHT_FILLS[run.highlight];
-      mark.style.color = HIGHLIGHT_TEXT;
-      mark.append(node);
-      node = mark;
-    }
-    return node;
-  });
+  const nodes = runs.map(richElement);
   const text = runs.map((run) => run.text).join('');
   if (!text || text.endsWith('\n')) {
     const placeholder = document.createElement('br');
@@ -50,32 +53,40 @@ export function renderRuns(editor: HTMLElement, runs: TextRun[]) {
 }
 
 /**
- * Read the editor back as runs. Only our own bold and highlight elements carry formatting.
- * Line breaks are `\n` text; a `<br>` the browser leaves at the very end shows no line.
+ * Read the editor back as runs. Only bold, italic and our highlight elements carry
+ * formatting. Line breaks are `\n` text; a `<br>` the browser leaves at the very end shows
+ * no line.
  */
 export function readRuns(root: Node, trailingBreak = false): TextRun[] {
   const last = lastLeaf(root);
   const runs: TextRun[] = [];
-  const push = (text: string, bold: boolean, highlight: HighlightColor | null) => {
-    const last = runs.at(-1);
-    if (last && last.bold === bold && last.highlight === highlight) last.text += text;
-    else if (text) runs.push({ text, bold, highlight });
+  const push = (text: string, format: TextFormat) => {
+    const previous = runs.at(-1);
+    if (
+      previous &&
+      previous.bold === format.bold &&
+      previous.italic === format.italic &&
+      previous.highlight === format.highlight
+    )
+      previous.text += text;
+    else if (text) runs.push({ text, ...format });
   };
-  const visit = (node: Node, bold: boolean, highlight: HighlightColor | null, first: boolean) => {
-    if (node.nodeType === Node.TEXT_NODE) return push(node.textContent ?? '', bold, highlight);
+  const visit = (node: Node, format: TextFormat, first: boolean) => {
+    if (node.nodeType === Node.TEXT_NODE) return push(node.textContent ?? '', format);
     if (!(node instanceof HTMLElement) || isPlaceholder(node)) return;
     if (node.tagName === 'BR')
-      return node === last && !trailingBreak ? undefined : push('\n', bold, highlight);
+      return node === last && !trailingBreak ? undefined : push('\n', format);
     // Browsers may wrap a new line in a block; it starts on its own line.
-    if (isBlock(node) && !first) push('\n', bold, highlight);
-    const nextBold = bold || node.tagName === 'STRONG' || node.tagName === 'B';
+    if (isBlock(node) && !first) push('\n', format);
     const color = node.tagName === 'MARK' ? node.dataset.highlight : undefined;
-    const nextHighlight = isColor(color) ? color : highlight;
-    node.childNodes.forEach((child, index) =>
-      visit(child, nextBold, nextHighlight, first && index === 0),
-    );
+    const inner: TextFormat = {
+      bold: format.bold || node.tagName === 'STRONG' || node.tagName === 'B',
+      italic: format.italic || node.tagName === 'EM' || node.tagName === 'I',
+      highlight: isColor(color) ? color : format.highlight,
+    };
+    node.childNodes.forEach((child, index) => visit(child, inner, first && index === 0));
   };
-  root.childNodes.forEach((child, index) => visit(child, false, null, index === 0));
+  root.childNodes.forEach((child, index) => visit(child, PLAIN, index === 0));
   return runs.filter((run) => run.text);
 }
 

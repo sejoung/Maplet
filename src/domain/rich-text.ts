@@ -1,5 +1,5 @@
 /**
- * Inline emphasis inside node titles. Titles stay plain strings: `**bold**`,
+ * Inline emphasis inside node titles. Titles stay plain strings: `**bold**`, `*italic*`,
  * `==highlight==` (yellow) and `=={green}highlight==`. A backslash before `*`, `=` or `\`
  * keeps that character literal, and unmatched or empty markers stay as typed.
  */
@@ -14,21 +14,27 @@ export const HIGHLIGHT_FILLS: Record<HighlightColor, string> = {
 };
 export const HIGHLIGHT_TEXT = '#25352d';
 
-export interface TextRun {
-  text: string;
+export interface TextFormat {
   bold: boolean;
+  italic: boolean;
   highlight: HighlightColor | null;
 }
-type Format = Omit<TextRun, 'text'>;
-interface RichChar extends Format {
-  char: string;
-  /** Where the character sits in the raw title, including its escape. */
-  start: number;
+export interface TextRun extends TextFormat {
+  text: string;
 }
+/** One formatting change, applied to selected text or to whole node titles. */
+export type FormatCommand =
+  | { kind: 'bold' }
+  | { kind: 'italic' }
+  | { kind: 'highlight'; color: HighlightColor }
+  | { kind: 'clear' };
+
+export const PLAIN: TextFormat = { bold: false, italic: false, highlight: null };
+type FormattedChar = TextFormat & { char: string };
 type Token =
-  | { kind: 'text'; text: string; start: number }
-  | { kind: 'bold'; start: number }
-  | { kind: 'mark'; color: HighlightColor | null; start: number; length: number };
+  | { kind: 'text'; text: string }
+  | { kind: 'bold' | 'italic' }
+  | { kind: 'mark'; color: HighlightColor | null; length: number; start: number };
 
 const ESCAPABLE = new Set(['*', '=', '\\']);
 const COLORED = new RegExp(`^==\\{(${HIGHLIGHT_COLORS.join('|')})\\}`);
@@ -38,23 +44,22 @@ function tokenize(raw: string): Token[] {
   let i = 0;
   while (i < raw.length) {
     if (raw[i] === '\\' && ESCAPABLE.has(raw[i + 1])) {
-      tokens.push({ kind: 'text', text: raw[i + 1], start: i });
+      tokens.push({ kind: 'text', text: raw[i + 1] });
       i += 2;
     } else if (raw.startsWith('**', i)) {
-      tokens.push({ kind: 'bold', start: i });
+      tokens.push({ kind: 'bold' });
       i += 2;
+    } else if (raw[i] === '*') {
+      tokens.push({ kind: 'italic' });
+      i++;
     } else if (raw.startsWith('==', i)) {
       const colored = COLORED.exec(raw.slice(i, i + 12));
       const length = colored ? colored[0].length : 2;
-      tokens.push({
-        kind: 'mark',
-        color: (colored?.[1] as HighlightColor) ?? null,
-        start: i,
-        length,
-      });
+      const color = (colored?.[1] as HighlightColor | undefined) ?? null;
+      tokens.push({ kind: 'mark', color, length, start: i });
       i += length;
     } else {
-      tokens.push({ kind: 'text', text: raw[i], start: i });
+      tokens.push({ kind: 'text', text: raw[i] });
       i++;
     }
   }
@@ -77,41 +82,50 @@ function pairMarkers(tokens: Token[]) {
     } else if (token.color === null) open = -1;
     else open = index;
   });
-  const bolds = tokens.flatMap((token, index) => (token.kind === 'bold' ? [index] : []));
-  for (let k = 0; k + 1 < bolds.length; k += 2) {
-    if (hasText(bolds[k], bolds[k + 1])) roles.set(bolds[k], 'open').set(bolds[k + 1], 'close');
+  for (const kind of ['bold', 'italic'] as const) {
+    const marks = tokens.flatMap((token, index) => (token.kind === kind ? [index] : []));
+    for (let k = 0; k + 1 < marks.length; k += 2)
+      if (hasText(marks[k], marks[k + 1])) roles.set(marks[k], 'open').set(marks[k + 1], 'close');
   }
   return roles;
 }
 
-function parseChars(raw: string): RichChar[] {
+function parseChars(raw: string): FormattedChar[] {
   const tokens = tokenize(raw);
   const roles = pairMarkers(tokens);
-  const chars: RichChar[] = [];
-  let bold = false;
-  let highlight: HighlightColor | null = null;
-  const literal = (text: string, start: number) =>
-    text
-      .split('')
-      .forEach((char, offset) => chars.push({ char, bold, highlight, start: start + offset }));
+  const chars: FormattedChar[] = [];
+  const format: TextFormat = { ...PLAIN };
+  const literal = (text: string) =>
+    text.split('').forEach((char) => chars.push({ char, ...format }));
   tokens.forEach((token, index) => {
     const role = roles.get(index);
-    if (token.kind === 'text')
-      chars.push({ char: token.text, bold, highlight, start: token.start });
-    else if (token.kind === 'bold') {
-      if (role) bold = role === 'open';
-      else literal('**', token.start);
-    } else if (role === 'open') highlight = token.color ?? 'yellow';
-    else if (role === 'close') {
-      highlight = null;
-      literal(raw.slice(token.start + 2, token.start + token.length), token.start + 2);
-    } else literal(raw.slice(token.start, token.start + token.length), token.start);
+    if (token.kind === 'text') chars.push({ char: token.text, ...format });
+    else if (token.kind === 'mark') {
+      if (role === 'open') format.highlight = token.color ?? 'yellow';
+      else if (role === 'close') {
+        format.highlight = null;
+        literal(raw.slice(token.start + 2, token.start + token.length));
+      } else literal(raw.slice(token.start, token.start + token.length));
+    } else if (role) format[token.kind] = role === 'open';
+    else literal(token.kind === 'bold' ? '**' : '*');
   });
-  // Offsets are UTF-16 units like textarea selections; joined units restore surrogate pairs.
+  // Offsets are UTF-16 units like DOM selections; joined units restore surrogate pairs.
   return chars;
 }
 
-const sameFormat = (a: Format, b: Format) => a.bold === b.bold && a.highlight === b.highlight;
+const sameFormat = (a: TextFormat, b: TextFormat) =>
+  a.bold === b.bold && a.italic === b.italic && a.highlight === b.highlight;
+const charsOf = (runs: TextRun[]): FormattedChar[] =>
+  runs.flatMap(({ text, ...format }) => text.split('').map((char) => ({ char, ...format })));
+const runsOf = (chars: FormattedChar[]): TextRun[] => {
+  const runs: TextRun[] = [];
+  for (const { char, ...format } of chars) {
+    const last = runs.at(-1);
+    if (last && sameFormat(last, format)) last.text += char;
+    else runs.push({ text: char, ...format });
+  }
+  return runs;
+};
 
 /** The title split into consecutive runs of the same formatting. */
 export function richRuns(raw: string): TextRun[] {
@@ -128,26 +142,13 @@ export function plainTitle(raw: string): string {
 }
 
 type Piece = { marker: string } | { char: string };
-type FormattedChar = Format & { char: string };
-
-const charsOf = (runs: TextRun[]): FormattedChar[] =>
-  runs.flatMap(({ text, bold, highlight }) =>
-    text.split('').map((char) => ({ char, bold, highlight })),
-  );
-const runsOf = (chars: FormattedChar[]): TextRun[] => {
-  const runs: TextRun[] = [];
-  for (const { char, bold, highlight } of chars) {
-    const last = runs.at(-1);
-    if (last && sameFormat(last, { bold, highlight })) last.text += char;
-    else runs.push({ text: char, bold, highlight });
-  }
-  return runs;
-};
 
 /** Write runs back as a title that reads back as the same runs. */
 export function formatRuns(runs: TextRun[]): string {
   const chars = charsOf(runs);
   const pieces: Piece[] = [];
+  // Highlights nest around their stretch. Inside one, bold and italic are written as toggles
+  // where they change, bold first: at most `***` meets, which always reads as both.
   let i = 0;
   while (i < chars.length) {
     const highlight = chars[i].highlight;
@@ -157,12 +158,17 @@ export function formatRuns(runs: TextRun[]): string {
       pieces.push({
         marker: highlight === 'yellow' && chars[i].char !== '{' ? '==' : `=={${highlight}}`,
       });
-    while (i < end) {
-      const bold = chars[i].bold;
-      if (bold) pieces.push({ marker: '**' });
-      while (i < end && chars[i].bold === bold) pieces.push({ char: chars[i++].char });
-      if (bold) pieces.push({ marker: '**' });
+    const state = { bold: false, italic: false };
+    const toggle = (bold: boolean, italic: boolean) => {
+      if (bold !== state.bold) pieces.push({ marker: '**' });
+      if (italic !== state.italic) pieces.push({ marker: '*' });
+      Object.assign(state, { bold, italic });
+    };
+    for (; i < end; i++) {
+      toggle(chars[i].bold, chars[i].italic);
+      pieces.push({ char: chars[i].char });
     }
+    toggle(false, false);
     if (highlight) pieces.push({ marker: '==' });
   }
   const text = (piece: Piece | undefined) =>
@@ -178,8 +184,10 @@ export function formatRuns(runs: TextRun[]): string {
     const next = out[0] ?? '';
     const previous = text(pieces[k - 1]).at(-1) ?? '';
     const { char } = piece;
+    // A single `*` is a marker now, so a literal one is always escaped.
     const escaped =
-      ((char === '*' || char === '=') && (next === char || previous === char)) ||
+      char === '*' ||
+      (char === '=' && (next === char || previous === char)) ||
       (char === '\\' && ESCAPABLE.has(next));
     out = (escaped ? '\\' : '') + char + out;
   }
@@ -205,17 +213,18 @@ export function wordAt(text: string, at: number): [number, number] | null {
 /** Formatting shared by every character in `[from, to)`; `undefined` where it is mixed. */
 export function rangeFormat(runs: TextRun[], from: number, to: number) {
   const chars = charsOf(runs).slice(from, to);
-  const shared = <K extends keyof Format>(key: K) =>
+  const shared = <K extends keyof TextFormat>(key: K) =>
     chars.length && chars.every((char) => char[key] === chars[0][key]) ? chars[0][key] : undefined;
-  return { bold: shared('bold'), highlight: shared('highlight') };
+  return { bold: shared('bold'), italic: shared('italic'), highlight: shared('highlight') };
 }
+export type RangeFormat = ReturnType<typeof rangeFormat>;
 
 /** Apply `patch` to the visible characters `[from, to)`. */
 export function formatRange(
   runs: TextRun[],
   from: number,
   to: number,
-  patch: Partial<Format>,
+  patch: Partial<TextFormat>,
 ): TextRun[] {
   return runsOf(
     charsOf(runs).map((char, index) =>
@@ -224,12 +233,21 @@ export function formatRange(
   );
 }
 
+/**
+ * What a command changes, given the formatting the target already shares: bold and italic
+ * toggle, and choosing the highlight color that is already there takes it off.
+ */
+export function commandPatch(command: FormatCommand, current: RangeFormat): Partial<TextFormat> {
+  if (command.kind === 'bold') return { bold: current.bold !== true };
+  if (command.kind === 'italic') return { italic: current.italic !== true };
+  if (command.kind === 'clear') return { ...PLAIN };
+  return { highlight: current.highlight === command.color ? null : command.color };
+}
+
 /** Replace `[from, to)` with plain `text`, taking the formatting of the character before. */
 export function replaceRange(runs: TextRun[], from: number, to: number, text: string): TextRun[] {
   const chars = charsOf(runs);
-  const format = chars[from - 1] ?? chars[to] ?? { bold: false, highlight: null };
-  const inserted = text
-    .split('')
-    .map((char) => ({ char, bold: format.bold, highlight: format.highlight }));
+  const { bold, italic, highlight } = chars[from - 1] ?? chars[to] ?? PLAIN;
+  const inserted = text.split('').map((char) => ({ char, bold, italic, highlight }));
   return runsOf([...chars.slice(0, from), ...inserted, ...chars.slice(to)]);
 }

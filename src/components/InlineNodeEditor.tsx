@@ -1,5 +1,5 @@
 import { useI18n } from '../i18n/react';
-import { useCallback, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { formatRuns, rangeFormat, replaceRange, richRuns, runsText } from '../domain/rich-text';
 import {
   readRuns,
@@ -10,6 +10,7 @@ import {
 } from './rich-dom';
 import {
   EditHistory,
+  commandRange,
   formatShortcut,
   historyShortcut,
   runCommand,
@@ -18,6 +19,7 @@ import {
 } from './rich-editing';
 import { FormatMenu } from './FormatMenu';
 import { useEditorSelectionDrag } from './useEditorSelectionDrag';
+import { useRichEditorBridge } from './rich-editor-bridge';
 
 interface MenuState {
   at: { x: number; y: number };
@@ -26,11 +28,14 @@ interface MenuState {
 }
 
 /**
- * Title editor that shows bold and highlighted text as it will look. The title is still
- * stored as a marked-up string; the editor converts on open and on every change.
+ * Title editor that shows bold, italic and highlighted text as it will look. The title is
+ * still stored as a marked-up string; the editor converts on open and on every change.
+ * `title` already includes any whole-node emphasis; `storedTitle` is what the node holds,
+ * kept as it is when nothing was changed.
  */
 export function InlineNodeEditor({
   title,
+  storedTitle = title,
   lines,
   lineHeight,
   onDraftChange,
@@ -39,6 +44,7 @@ export function InlineNodeEditor({
   onAdd,
 }: {
   title: string;
+  storedTitle?: string;
   lines: number;
   lineHeight: number;
   onDraftChange(title: string): void;
@@ -56,6 +62,7 @@ export function InlineNodeEditor({
   const pendingFormat = useRef<FormatCommand | null>(null);
   const [menu, setMenu] = useState<MenuState | null>(null);
   const initialTitle = useRef(title);
+  const bridge = useRichEditorBridge();
   useEditorSelectionDrag(input);
 
   const state = useCallback((): EditorState => {
@@ -71,12 +78,16 @@ export function InlineNodeEditor({
   useLayoutEffect(() => {
     latestDraftChange.current = onDraftChange;
   }, [onDraftChange]);
-  const show = useCallback((next: EditorState) => {
-    const element = input.current!;
-    renderRuns(element, next.runs);
-    writeSelection(element, next.selection);
-    latestDraftChange.current(formatRuns(next.runs));
-  }, []);
+  const show = useCallback(
+    (next: EditorState) => {
+      const element = input.current!;
+      renderRuns(element, next.runs);
+      writeSelection(element, next.selection);
+      latestDraftChange.current(formatRuns(next.runs));
+      bridge?.notify();
+    },
+    [bridge],
+  );
 
   // Draw the title once when editing starts; from then on the DOM holds the edit.
   useLayoutEffect(() => {
@@ -112,7 +123,8 @@ export function InlineNodeEditor({
   const commit = (restoreFocus = true) => {
     if (finished.current) return true;
     finished.current = true;
-    if (!onCommit(current(), restoreFocus)) {
+    const value = current();
+    if (!onCommit(value === initialTitle.current ? storedTitle : value, restoreFocus)) {
       finished.current = false;
       requestAnimationFrame(() => input.current?.focus({ preventScroll: true }));
       return false;
@@ -133,6 +145,29 @@ export function InlineNodeEditor({
     const at = start + text.length;
     show({ runs: replaceRange(before.runs, start, end, text), selection: { start: at, end: at } });
   };
+  // The toolbar formats this editor's selection while it is open.
+  const latestApply = useRef(apply);
+  useLayoutEffect(() => {
+    latestApply.current = apply;
+  });
+  useEffect(() => {
+    if (!bridge) return;
+    bridge.attach({
+      apply: (command) => latestApply.current(command),
+      format: () => {
+        if (!input.current) return null;
+        const now = state();
+        const range = commandRange(now);
+        return range ? rangeFormat(now.runs, range.start, range.end) : null;
+      },
+    });
+    const changed = () => bridge.notify();
+    document.addEventListener('selectionchange', changed);
+    return () => {
+      document.removeEventListener('selectionchange', changed);
+      bridge.attach(null);
+    };
+  }, [bridge, state]);
   const openMenu = (at: MenuState['at'], keyboard: boolean) =>
     setMenu({ at, keyboard, selection: state().selection });
   const closeMenu = (refocus: boolean) => {
@@ -179,6 +214,7 @@ export function InlineNodeEditor({
             if (selection) writeSelection(element, selection);
           }
           onDraftChange(formatRuns(runs));
+          bridge?.notify();
         }}
         onCompositionStart={() => {
           history.current.record(state(), 'compose');
@@ -261,8 +297,7 @@ export function InlineNodeEditor({
           ref={menuElement}
           at={menu.at}
           keyboard={menu.keyboard}
-          bold={menuFormat.bold === true}
-          highlight={menuFormat.highlight}
+          format={menuFormat}
           onCommand={(command) => {
             const from = { ...state(), selection: menu.selection };
             setMenu(null);

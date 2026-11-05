@@ -11,11 +11,15 @@ import {
   sizeValue,
 } from '../domain/node-size';
 
-/** Width of `text` in the node's font; `bold` marks inline bold inside the title. */
-export type TextMeasurer = (text: string, node: MindNode, bold?: boolean) => number;
-export const estimateTextWidth: TextMeasurer = (text, node, bold = false) => {
+/** Width of `text` in the node's font, with any inline bold or italic of that text. */
+export type TextMeasurer = (
+  text: string,
+  node: MindNode,
+  inline?: { bold?: boolean; italic?: boolean },
+) => number;
+export const estimateTextWidth: TextMeasurer = (text, node, inline = {}) => {
   const typography = nodeTypography(node.style);
-  const font = { ...typography, bold: typography.bold || bold };
+  const font = { ...typography, bold: typography.bold || Boolean(inline.bold) };
   return [...text].reduce((sum, char) => sum + characterWidth(char, font), 0);
 };
 export interface MeasuredRun extends TextRun {
@@ -41,7 +45,8 @@ export function measureNode(node: MindNode, measureText: TextMeasurer = estimate
   };
   const source = richRuns(node.title);
   for (const [index, run] of source.entries()) {
-    const measure = (text: string) => measureText(text, node, run.bold);
+    const measure = (text: string) =>
+      measureText(text, node, { bold: run.bold, italic: run.italic });
     let piece = '';
     const finishPiece = () => {
       if (!piece) return;

@@ -156,7 +156,9 @@ describe('the formatted title editor', () => {
     const { input, title } = editor('굵은 글자');
     fireEvent.keyDown(input, { key: 'ㅠ', code: 'KeyB', metaKey: true });
     expect(title()).toBe('**굵은 글자**');
-    expect(fireEvent.keyDown(input, { key: 'i', code: 'KeyI', ctrlKey: true })).toBe(true);
+    fireEvent.keyDown(input, { key: 'ㅑ', code: 'KeyI', ctrlKey: true });
+    expect(title()).toBe('***굵은 글자***');
+    expect(fireEvent.keyDown(input, { key: 'u', code: 'KeyU', ctrlKey: true })).toBe(true);
   });
 
   it('commits or restores on blur depending on whether text is left', () => {

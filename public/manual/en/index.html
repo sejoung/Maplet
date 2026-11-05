@@ -351,7 +351,6 @@
                 <li>
                   <b>Background color</b>: six light colors that stay readable in the dark theme.
                 </li>
-                <li><b>Bold and italic</b> for the whole title.</li>
                 <li>
                   <b>Task</b>: a checkbox before the title. Tick it right on the node; done tasks
                   are struck through.
@@ -364,29 +363,37 @@
               </ul>
             </div>
           </div>
-          <h3>Emphasizing words</h3>
+          <h3>Bold, italic and highlighter</h3>
           <p>
-            While editing a title (double-click or <kbd>F2</kbd>), drag to select the text and
-            right-click to open the <b>Text formatting</b> menu: bold, a highlighter color (yellow,
-            green, blue or pink) and clear formatting. Picking the color that is already there
-            removes it. The editor shows the result as you work.
+            Use <b>B</b> (bold), <b>I</b> (italic) and the highlighter in the toolbar. While you
+            edit a title (double-click or <kbd>F2</kbd>) they apply to the selected text; otherwise
+            to the whole titles of the selected nodes, all at once when several are selected.
+            Pressing bold again on bold text removes it.
+          </p>
+          <p>
+            The <b>▾</b> next to the highlighter picks its color: yellow, green, blue or pink. The
+            chosen color is shared by every node and remembered next time. Applying the same color
+            again removes it, and <b>Clear formatting</b> in that menu removes bold, italic and
+            highlights. While editing, right-clicking selected text opens the same formatting menu.
           </p>
           <ul>
             <li><kbd>Ctrl/⌘</kbd>+<kbd>B</kbd>: bold / not bold</li>
+            <li><kbd>Ctrl/⌘</kbd>+<kbd>I</kbd>: italic / not italic</li>
             <li>
-              <kbd>Ctrl/⌘</kbd>+<kbd>Shift</kbd>+<kbd>H</kbd>: apply or remove the highlighter color
-              last picked in the menu (yellow at first)
+              <kbd>Ctrl/⌘</kbd>+<kbd>Shift</kbd>+<kbd>H</kbd>: apply or remove the current
+              highlighter color
             </li>
-            <li><kbd>Ctrl/⌘</kbd>+<kbd>\</kbd>: clear formatting from the selection</li>
+            <li><kbd>Ctrl/⌘</kbd>+<kbd>\</kbd>: clear formatting</li>
             <li>
-              <kbd>Shift</kbd>+<kbd>F10</kbd>: open the Text formatting menu from the keyboard
+              <kbd>Shift</kbd>+<kbd>F10</kbd>: open the text formatting menu from the keyboard while
+              editing
             </li>
           </ul>
           <p>
-            A shortcut without a selection applies to the word at the cursor. Right-clicking without
-            a selection opens the browser's own menu (copy, paste, spelling). While editing,
+            While editing, a shortcut without a selection applies to the word at the cursor, and
             <kbd>Ctrl/⌘</kbd>+<kbd>Z</kbd> steps back through typing and formatting. Image exports
-            keep the emphasis.
+            keep the formatting. Nodes made bold as a whole in earlier versions still look bold, and
+            parts of them can be made plain the same way.
           </p>
         </section>
 
@@ -668,8 +675,8 @@
                     / <kbd>Ctrl/⌘</kbd>+<kbd>\</kbd>
                   </td>
                   <td>
-                    While editing a title: bold · last highlighter color · clear formatting
-                    (right-click a selection to pick a color)
+                    Bold · current highlighter color · clear formatting (the selected text while
+                    editing, otherwise the selected nodes). <kbd>Ctrl/⌘</kbd>+<kbd>I</kbd> is italic
                   </td>
                 </tr>
                 <tr>

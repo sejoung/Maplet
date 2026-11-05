@@ -10,8 +10,8 @@ export function useTextLayout(map: MindMap) {
     const refresh = () => {
       if (!active) return;
       clearTextMeasurements();
-      const refreshed: typeof measureNodeText = (text, node, bold) =>
-        measureNodeText(text, node, bold);
+      const refreshed: typeof measureNodeText = (text, node, inline) =>
+        measureNodeText(text, node, inline);
       setMeasureText(() => refreshed);
     };
     void document.fonts?.ready.then(refresh);

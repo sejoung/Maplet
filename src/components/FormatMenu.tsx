@@ -1,16 +1,11 @@
 import { forwardRef, useLayoutEffect, useState, type KeyboardEvent } from 'react';
 import { createPortal } from 'react-dom';
-import { Bold, Eraser } from 'lucide-react';
+import { Bold, Eraser, Italic } from 'lucide-react';
 import { useI18n } from '../i18n/react';
-import { HIGHLIGHT_COLORS, HIGHLIGHT_FILLS, type HighlightColor } from '../domain/rich-text';
+import { HIGHLIGHT_COLORS, HIGHLIGHT_FILLS, type RangeFormat } from '../domain/rich-text';
 import type { FormatCommand } from './rich-editing';
+import { HIGHLIGHT_LABELS } from './highlight-color';
 
-const COLOR_LABELS: Record<HighlightColor, string> = {
-  yellow: 'format.yellow',
-  green: 'format.green',
-  blue: 'format.blue',
-  pink: 'format.pink',
-};
 const items = (menu: HTMLElement) => [
   ...menu.querySelectorAll<HTMLButtonElement>('[role^="menuitem"]'),
 ];
@@ -25,14 +20,14 @@ export const FormatMenu = forwardRef<
     at: { x: number; y: number };
     /** Opened from the keyboard: focus moves into the menu. */
     keyboard: boolean;
-    bold: boolean;
-    highlight: HighlightColor | null | undefined;
+    /** Formatting the selected text already shares. */
+    format: RangeFormat;
     onCommand(command: FormatCommand): void;
     onClose(): void;
     /** Focus left the menu for somewhere other than the menu itself. */
     onFocusOut(next: Node | null): void;
   }
->(function FormatMenu({ at, keyboard, bold, highlight, onCommand, onClose, onFocusOut }, ref) {
+>(function FormatMenu({ at, keyboard, format, onCommand, onClose, onFocusOut }, ref) {
   const { t } = useI18n();
   const [position, setPosition] = useState(at);
   const [menu, setMenu] = useState<HTMLDivElement | null>(null);
@@ -92,12 +87,22 @@ export const FormatMenu = forwardRef<
       <button
         type="button"
         role="menuitemcheckbox"
-        aria-checked={bold}
+        aria-checked={format.bold === true}
         onClick={() => onCommand({ kind: 'bold' })}
       >
         <Bold size={15} aria-hidden="true" />
         {t('format.bold')}
         <kbd>⌘/Ctrl B</kbd>
+      </button>
+      <button
+        type="button"
+        role="menuitemcheckbox"
+        aria-checked={format.italic === true}
+        onClick={() => onCommand({ kind: 'italic' })}
+      >
+        <Italic size={15} aria-hidden="true" />
+        {t('format.italic')}
+        <kbd>⌘/Ctrl I</kbd>
       </button>
       <span className="menu-label" aria-hidden="true">
         {t('format.highlight')}
@@ -108,9 +113,9 @@ export const FormatMenu = forwardRef<
             key={color}
             type="button"
             role="menuitemradio"
-            aria-checked={highlight === color}
-            aria-label={t(COLOR_LABELS[color])}
-            title={t(COLOR_LABELS[color])}
+            aria-checked={format.highlight === color}
+            aria-label={t(HIGHLIGHT_LABELS[color])}
+            title={t(HIGHLIGHT_LABELS[color])}
             className="format-swatch"
             style={{ background: HIGHLIGHT_FILLS[color] }}
             onClick={() => onCommand({ kind: 'highlight', color })}

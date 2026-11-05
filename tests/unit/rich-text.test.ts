@@ -16,11 +16,12 @@ import { layoutMap } from '../../src/engine/layout';
 import { renderSvg } from '../../src/engine/svg-export';
 import { filenameFromTitle } from '../../src/application/document-name';
 
-const run = (text: string, bold = false, highlight: HighlightColor | null = null) => ({
-  text,
-  bold,
-  highlight,
-});
+const run = (
+  text: string,
+  bold = false,
+  highlight: HighlightColor | null = null,
+  italic = false,
+) => ({ text, bold, italic, highlight });
 
 describe('parsing inline formatting', () => {
   it('reads bold, default and colored highlights, and their combinations', () => {
@@ -35,6 +36,29 @@ describe('parsing inline formatting', () => {
       run(' f'),
     ]);
     expect(plainTitle('회의 **반드시** ==금요일==')).toBe('회의 반드시 금요일');
+  });
+
+  it('reads italic with single asterisks, alone and together with bold', () => {
+    expect(richRuns('a *b* ***c*** **d *e***')).toEqual([
+      run('a '),
+      run('b', false, null, true),
+      run(' '),
+      run('c', true, null, true),
+      run(' '),
+      run('d ', true),
+      run('e', true, null, true),
+    ]);
+    expect(formatRuns([run('x', false, null, true), run('y', true)])).toBe('*x***y**');
+    expect(richRuns('*x***y**')).toEqual([run('x', false, null, true), run('y', true)]);
+    // Italic running on into bold-italic once came out as an unreadable `****`.
+    for (const runs of [
+      [run('a ', false, null, true), run('b', true, null, true)],
+      [run('a', true, null, true), run('b', false, null, true), run('c', true)],
+      [run('a', true), run('b', true, null, true), run('c', false, null, true)],
+    ])
+      expect(richRuns(formatRuns(runs))).toEqual(runs);
+    expect(plainTitle('price * 2')).toBe('price * 2');
+    expect(formatRuns([run('2 * 3')])).toBe('2 \\* 3');
   });
 
   it('keeps unmatched, empty and escaped markers as typed text', () => {
@@ -54,9 +78,13 @@ describe('formatting visible text ranges', () => {
   const runs = richRuns('회의 **금요일** 마감');
 
   it('reports the formatting a range shares, or undefined where it is mixed', () => {
-    expect(rangeFormat(runs, 3, 6)).toEqual({ bold: true, highlight: null });
-    expect(rangeFormat(runs, 0, 6)).toEqual({ bold: undefined, highlight: null });
-    expect(rangeFormat(runs, 2, 2)).toEqual({ bold: undefined, highlight: undefined });
+    expect(rangeFormat(runs, 3, 6)).toEqual({ bold: true, italic: false, highlight: null });
+    expect(rangeFormat(runs, 0, 6)).toEqual({ bold: undefined, italic: false, highlight: null });
+    expect(rangeFormat(runs, 2, 2)).toEqual({
+      bold: undefined,
+      italic: undefined,
+      highlight: undefined,
+    });
   });
 
   it('formats a range and writes it back as markers', () => {
@@ -91,21 +119,28 @@ describe('formatting visible text ranges', () => {
     let seed = 11;
     const random = (limit: number) => {
       seed = (seed * 1103515245 + 12345) % 2 ** 31;
-      return seed % limit;
+      // The low bits of this generator repeat quickly; take the high ones.
+      return Math.floor((seed / 2 ** 31) * limit);
     };
     const pieces = ['*', '**', '=', '==', '\\', '{', '{pink}', 'a', '가', ' ', '\n'];
     const colors = [null, ...HIGHLIGHT_COLORS];
-    for (let trial = 0; trial < 500; trial++) {
+    for (let trial = 0; trial < 1500; trial++) {
       const runs = Array.from({ length: 1 + random(5) }, () =>
         run(
           Array.from({ length: 1 + random(4) }, () => pieces[random(pieces.length)]).join(''),
           random(2) === 1,
           colors[random(colors.length)],
+          random(2) === 1,
         ),
       );
       const merged = runs.reduce<typeof runs>((all, next) => {
         const last = all.at(-1);
-        if (last && last.bold === next.bold && last.highlight === next.highlight)
+        if (
+          last &&
+          last.bold === next.bold &&
+          last.italic === next.italic &&
+          last.highlight === next.highlight
+        )
           last.text += next.text;
         else all.push({ ...next });
         return all;
@@ -116,7 +151,7 @@ describe('formatting visible text ranges', () => {
 });
 
 describe('measuring and drawing formatted titles', () => {
-  const width: TextMeasurer = (text, _node, bold) => [...text].length * (bold ? 12 : 10);
+  const width: TextMeasurer = (text, _node, inline) => [...text].length * (inline?.bold ? 12 : 10);
 
   it('wraps by visible text and measures bold runs in the bold font', () => {
     const node = createMap('ab **cd** ==ef==').nodes.root;

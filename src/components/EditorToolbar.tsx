@@ -23,6 +23,8 @@ import { ToolbarMenu } from './ToolbarMenu';
 import type { CanvasControls } from './canvas-types';
 import { NodeActionItems, type NodeAction, type NodeActionGroups } from './node-actions';
 import type { NodeTool } from './NodeToolsDialog';
+import type { FormatCommand } from '../domain/rich-text';
+import { FormatTools } from './FormatTools';
 
 export function EditorToolbar({
   map,
@@ -43,6 +45,7 @@ export function EditorToolbar({
   command,
   controls,
   zoom,
+  onFormatNodes,
 }: {
   map: MindMap;
   selected: string;
@@ -62,6 +65,7 @@ export function EditorToolbar({
   command(action: () => void): () => void;
   controls: RefObject<CanvasControls | null>;
   zoom: number;
+  onFormatNodes(command: FormatCommand): void;
 }) {
   const { t } = useI18n();
   const node = map.nodes[selected];
@@ -124,10 +128,13 @@ export function EditorToolbar({
             wrap={command}
           />
         </ToolbarMenu>
+        <span className="tool-divider" />
+        <FormatTools map={map} selection={selection} onFormatNodes={onFormatNodes} />
         <span className="tool-divider desktop-tool" />
         <button
           className="tool-button desktop-tool"
           aria-label={t('common.notes')}
+          title={t('common.notes')}
           onClick={command(() => openTool('notes'))}
         >
           <MessageSquare size={16} />
@@ -137,6 +144,7 @@ export function EditorToolbar({
         <button
           className="tool-button desktop-tool"
           aria-label={t('common.link')}
+          title={t('common.link')}
           onClick={command(() => openTool('link'))}
         >
           <Link2 size={16} />
@@ -145,6 +153,7 @@ export function EditorToolbar({
         <button
           className="tool-button desktop-tool"
           aria-label={t('common.style')}
+          title={t('common.style')}
           onClick={command(() => openTool('style'))}
         >
           <Palette size={16} />
@@ -153,6 +162,7 @@ export function EditorToolbar({
         <button
           className="tool-button desktop-tool"
           aria-label={t('common.find')}
+          title={t('common.find')}
           onClick={command(onFind)}
         >
           <Search size={16} />

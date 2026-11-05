@@ -1,5 +1,6 @@
 import type { ClipboardEvent, KeyboardEvent, RefObject } from 'react';
 import type { CanvasProps } from './canvas-types';
+import { formatShortcut } from './rich-editing';
 
 export function canvasKeydown(
   event: KeyboardEvent,
@@ -31,6 +32,12 @@ export function canvasKeydown(
   if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'a') {
     event.preventDefault();
     actions.selectAll();
+    return;
+  }
+  const format = formatShortcut(event);
+  if (format) {
+    event.preventDefault();
+    props.onFormatNodes(format);
     return;
   }
   if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'd') {

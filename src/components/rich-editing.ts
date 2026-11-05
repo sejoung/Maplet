@@ -1,59 +1,60 @@
 import type { KeyboardEvent } from 'react';
 import {
+  commandPatch,
   formatRange,
   rangeFormat,
   runsText,
   wordAt,
-  type HighlightColor,
+  type FormatCommand,
   type TextRun,
 } from '../domain/rich-text';
 import type { TextSelection } from './rich-dom';
+import { highlightColor, setHighlightColor } from './highlight-color';
 
+export type { FormatCommand };
 export interface EditorState {
   runs: TextRun[];
   selection: TextSelection;
 }
-export type FormatCommand =
-  { kind: 'bold' } | { kind: 'highlight'; color: HighlightColor } | { kind: 'clear' };
-
-let lastHighlight: HighlightColor = 'yellow';
-/** The color the highlight shortcut uses: the one last chosen from the menu. */
-export const lastHighlightColor = () => lastHighlight;
 
 const ordered = ({ start, end }: TextSelection) => ({
   start: Math.min(start, end),
   end: Math.max(start, end),
 });
 
-/** Apply a command to the selection, or the word at the caret when nothing is selected. */
-export function runCommand(state: EditorState, command: FormatCommand): EditorState | null {
-  let { start, end } = ordered(state.selection);
-  if (start === end) {
-    const word = wordAt(runsText(state.runs), start);
-    if (!word) return null;
-    [start, end] = word;
-  }
-  const current = rangeFormat(state.runs, start, end);
-  let patch;
-  if (command.kind === 'bold') patch = { bold: current.bold !== true };
-  else if (command.kind === 'clear') patch = { bold: false, highlight: null };
-  else {
-    lastHighlight = command.color;
-    // Choosing the color that is already there takes it off again.
-    patch = { highlight: current.highlight === command.color ? null : command.color };
-  }
-  return { runs: formatRange(state.runs, start, end, patch), selection: { start, end } };
+/** The text a command acts on: the selection, or the word at the caret. */
+export function commandRange(state: EditorState): TextSelection | null {
+  const { start, end } = ordered(state.selection);
+  if (start !== end) return { start, end };
+  const word = wordAt(runsText(state.runs), start);
+  return word ? { start: word[0], end: word[1] } : null;
 }
 
-/** ⌘/Ctrl+B bold, ⌘/Ctrl+Shift+H last highlighter color, ⌘/Ctrl+\ clear. */
-export function formatShortcut(event: KeyboardEvent): FormatCommand | null {
+/** Apply a command to the selection, or the word at the caret when nothing is selected. */
+export function runCommand(state: EditorState, command: FormatCommand): EditorState | null {
+  const range = commandRange(state);
+  if (!range) return null;
+  // Choosing a color anywhere makes it the shared highlighter color.
+  if (command.kind === 'highlight') setHighlightColor(command.color);
+  const patch = commandPatch(command, rangeFormat(state.runs, range.start, range.end));
+  return { runs: formatRange(state.runs, range.start, range.end, patch), selection: range };
+}
+
+/**
+ * ⌘/Ctrl+B bold, ⌘/Ctrl+I italic, ⌘/Ctrl+Shift+H the shared highlighter color and
+ * ⌘/Ctrl+\ clear. Used both while editing a title and on selected nodes.
+ */
+export function formatShortcut(
+  event: KeyboardEvent | globalThis.KeyboardEvent,
+): FormatCommand | null {
   if (!(event.metaKey || event.ctrlKey) || event.altKey) return null;
   const key = event.key.toLowerCase();
   // A Korean or other non-Latin layout reports its own character; the physical key decides.
   const is = (letter: string, code: string) =>
     key === letter || (!/^[ -~]$/.test(key) && event.code === code);
   if (!event.shiftKey && is('b', 'KeyB')) return { kind: 'bold' };
-  if (event.shiftKey && is('h', 'KeyH')) return { kind: 'highlight', color: lastHighlight };
+  if (!event.shiftKey && is('i', 'KeyI')) return { kind: 'italic' };
+  if (event.shiftKey && is('h', 'KeyH')) return { kind: 'highlight', color: highlightColor() };
   if (!event.shiftKey && is('\\', 'Backslash')) return { kind: 'clear' };
   return null;
 }

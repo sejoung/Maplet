@@ -54,6 +54,7 @@ function setup() {
     onContextMenu: vi.fn(),
     onCanvasMenu: vi.fn(),
     onToggleTask: vi.fn(),
+    onFormatNodes: vi.fn(),
     onCopy: vi.fn(() => null),
     onCut: vi.fn(() => null),
     onPaste: vi.fn(),

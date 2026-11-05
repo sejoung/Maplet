@@ -24,6 +24,7 @@ export function ShortcutHelpDialog({
           ['Enter', 'common.addSiblingNode'],
           ['shortcuts.f2DoubleClick', 'common.editTitle'],
           ['⌘ / Ctrl + B', 'shortcuts.boldSelection'],
+          ['⌘ / Ctrl + I', 'shortcuts.italicSelection'],
           ['⌘ / Ctrl + Shift + H', 'shortcuts.highlightSelection'],
           ['⌘ / Ctrl + \\', 'shortcuts.clearInlineFormat'],
           ['shortcuts.rightClickSelection', 'shortcuts.formatMenu'],
