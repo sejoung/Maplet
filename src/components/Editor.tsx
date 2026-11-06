@@ -3,7 +3,6 @@ import { useCallback, useRef, useState } from 'react';
 import { FolderOpen, X } from 'lucide-react';
 import { EditorHeader } from './EditorHeader';
 import { EditorToolbar } from './EditorToolbar';
-import { LanguageSwitcher } from './LanguageSwitcher';
 import { SettingsDialog } from './SettingsDialog';
 import { Canvas, type CanvasControls } from './Canvas';
 import { NodeToolsDialog, type NodeTool } from './NodeToolsDialog';
@@ -32,9 +31,11 @@ export function Editor(props: EditorProps) {
   const { actions, find } = view;
   const viewActions = view.canvasActions();
   const command = (action: () => void) => () => {
-    document
-      .querySelectorAll<HTMLDetailsElement>('.toolbar-menu[open]')
-      .forEach((menu) => (menu.open = false));
+    // Focus leaves the hidden list first, so a dialog the action opens restores it visibly.
+    document.querySelectorAll<HTMLDetailsElement>('.toolbar-menu[open]').forEach((menu) => {
+      if (menu.contains(document.activeElement)) menu.querySelector('summary')?.focus();
+      menu.open = false;
+    });
     action();
   };
   const focusNode = (id: string) =>
@@ -216,6 +217,28 @@ export function Editor(props: EditorProps) {
             controlsRef={controls}
             onZoomChange={setZoom}
           />
+          {props.deletedNotice && (
+            // Floats over the canvas so the map does not shift while it is shown.
+            <div className="canvas-toast" role="status">
+              <span>{t(props.deletedNotice.message)}</span>
+              <button
+                type="button"
+                className="text-button"
+                aria-label={t('app.undoDelete')}
+                onClick={props.deletedNotice.onUndo}
+              >
+                {t('common.undo')}
+              </button>
+              <button
+                type="button"
+                className="icon-button"
+                aria-label={t('editor.dismissNotification')}
+                onClick={props.deletedNotice.onDismiss}
+              >
+                <X size={16} />
+              </button>
+            </div>
+          )}
         </main>
         <footer className="status-bar">
           <div
@@ -239,7 +262,6 @@ export function Editor(props: EditorProps) {
             <span className="node-count">
               {t('editor.nodeCount', { count: Object.keys(map.nodes).length })}
             </span>
-            <LanguageSwitcher />
           </div>
         </footer>
         {settingsOpen && (

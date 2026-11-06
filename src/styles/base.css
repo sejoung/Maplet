@@ -1,6 +1,7 @@
 :root {
-  font-family:
+  --font-ui:
     -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+  font-family: var(--font-ui);
   color: var(--text);
   background: var(--canvas);
   font-size: 14px;
@@ -34,6 +35,27 @@
   --root-bg: #e4f0ea;
   --edge: #c4ccd0;
   --link: #8a63c2;
+  /* Text on filled accent or danger surfaces, and on user-chosen pastel backgrounds. */
+  --on-accent: #ffffff;
+  --on-pastel: #25352d;
+  --danger-fill: #97333b;
+  --danger-fill-strong: #7f2a31;
+  /* Selection, drop and marquee tints derive from accent-2; only the alpha differs. */
+  --accent-tint-faint: #3977600d;
+  --accent-tint: #3977601a;
+  --accent-ring: #39776040;
+  --warning-tint: #9b7a3d0d;
+  --match-ring: #e2b96599;
+  --match-ring-strong: #e2b965;
+  --swatch-edge: #0000001f;
+  /* Floating hints over the canvas and the dialog backdrop. */
+  --overlay: #25352de6;
+  --overlay-free: #6b5a2ee6;
+  --backdrop: #24362a33;
+  /* Two elevations: popovers (menus, find bar, minimap) and dialogs. */
+  --shadow-popover: 0 6px 20px #26362b1a;
+  --shadow-dialog: 0 12px 40px #2135281f;
+  --disabled-opacity: 0.4;
 }
 /* Dark palette: applied by the system setting unless light is chosen, or when dark is chosen. */
 @media (prefers-color-scheme: dark) {
@@ -64,6 +86,18 @@
     --root-bg: #26403a;
     --edge: #4c5a55;
     --link: #b597e6;
+    --danger-fill: #b2434c;
+    --danger-fill-strong: #9a3940;
+    --accent-tint-faint: #4fae8b14;
+    --accent-tint: #4fae8b29;
+    --accent-ring: #4fae8b59;
+    --warning-tint: #e2b9651a;
+    --swatch-edge: #ffffff29;
+    --overlay: #3d4b45f2;
+    --overlay-free: #7a6630f2;
+    --backdrop: #00000080;
+    --shadow-popover: 0 6px 20px #00000059;
+    --shadow-dialog: 0 12px 40px #00000073;
   }
 }
 :root[data-theme='dark'] {
@@ -93,6 +127,18 @@
   --root-bg: #26403a;
   --edge: #4c5a55;
   --link: #b597e6;
+  --danger-fill: #b2434c;
+  --danger-fill-strong: #9a3940;
+  --accent-tint-faint: #4fae8b14;
+  --accent-tint: #4fae8b29;
+  --accent-ring: #4fae8b59;
+  --warning-tint: #e2b9651a;
+  --swatch-edge: #ffffff29;
+  --overlay: #3d4b45f2;
+  --overlay-free: #7a6630f2;
+  --backdrop: #00000080;
+  --shadow-popover: 0 6px 20px #00000059;
+  --shadow-dialog: 0 12px 40px #00000073;
 }
 body {
   background: var(--canvas);
@@ -117,7 +163,7 @@ button {
 }
 button:disabled {
   cursor: default;
-  opacity: 0.35;
+  opacity: var(--disabled-opacity);
 }
 button,
 a {

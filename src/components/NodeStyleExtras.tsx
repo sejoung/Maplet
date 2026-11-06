@@ -12,6 +12,19 @@ const colorNames = [
   'style.linePurple',
   'style.lineGray',
 ];
+// Spoken and tooltip names; emoji names vary across screen readers.
+const iconNames: Record<(typeof NODE_ICONS)[number], string> = {
+  '⭐': 'style.iconStar',
+  '✅': 'style.iconCheck',
+  '❗': 'style.iconExclamation',
+  '❓': 'style.iconQuestion',
+  '💡': 'style.iconIdea',
+  '🔥': 'style.iconFire',
+  '📌': 'style.iconPin',
+  '⚠️': 'style.iconWarning',
+  '🎯': 'style.iconTarget',
+  '📅': 'style.iconCalendar',
+};
 const lineNames = { solid: 'style.solid', dashed: 'style.dashed', dotted: 'style.dotted' } as const;
 
 /**
@@ -40,6 +53,7 @@ export function NodeStyleExtras({
           type="button"
           className="swatch none"
           aria-label={t('style.defaultLine')}
+          title={t('style.defaultLine')}
           aria-pressed={!LINE_COLORS.includes(style[key] as string)}
           onClick={() => set(key, null)}
         />
@@ -49,6 +63,7 @@ export function NodeStyleExtras({
             type="button"
             className="swatch"
             aria-label={t(colorNames[index])}
+            title={t(colorNames[index])}
             aria-pressed={style[key] === color}
             style={{ background: color }}
             onClick={() => set(key, color)}
@@ -82,6 +97,7 @@ export function NodeStyleExtras({
             type="button"
             className="swatch none"
             aria-label={t('style.noIcon')}
+            title={t('style.noIcon')}
             aria-pressed={!(NODE_ICONS as readonly unknown[]).includes(style.icon)}
             onClick={() => set('icon', null)}
           />
@@ -90,11 +106,12 @@ export function NodeStyleExtras({
               key={icon}
               type="button"
               className="swatch icon"
-              aria-label={icon}
+              aria-label={t(iconNames[icon])}
+              title={t(iconNames[icon])}
               aria-pressed={style.icon === icon}
               onClick={() => set('icon', icon)}
             >
-              {icon}
+              <span aria-hidden="true">{icon}</span>
             </button>
           ))}
         </div>

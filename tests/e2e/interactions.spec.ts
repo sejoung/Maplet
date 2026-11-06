@@ -50,14 +50,15 @@ test('reparents, edits notes and safe links, deletes and restores a subtree', as
     'aria-level',
     '4',
   );
-  await tool(page, '메모');
+  // A node with notes names it on the button, not only with the dot.
+  await tool(page, '메모 (작성됨)');
   await expect(page.getByRole('textbox', { name: '메모', exact: true })).toHaveValue('보존할 메모');
   await page.getByRole('button', { name: '취소', exact: true }).click();
   page.on('dialog', (dialog) => dialog.accept());
   await page.getByRole('button', { name: '노드 작업', exact: true }).click();
   await page.getByRole('button', { name: '노드 삭제', exact: true }).click();
   await expect(page.getByRole('treeitem', { name: '세부', exact: true })).toHaveCount(0);
-  await page.getByRole('button', { name: '실행 취소', exact: true }).click();
+  await page.getByRole('toolbar').getByRole('button', { name: '실행 취소', exact: true }).click();
   await expect(page.getByRole('treeitem', { name: '세부', exact: true })).toHaveCount(1);
   // Deletion is also a visible toolbar action, not only a menu item or a key.
   await page.getByRole('treeitem', { name: '세부', exact: true }).click();

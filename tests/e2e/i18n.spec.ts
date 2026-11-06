@@ -49,7 +49,8 @@ test('uses browser language and switches UI without changing document contents',
   expect(await downloadDocument('.maplet 다운로드')).toEqual(before);
   await page.reload();
   await expect(page.getByRole('button', { name: '파일', exact: true })).toBeVisible();
-  await expect(page.getByRole('combobox', { name: '언어', exact: true })).toHaveValue('ko');
+  // Language lives only in Settings; the status bar shows document state alone.
+  await expect(page.getByRole('contentinfo').getByRole('combobox')).toHaveCount(0);
   await page.getByRole('banner').getByRole('button', { name: '설정', exact: true }).click();
   const restoredSettings = page.getByRole('dialog', { name: '설정', exact: true });
   await expect(restoredSettings.getByRole('combobox', { name: '언어', exact: true })).toHaveValue(
@@ -65,7 +66,9 @@ test('restores a browser draft after a language change', async ({ page }) => {
   await page.getByRole('textbox', { name: 'Node title' }).fill('언어와 무관한 문서');
   await page.getByRole('textbox', { name: 'Node title' }).press('Enter');
   await expect(page.getByText('Draft saved in browser', { exact: true })).toBeVisible();
+  await page.getByRole('banner').getByRole('button', { name: 'Settings', exact: true }).click();
   await page.getByRole('combobox', { name: 'Language' }).selectOption('ko');
+  await page.getByRole('button', { name: '완료', exact: true }).click();
   page.on('dialog', (dialog) => dialog.accept());
   await page.reload();
   await expect(page.getByRole('dialog', { name: '초안 복구', exact: true })).toBeVisible();

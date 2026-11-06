@@ -19,7 +19,7 @@ export function SettingsDialog({
   return (
     <Dialog title={t('common.settings')} onClose={onClose}>
       <label htmlFor={languageId}>{t('settings.language')}</label>
-      <LanguageSwitcher id={languageId} variant="field" describedBy={descriptionId} />
+      <LanguageSwitcher id={languageId} describedBy={descriptionId} />
       <p className="muted settings-hint" id={descriptionId}>
         {t('settings.languageHint')}
       </p>

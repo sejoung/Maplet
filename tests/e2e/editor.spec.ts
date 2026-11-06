@@ -50,12 +50,12 @@ test('opens, edits inline, undoes, exports and reimports without losing metadata
   expect(raw.ideas['-2'].vendor).toEqual({ a: [1, 2] });
   expect(raw.resources).toEqual({ image: 'base64-original' });
   await test.step('timing:import', async () => {
-    page.on('dialog', (dialog) => dialog.accept());
     await page.locator('input[type=file]').setInputFiles({
       name: 'reimported.mup',
       mimeType: 'application/json',
       buffer: Buffer.from(exported),
     });
+    await page.getByRole('button', { name: '변경 버리고 열기', exact: true }).click();
     await expect(page.getByRole('button', { name: /^파일 이름 변경:/ })).toHaveText('reimported');
   });
   await expect(page.getByRole('treeitem', { name: '회귀 방지', exact: true })).toBeVisible();

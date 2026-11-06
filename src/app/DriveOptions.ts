@@ -9,7 +9,8 @@ export interface DriveOptions extends DriveSnapshot {
   tab?: TabSession;
   markSaved(content: string, filename?: string): void;
   applyMerge?(base: DriveSnapshot, incoming: DriveSnapshot): void;
-  allowReplace(): boolean;
+  /** May ask the user first; resolves false when they keep the current map. */
+  allowReplace(): boolean | Promise<boolean>;
   replace(next: MindMap, name: string): void;
   setNotice(message: string): void;
 }

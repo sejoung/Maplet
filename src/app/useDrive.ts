@@ -127,7 +127,7 @@ export function useDrive(
     // Only restoring a file replaces the document; a folder alone leaves local work as is.
     const replacing = !keepLocal && Boolean(workspace.file || workspace.source);
     if (automatic && (!google.getToken() || (replacing && hasLocalWork))) return;
-    if (!automatic && replacing && !allowReplace()) return;
+    if (!automatic && replacing && !(await allowReplace())) return;
     const savedDocument = documentKey;
     await exclusive(
       async (latest) => {
@@ -224,17 +224,9 @@ export function useDrive(
     );
   };
   const openDrive = async () => {
-    if (
-      !google ||
-      !drive ||
-      !saveFolder ||
-      pending ||
-      busy ||
-      inFlight.current ||
-      !driveReady ||
-      !allowReplace()
-    )
+    if (!google || !drive || !saveFolder || pending || busy || inFlight.current || !driveReady)
       return;
+    if (!(await allowReplace()) || inFlight.current) return;
     await exclusive(
       async (current) => {
         await authorize();

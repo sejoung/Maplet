@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
+import { switchLanguage } from './support/language';
 
 test('edits the header filename and downloads native and compatible files without changing node titles', async ({
   page,
@@ -105,7 +106,7 @@ test('keeps long filenames editable and translates filename controls', async ({ 
     .fill('아주 길지만 편집할 수 있는 파일 이름');
   await page.getByRole('textbox', { name: '파일 이름', exact: true }).press('Enter');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  await page.getByRole('combobox', { name: '언어', exact: true }).selectOption('en');
+  await switchLanguage(page, 'en');
   await page.getByRole('button', { name: /^Rename file:/ }).click();
   await expect(page.getByRole('textbox', { name: 'File name', exact: true })).toHaveValue(
     '아주 길지만 편집할 수 있는 파일 이름',

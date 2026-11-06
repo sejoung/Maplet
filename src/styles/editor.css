@@ -21,7 +21,7 @@
   align-items: center;
   gap: 8px;
   font-size: 17px;
-  font-weight: 650;
+  font-weight: 600;
   letter-spacing: -0.5px;
 }
 .document-name {
@@ -86,7 +86,7 @@
   flex-shrink: 0;
 }
 .drive-button,
-.settings-button {
+.header-secondary {
   flex-shrink: 0;
 }
 a.button {
@@ -123,11 +123,21 @@ a.button {
 }
 .button.primary {
   background: var(--accent-fill);
-  color: white;
+  color: var(--on-accent);
   border-color: var(--accent);
 }
 .button.primary:hover {
   background: var(--accent-strong);
+}
+/* Confirms a destructive choice; Cancel beside it stays the default focus. */
+.button.danger {
+  background: var(--danger-fill);
+  color: var(--on-accent);
+  border-color: var(--danger-fill);
+}
+.button.danger:hover:not(:disabled) {
+  background: var(--danger-fill-strong);
+  border-color: var(--danger-fill-strong);
 }
 .button.quiet {
   border-color: transparent;
@@ -227,7 +237,7 @@ a.button {
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--surface);
-  box-shadow: 0 6px 20px #26362b14;
+  box-shadow: var(--shadow-popover);
 }
 .menu-items button {
   display: flex;
@@ -240,10 +250,6 @@ a.button {
   border-radius: 4px;
   font-size: 12px;
 }
-.menu-items button:disabled {
-  opacity: 0.45;
-  cursor: default;
-}
 .context-menu {
   position: fixed;
   z-index: 60;
@@ -252,7 +258,7 @@ a.button {
 }
 .menu-items kbd {
   margin-left: auto;
-  font-size: 10px;
+  font-size: 11px;
 }
 .file-menu .menu-items {
   width: 250px;
@@ -260,7 +266,7 @@ a.button {
 .menu-items .menu-label {
   display: block;
   padding: 4px 10px 2px;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--muted);
 }
@@ -331,15 +337,6 @@ a.button {
   align-items: center;
   gap: 12px;
   flex-shrink: 0;
-}
-.language-select {
-  width: auto;
-  min-height: 24px;
-  height: 24px;
-  padding: 0 3px;
-  border-color: transparent;
-  background: transparent;
-  font-size: 11px;
 }
 .message {
   display: flex;

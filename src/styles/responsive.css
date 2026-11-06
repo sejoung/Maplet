@@ -9,10 +9,10 @@
     padding: 8px 10px;
   }
   .save-button > span,
-  .settings-button > span {
+  .header-secondary > span {
     display: none;
   }
-  .settings-button {
+  .header-secondary {
     min-width: 32px;
     padding: 7px;
   }
@@ -107,7 +107,7 @@
   }
   .status-bar {
     padding: 0 10px;
-    font-size: 10px;
+    font-size: 11px;
     gap: 8px;
   }
   .save-status {
@@ -117,9 +117,6 @@
   .save-status > span:last-child {
     overflow: hidden;
     text-overflow: ellipsis;
-  }
-  .node-count {
-    font-size: 10px;
   }
   .dialog-backdrop {
     padding: 15px;

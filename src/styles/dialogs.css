@@ -1,7 +1,7 @@
 .dialog-backdrop {
   position: fixed;
   inset: 0;
-  background: #24362a33;
+  background: var(--backdrop);
   z-index: 50;
   display: flex;
   align-items: center;
@@ -16,7 +16,7 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 10px;
-  box-shadow: 0 12px 40px #2135281a;
+  box-shadow: var(--shadow-dialog);
   padding: 22px 24px;
 }
 .dialog-heading {
@@ -115,7 +115,7 @@
   font-size: 12px;
 }
 .color-chip {
-  color: #25352d;
+  color: var(--on-pastel);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -146,7 +146,7 @@
   padding: 0;
   border: 1px solid var(--border-strong);
   border-radius: 6px;
-  color: #fff;
+  color: var(--on-accent);
 }
 .swatch.icon {
   background: var(--surface);
@@ -261,4 +261,11 @@
   color: var(--accent);
   font-size: 12px;
   padding: 8px;
+}
+.drive-confirm {
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.drive-confirm .dialog-actions {
+  margin-top: 12px;
 }

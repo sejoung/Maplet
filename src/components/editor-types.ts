@@ -76,6 +76,8 @@ interface StatusMessages {
   notice: Translatable | null;
   onDismissError(): void;
   onDismissNotice(): void;
+  /** A deletion that removed several nodes, with an undo shown beside it on the canvas. */
+  deletedNotice?: { message: Translatable; onUndo(): void; onDismiss(): void } | null;
   draftPrivacy?: { enabled: boolean; busy: boolean; change(enabled: boolean): void };
 }
 export interface EditorProps

@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { auditAccessibility } from './support/accessibility';
+import { switchLanguage } from './support/language';
 
 /** Every contents link has a section and every screenshot loads with a description. */
 async function checkManual(manual: Page, contents: string) {
@@ -49,7 +50,7 @@ test('opens the Korean user guide from the header and the shortcut help', async 
 
 test('opens the English user guide when the interface is in English', async ({ page, context }) => {
   await page.goto('/');
-  await page.getByRole('combobox', { name: '언어' }).selectOption('en');
+  await switchLanguage(page, 'en');
   const guide = page.getByRole('link', { name: 'User guide', exact: true });
   await expect(guide).toHaveAttribute('href', 'manual/en/index.html');
   await page.getByRole('button', { name: 'Keyboard shortcuts' }).first().click();

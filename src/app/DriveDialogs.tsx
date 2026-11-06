@@ -1,3 +1,4 @@
+import { useEffect, useId, useRef, useState } from 'react';
 import { useI18n } from '../i18n/react';
 import { Cloud, Download, FolderOpen } from 'lucide-react';
 import { Dialog } from '../components/Dialog';
@@ -186,35 +187,89 @@ export function DriveDialogs({ controller, save }: { controller: DriveController
         />
       )}
       {dialog === 'conflict' && !controller.mergeConflict && (
-        <Dialog title={t('drive.checkDriveFile')} onClose={closeDialog}>
-          <p>{t('drive.fileChangedElsewhereCurrentEdits')}</p>
-          <div className="drive-actions">
+        <ChangedElsewhereDialog
+          busy={busy}
+          close={closeDialog}
+          download={save}
+          copy={() => void saveDrive('copy')}
+          overwrite={() => void saveDrive('overwrite')}
+        />
+      )}
+    </>
+  );
+}
+
+/** The Drive file changed and no property-level merge applies: pick how to keep this map. */
+function ChangedElsewhereDialog({
+  busy,
+  close,
+  download,
+  copy,
+  overwrite,
+}: {
+  busy: boolean;
+  close(): void;
+  download(): void;
+  copy(): void;
+  overwrite(): void;
+}) {
+  const { t } = useI18n();
+  const [confirmOverwrite, setConfirmOverwrite] = useState(false);
+  const overwriteId = useId();
+  const keepButton = useRef<HTMLButtonElement>(null);
+  // The asking button is replaced, so focus moves to the safe answer.
+  useEffect(() => {
+    if (confirmOverwrite) keepButton.current?.focus();
+  }, [confirmOverwrite]);
+  return (
+    <Dialog title={t('drive.checkDriveFile')} onClose={close}>
+      <p>{t('drive.fileChangedElsewhereCurrentEdits')}</p>
+      {confirmOverwrite ? (
+        // Overwriting discards the other version, so it asks again in place.
+        <div className="drive-confirm" role="group" aria-labelledby={overwriteId}>
+          <p id={overwriteId}>{t('drive.overwriteCurrentDriveFileMap')}</p>
+          <div className="dialog-actions">
             <button
-              className="button primary"
-              disabled={busy}
-              onClick={() => void saveDrive('copy')}
+              ref={keepButton}
+              type="button"
+              className="button"
+              onClick={() => setConfirmOverwrite(false)}
             >
-              {t('drive.saveNewCopy')}
-            </button>
-            <button className="button" onClick={save}>
-              {t('drive.downloadLocalFile')}
+              {t('common.cancel')}
             </button>
             <button
-              className="button danger-quiet"
+              type="button"
+              className="button danger"
               disabled={busy}
               onClick={() => {
-                if (window.confirm(t('drive.overwriteCurrentDriveFileMap')))
-                  void saveDrive('overwrite');
+                setConfirmOverwrite(false);
+                overwrite();
               }}
             >
               {t('drive.overwriteDriveFile')}
             </button>
-            <button className="button quiet" onClick={closeDialog}>
-              {t('drive.backEditing')}
-            </button>
           </div>
-        </Dialog>
+        </div>
+      ) : (
+        <div className="drive-actions">
+          <button className="button primary" disabled={busy} onClick={copy}>
+            {t('drive.saveNewCopy')}
+          </button>
+          <button className="button" onClick={download}>
+            {t('drive.downloadLocalFile')}
+          </button>
+          <button
+            className="button danger-quiet"
+            disabled={busy}
+            onClick={() => setConfirmOverwrite(true)}
+          >
+            {t('drive.overwriteDriveFile')}
+          </button>
+          <button className="button quiet" onClick={close}>
+            {t('drive.backEditing')}
+          </button>
+        </div>
       )}
-    </>
+    </Dialog>
   );
 }

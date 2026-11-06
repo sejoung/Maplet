@@ -2,6 +2,7 @@ import { useI18n } from '../i18n/react';
 import type { RefObject } from 'react';
 import {
   CircleHelp,
+  CornerDownRight,
   Eye,
   Focus,
   Link2,
@@ -69,6 +70,8 @@ export function EditorToolbar({
 }) {
   const { t } = useI18n();
   const node = map.nodes[selected];
+  // The dot beside Notes is visual only; the name says the note exists.
+  const notesLabel = node.notes ? t('toolbar.notesWritten') : t('common.notes');
   return (
     <div role="region" aria-label={t('toolbar.editingToolbar')}>
       <div className="editor-toolbar" role="toolbar" aria-label={t('toolbar.editingTools')}>
@@ -99,7 +102,7 @@ export function EditorToolbar({
           title={t('toolbar.addChildNodeTab')}
           onClick={() => onAdd()}
         >
-          <Plus size={17} />
+          <CornerDownRight size={17} />
           <span>{t('toolbar.childNode')}</span>
         </button>
         <button
@@ -133,13 +136,13 @@ export function EditorToolbar({
         <span className="tool-divider desktop-tool" />
         <button
           className="tool-button desktop-tool"
-          aria-label={t('common.notes')}
-          title={t('common.notes')}
+          aria-label={notesLabel}
+          title={notesLabel}
           onClick={command(() => openTool('notes'))}
         >
           <MessageSquare size={16} />
           <span>{t('common.notes')}</span>
-          {node.notes && <span className="tool-dot" />}
+          {node.notes && <span className="tool-dot" aria-hidden="true" />}
         </button>
         <button
           className="tool-button desktop-tool"
@@ -175,7 +178,7 @@ export function EditorToolbar({
         >
           <button onClick={command(() => openTool('notes'))}>
             <MessageSquare size={16} />
-            {t('common.notes')}
+            {notesLabel}
           </button>
           <button onClick={command(() => openTool('link'))}>
             <Link2 size={16} />

@@ -29,7 +29,6 @@
 }
 .drive-control.has-status:hover {
   border-color: var(--border-accent);
-  box-shadow: 0 1px 2px rgb(0 0 0 / 6%);
 }
 .drive-control.has-status .drive-button:focus-visible {
   outline: none;

@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
+import { switchLanguage } from './support/language';
 
 const source = JSON.stringify({
   formatVersion: 2,
@@ -178,8 +179,7 @@ test('arranges, restores history and drafts, reopens native files and keeps the 
   for (const language of ['ko', 'en'])
     for (const width of [1024, 1280, 1440])
       await test.step(`toolbar: ${language}, ${width}px`, async () => {
-        if (width === 1024)
-          await page.getByRole('combobox', { name: /^(언어|Language)$/ }).selectOption(language);
+        if (width === 1024) await switchLanguage(page, language as 'ko' | 'en');
         await page.setViewportSize({ width, height: 700 });
         const clipped = await page
           .getByRole('toolbar')

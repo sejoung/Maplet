@@ -18,7 +18,9 @@ import {
   CopyPlus,
   CornerDownRight,
   Link2,
-  ListTree,
+  Layers2,
+  Layers3,
+  Move,
   MessageSquare,
   Palette,
   Focus,
@@ -66,7 +68,6 @@ export interface NodeActionHandlers {
 }
 
 const mod = (key: string) => ({ label: `Ctrl/⌘ ${key}`, aria: `Control+${key} Meta+${key}` });
-
 export type NodeActionGroups = Record<
   'create' | 'tools' | 'clipboard' | 'arrange' | 'view' | 'remove',
   NodeAction[]
@@ -180,7 +181,7 @@ export function nodeActionGroups(
       },
       {
         label: t('common.moveNode'),
-        icon: <ListTree size={17} />,
+        icon: <Move size={17} />,
         disabled: !children.length,
         run: () => handlers.openTool('move'),
       },
@@ -323,12 +324,12 @@ export function canvasActionGroups(
       },
       {
         label: t('menu.show2Levels'),
-        icon: <ListTree size={17} />,
+        icon: <Layers2 size={17} />,
         run: () => handlers.onLevels(3),
       },
       {
         label: t('menu.show3Levels'),
-        icon: <ListTree size={17} />,
+        icon: <Layers3 size={17} />,
         run: () => handlers.onLevels(4),
       },
     ],

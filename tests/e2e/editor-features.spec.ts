@@ -159,7 +159,7 @@ test('styles nodes with markers, emphasis, borders and branch lines', async ({ p
   // Emphasis is text formatting in the toolbar now, not part of the style dialog.
   await expect(dialog.getByRole('button', { name: '굵게' })).toHaveCount(0);
   await dialog.getByRole('combobox', { name: '할 일' }).selectOption('todo');
-  await dialog.getByRole('button', { name: '⭐' }).click();
+  await dialog.getByRole('button', { name: '별', exact: true }).click();
   await dialog.locator('.line-color-field').nth(0).getByRole('button', { name: '빨강' }).click();
   await dialog.locator('.line-color-field').nth(1).getByRole('button', { name: '파랑' }).click();
   await dialog.getByRole('combobox', { name: '가지 선 모양' }).selectOption('dashed');

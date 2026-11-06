@@ -28,6 +28,7 @@ import { useDocument } from './useDocument';
 import { useNodeClipboard } from './useNodeClipboard';
 import { useNodeCommands } from './useNodeCommands';
 import { useExports } from './useExports';
+import { useConfirm } from './useConfirm';
 
 const defaultDrafts = new DraftStore();
 
@@ -40,6 +41,9 @@ export function App({
   const { t, locale } = useI18n();
   const [error, setError] = useState<Translatable | null>(null);
   const [notice, setNotice] = useState<Translatable | null>(null);
+  // Branch deletions offer an undo until the next edit makes it ambiguous.
+  const [deleted, setDeleted] = useState<number | null>(null);
+  const { confirm, dialog: confirmDialog } = useConfirm();
   const report = useCallback(
     (reason: unknown) => setError(messageOf(reason, 'app.couldNotCompleteOperation')),
     [],
@@ -47,7 +51,10 @@ export function App({
   const doc = useDocument({
     title: t('common.centralTopic'),
     filename: `${t('app.untitled')}.maplet`,
-    onEdited: () => setError(null),
+    onEdited: () => {
+      setError(null);
+      setDeleted(null);
+    },
     onError: report,
   });
   const { map, content, filename, selectedId } = doc;
@@ -116,10 +123,18 @@ export function App({
   const replace: typeof doc.replace = (next, ...rest) => {
     doc.replace(next, ...rest);
     setError(null);
+    setDeleted(null);
     // Each compatibility warning is an independent catalog message.
     setNotice(next.warnings.length ? next.warnings : null);
   };
-  const allowReplace = () => !doc.dirty || window.confirm(t('app.confirmReplaceUnsaved'));
+  const allowReplace = async () =>
+    !doc.dirty ||
+    confirm({
+      title: t('app.unsavedChangesTitle'),
+      message: t('app.confirmReplaceUnsaved'),
+      confirmLabel: t('app.discardChangesOpen'),
+      danger: true,
+    });
   const importGeneration = useRef(0);
   const open = async (file: File) => {
     const generation = ++importGeneration.current;
@@ -132,14 +147,19 @@ export function App({
             measureNodeText,
           )
         : parseDocument(source);
-      if (generation !== importGeneration.current || !allowReplace()) return;
+      if (generation !== importGeneration.current || !(await allowReplace())) return;
+      if (generation !== importGeneration.current) return;
       replace(next, file.name);
       driveState.clearFile(serializeMaplet(next), nativeFilename(file.name));
     } catch (reason) {
       if (generation === importGeneration.current) report(reason);
     }
   };
-  const commands = useNodeCommands(doc, t);
+  const commands = useNodeCommands(doc, t, setDeleted);
+  const undo = () => {
+    setDeleted(null);
+    doc.undo();
+  };
   const exports = useExports(map, filename, report, setNotice);
   const recover = () => {
     const [candidate] = recoveries;
@@ -193,7 +213,7 @@ export function App({
   const primary = usePrimarySave(driveState, save, doc.documentKey);
   const saveCurrent = useEditorShortcuts({
     save: primary.save,
-    undo: doc.undo,
+    undo,
     redo: doc.redo,
     help: () => setDialog('help'),
   });
@@ -253,7 +273,16 @@ export function App({
         onSelect={doc.select}
         onEdit={(id = selectedId) => doc.setEditingId(id)}
         {...commands}
-        onUndo={doc.undo}
+        onUndo={undo}
+        deletedNotice={
+          deleted === null
+            ? null
+            : {
+                message: { key: 'app.nodesDeleted', params: { count: deleted } },
+                onUndo: undo,
+                onDismiss: () => setDeleted(null),
+              }
+        }
         onRedo={doc.redo}
         canUndo={doc.canUndo}
         canRedo={doc.canRedo}
@@ -320,6 +349,7 @@ export function App({
         <ShortcutHelpDialog onClose={closeDialog} saveToDrive={primary.saveToDrive} />
       )}
       <DriveDialogs controller={driveState} save={save} />
+      {confirmDialog}
     </>
   );
 }

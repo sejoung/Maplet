@@ -1,20 +1,12 @@
 import { useI18n } from '../i18n/react';
 import { LANGUAGE_NAMES, setLanguage } from '../i18n/locale';
 
-export function LanguageSwitcher({
-  id,
-  variant = 'compact',
-  describedBy,
-}: {
-  id?: string;
-  variant?: 'compact' | 'field';
-  describedBy?: string;
-}) {
+/** The language field of the settings dialog. */
+export function LanguageSwitcher({ id, describedBy }: { id?: string; describedBy?: string }) {
   const { language, t } = useI18n();
   return (
     <select
       id={id}
-      className={variant === 'compact' ? 'language-select' : 'settings-language-select'}
       aria-label={t('settings.language')}
       aria-describedby={describedBy}
       value={language}

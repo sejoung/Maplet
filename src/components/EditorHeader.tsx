@@ -168,7 +168,7 @@ export function EditorHeader(props: HeaderProps) {
           </button>
         )}
         <a
-          className="button settings-button guide-button"
+          className="button quiet header-secondary"
           href={manualPath(language)}
           target="_blank"
           rel="noopener noreferrer"
@@ -179,7 +179,7 @@ export function EditorHeader(props: HeaderProps) {
           <span>{t('header.userGuide')}</span>
         </a>
         <button
-          className="button settings-button"
+          className="button quiet header-secondary"
           aria-label={t('common.settings')}
           title={t('common.settings')}
           aria-haspopup="dialog"

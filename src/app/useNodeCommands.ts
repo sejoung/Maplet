@@ -32,7 +32,11 @@ function visibleAncestor(map: MindMap, id: string): string {
 }
 
 /** Editing commands on nodes and the map structure, wired to the open document. */
-export function useNodeCommands(doc: DocumentState, t: ReturnType<typeof useI18n>['t']) {
+export function useNodeCommands(
+  doc: DocumentState,
+  t: ReturnType<typeof useI18n>['t'],
+  onDeleted: (count: number) => void = () => {},
+) {
   const { map, selectedId: selected, edit } = doc;
   const add = (sibling = false) => {
     const id = crypto.randomUUID();
@@ -51,16 +55,20 @@ export function useNodeCommands(doc: DocumentState, t: ReturnType<typeof useI18n
     doc.setSelected(id);
     doc.setEditingId(id);
   };
+  // Deleting is undoable, so it acts at once and reports what went instead of asking first.
   const remove = () => {
     const ids = doc.targets(selected);
     const nodes = ids.map((id) => map.nodes[id]);
-    const confirmText =
-      ids.length > 1
-        ? t('app.confirmDeleteSelection', { count: doc.selection.length })
-        : t('app.confirmDeleteBranch');
-    if (nodes.some((node) => node.children.length) && !window.confirm(confirmText)) return;
     const fallback = nodes[0].parentId ?? map.roots.find((id) => !ids.includes(id))!;
-    if (edit((current) => deleteNodes(current, ids))) doc.setSelected(fallback);
+    let removed = 0;
+    const deleted = edit((current) => {
+      const next = deleteNodes(current, ids);
+      removed = Object.keys(current.nodes).length - Object.keys(next.nodes).length;
+      return next;
+    });
+    if (!deleted) return;
+    doc.setSelected(fallback);
+    if (removed > 1) onDeleted(removed);
   };
   /** Apply a structural change and keep the focused node visible. */
   const reveal = (change: (current: MindMap) => MindMap) => {

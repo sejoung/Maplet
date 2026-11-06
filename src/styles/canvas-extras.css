@@ -1,7 +1,7 @@
 /* Chosen pastel backgrounds keep dark text in every theme. */
 .mind-node.custom-bg,
 .mind-node.custom-bg .inline-node-editor {
-  color: #25352d;
+  color: var(--on-pastel);
 }
 .connections .edge {
   stroke: var(--edge);
@@ -28,7 +28,7 @@
   border: 1.5px solid var(--accent-2);
   border-radius: 4px;
   background: var(--surface);
-  color: #fff;
+  color: var(--on-accent);
 }
 .node-task[aria-checked='true'] {
   background: var(--accent-2);
@@ -49,10 +49,10 @@
   line-height: 1;
 }
 .mind-node.search-match {
-  box-shadow: 0 0 0 3px #e2b96599;
+  box-shadow: 0 0 0 3px var(--match-ring);
 }
 .mind-node.search-match.selected {
-  box-shadow: 0 0 0 4px #e2b965;
+  box-shadow: 0 0 0 4px var(--match-ring-strong);
 }
 .mind-node.drop-sibling {
   z-index: 2;
@@ -73,10 +73,8 @@
   padding: 1px 8px;
   border-radius: 999px;
   background: var(--accent-fill);
-  color: #fff;
-  font:
-    600 12px/18px system-ui,
-    sans-serif;
+  color: var(--on-accent);
+  font: 600 12px/18px var(--font-ui);
   white-space: nowrap;
 }
 .find-bar {
@@ -92,7 +90,7 @@
   border: 1px solid var(--border-strong);
   border-radius: 8px;
   background: var(--surface);
-  box-shadow: 0 6px 20px #26362b1f;
+  box-shadow: var(--shadow-popover);
   color: var(--text-soft);
 }
 .find-bar input {
@@ -145,7 +143,7 @@
   border: 1px solid var(--border-strong);
   border-radius: 8px;
   background: var(--canvas-translucent);
-  box-shadow: 0 4px 14px #26362b1a;
+  box-shadow: var(--shadow-popover);
   cursor: pointer;
   touch-action: none;
 }
@@ -153,7 +151,7 @@
   fill: var(--border-strong);
 }
 .minimap .minimap-view {
-  fill: #39776014;
+  fill: var(--accent-tint);
   stroke: var(--accent-2);
   stroke-width: 1.5;
 }
@@ -182,4 +180,35 @@
 .menu-items [role='menuitemcheckbox'][aria-checked='true'] {
   color: var(--accent-strong);
   font-weight: 600;
+}
+/* Feedback for a multi-node deletion with its undo; floats so the canvas never shifts. */
+.canvas-toast {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: calc(100% - 32px);
+  padding: 4px 4px 4px 14px;
+  transform: translateX(-50%);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--shadow-popover);
+  color: var(--text);
+  font-size: 13px;
+  white-space: nowrap;
+}
+.canvas-toast > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.canvas-toast .text-button {
+  font-weight: 600;
+}
+/* The drag hint takes the same place while a branch moves. */
+.workspace:has(.canvas.is-dragging) .canvas-toast {
+  display: none;
 }
