@@ -123,7 +123,7 @@ npm run test:e2e
 npm run test:watch
 ```
 
-The quality and Pages workflows run verification and desktop Chromium E2E tests, including accessibility checks, with at most two test workers in CI. Architecture tests (dependency-cruiser plus AST rules) enforce layer boundaries, circular dependencies, orphan files and where adapters are built; `npm run arch` prints the report and `npm run arch:graph` the dependency graph. Code files are limited to **400 lines**, including comments and blank lines; source CSS has the same limit.
+The quality and Pages workflows run verification and desktop Chromium E2E tests, including accessibility checks, with at most two test workers in CI. Architecture tests (dependency-cruiser plus AST rules) enforce layer boundaries, circular dependencies, orphan files and where adapters are built; `npm run arch` prints the report and `npm run arch:graph` the dependency graph. Code files are limited to **400 lines**, including comments and blank lines; source CSS has the same limit. Each folder in `src`, `tests` and `scripts` holds at most **10 files**; past that, split it into topic folders.
 
 Each npm test command saves logs and reports in `test-results/<UTC timestamp>-<kind>-<unique suffix>/`. Relative symlinks point to the latest completed run, including failures:
 
@@ -143,18 +143,19 @@ npx playwright show-report test-results/latest-e2e/html
 
 ```text
 src/
-  app/           Application assembly, document lifecycle, Drive coordination
-  components/    Toolbar, canvas, node editing, dialogs
-  domain/        Map model and editing commands
-  application/   History and use cases
+  app/           Assembly and lifecycle (drive/, document/, drafts/)
+  components/    UI (canvas/, rich-text/, editor/, menus/, dialogs/, drive/, shared/)
+  domain/        Map model, commands, merge (commands/, merge/, style/, rich-text/, util/)
+  application/   History and Drive sync rules
   adapters/      Maplet/MindMup codecs, file I/O, IndexedDB, Google Drive
-  engine/        Layout and connection geometry
+  engine/        Layout, geometry, viewport math (layout/)
+  i18n/          Message catalogs and translation
   styles/        Base, editor, canvas, dialog, and responsive styles
 tests/
-  unit/          Domain, layout, codec, and adapter tests
-  integration/   Draft storage and development tooling tests
-  architecture/  Dependency boundaries and cycle checks
-  e2e/           Browser scenarios
+  unit/          Unit tests mirroring the src layers
+  integration/   App, component, storage and tooling integration tests
+  architecture/  Layer, cycle, orphan and code-rule checks
+  e2e/           Browser scenarios by feature (drive/, editing/, layout/, app/)
   fixtures/      Native and synthetic MindMup samples
 docs/            Guides, screenshots, and architecture decisions
 ```

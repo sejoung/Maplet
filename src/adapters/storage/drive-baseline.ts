@@ -1,6 +1,6 @@
-import { isNonEmptyString } from '../../domain/guards';
-import { isJsonObject } from '../../domain/json';
-import type { DriveBaseline } from '../../domain/snapshot';
+import { isNonEmptyString } from '../../domain/util/guards';
+import { isJsonObject } from '../../domain/util/json';
+import type { DriveBaseline } from '../../domain/merge/snapshot';
 
 /**
  * Content lives only with the IndexedDB draft, never workspace localStorage metadata.

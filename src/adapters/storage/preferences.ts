@@ -1,7 +1,7 @@
-import { isOneOf } from '../../domain/guards';
+import { isOneOf } from '../../domain/util/guards';
 import { THEMES, type Preferences } from '../../domain/preferences';
-import { HIGHLIGHT_COLORS } from '../../domain/rich-text';
-import { createStore, type Store } from '../../domain/store';
+import { HIGHLIGHT_COLORS } from '../../domain/rich-text/rich-text';
+import { createStore, type Store } from '../../domain/util/store';
 import { readItem, writeItem } from './web-storage';
 
 export const PREFERENCE_KEYS = {

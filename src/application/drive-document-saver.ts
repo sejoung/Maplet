@@ -1,7 +1,7 @@
 import { AppError } from '../domain/errors';
-import type { MergeConflict } from '../domain/merge';
+import type { MergeConflict } from '../domain/merge/merge';
 import { DriveMergeConflict, type DriveMerge, type RemoteFile } from './drive-merge';
-import type { DriveBaseline, DriveSnapshot } from '../domain/snapshot';
+import type { DriveBaseline, DriveSnapshot } from '../domain/merge/snapshot';
 
 /** Writes tried per save before the last failure is reported. */
 export const MAX_SAVE_ATTEMPTS = 3;

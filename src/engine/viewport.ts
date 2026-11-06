@@ -1,5 +1,5 @@
 import type { NodePosition } from '../domain/model';
-import { clampZoom } from './fit-layout';
+import { clampZoom } from './layout/fit-layout';
 import type { Box } from './geometry';
 
 /** Pan and zoom of the canvas: map point `p` shows at `p * zoom + (x, y)` in the viewport. */

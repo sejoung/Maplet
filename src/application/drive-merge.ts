@@ -1,10 +1,10 @@
 import { AppError } from '../domain/errors';
-import { own } from '../domain/ids';
-import { equalMaps, mergeMaps, type MergeChoices, type MergeConflict } from '../domain/merge';
-import { mergeValue } from '../domain/merge-values';
+import { own } from '../domain/util/ids';
+import { equalMaps, mergeMaps, type MergeChoices, type MergeConflict } from '../domain/merge/merge';
+import { mergeValue } from '../domain/merge/merge-values';
 import type { MindMap } from '../domain/model';
-import { plainTitle } from '../domain/rich-text';
-import type { DriveSnapshot } from '../domain/snapshot';
+import { plainTitle } from '../domain/rich-text/rich-text';
+import type { DriveSnapshot } from '../domain/merge/snapshot';
 
 /** A Drive file version as the sync rules see it; the adapter's file type fits structurally. */
 export interface RemoteFile {

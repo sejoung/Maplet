@@ -1,4 +1,4 @@
-import { changedNodes, mergeMaps, equalMaps, type MergeChoice } from '../domain/merge';
+import { changedNodes, mergeMaps, equalMaps, type MergeChoice } from '../domain/merge/merge';
 import type { MindMap } from '../domain/model';
 import type { History } from './history';
 

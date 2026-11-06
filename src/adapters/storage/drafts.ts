@@ -1,6 +1,6 @@
 import { AppError } from '../../domain/errors';
 import type { DriveWorkspace } from './drive-workspace';
-import type { DriveBaseline } from '../../domain/snapshot';
+import type { DriveBaseline } from '../../domain/merge/snapshot';
 import { keepLocalDrafts, rememberLocalDrafts } from './privacy';
 import { draftOwner } from './tab-session';
 

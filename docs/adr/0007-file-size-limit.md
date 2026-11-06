@@ -9,9 +9,9 @@ App·Canvas·Editor와 공통 CSS가 커지면서 문서 조작, 외부 연동, 
 
 ## 결정
 
-ESLint `max-lines`를 오류 수준으로 설정한다. TypeScript·TSX·JavaScript·MJS 운영 코드, 테스트, 스크립트, 설정 파일에 동일하게 적용한다. 빈 줄과 주석도 포함하며 파일 끝 개행은 추가 줄로 세지 않는다. 400줄은 허용하고 401줄부터 실패한다. 파일별 예외나 기존 초과 파일의 유예는 두지 않는다.
+ESLint `max-lines`를 오류 수준으로 설정한다. TypeScript·TSX·JavaScript·MJS·CJS 운영 코드, 테스트, 스크립트, 설정 파일에 동일하게 적용한다. 빈 줄과 주석도 포함하며 파일 끝 개행은 추가 줄로 세지 않는다. 400줄은 허용하고 401줄부터 실패한다. 파일별 예외나 기존 초과 파일의 유예는 두지 않는다.
 
-ESLint가 해석하지 않는 `src/**/*.css`에는 `scripts/check-style-lines.mjs`로 같은 줄 수 기준을 적용하고 `npm run lint`에 연결한다. 문서·포맷 fixture·이미지·빌드 및 테스트 산출물은 이 제한의 대상이 아니다.
+ESLint가 해석하지 않는 `src/**/*.css`에는 `scripts/check-limits.mjs`로 같은 줄 수 기준을 적용하고(2026-11-06에 폴더 파일 수 검사와 합침, [ADR 0022](0022-folder-file-limit.md)) `npm run lint`에 연결한다. 문서·포맷 fixture·이미지·빌드 및 테스트 산출물은 이 제한의 대상이 아니다.
 
 파일을 나눌 때 책임을 기준으로 경계를 정한다. 줄을 압축하거나 순환 참조로 파일 간 책임을 묶어 제한을 피하지 않는다. 기존 계층 의존·순환 참조 테스트와 Prettier를 함께 유지한다.
 

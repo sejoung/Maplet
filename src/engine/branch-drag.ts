@@ -1,11 +1,11 @@
 import type { MindMap, NodePosition, Side } from '../domain/model';
 import { canMoveNode } from '../domain/commands';
 import { subtreeIds } from '../domain/tree';
-import { isNodePosition, positionsForSubtreeMove } from '../domain/positions';
-import { layoutWithPositions, type Layout, type LayoutNode } from './layout';
+import { isNodePosition, positionsForSubtreeMove } from '../domain/commands/positions';
+import { layoutWithPositions, type Layout, type LayoutNode } from './layout/layout';
 import { branchBounds } from './branch-regions';
 import { intersects, seedPositions, type Box } from './geometry';
-import { proposeSubtreeMove, type PlacementProposal } from './subtree-placement';
+import { proposeSubtreeMove, type PlacementProposal } from './layout/subtree-placement';
 
 /**
  * Where a drop would put the dragged branches: under `id`, beside the hovered `node` (`before`

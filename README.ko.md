@@ -123,7 +123,7 @@ npm run test:e2e
 npm run test:watch
 ```
 
-품질 검사와 Pages workflow에서 전체 검증과 데스크톱 Chromium E2E·접근성 검사를 실행하며 CI 테스트 worker는 최대 2개입니다. 아키텍처 테스트(dependency-cruiser + AST 규칙)로 계층 의존성, 순환 참조, 고아 파일, 어댑터 생성 위치를 검사하며 `npm run arch`로 보고서를, `npm run arch:graph`로 의존 그래프를 봅니다. 코드 파일은 빈 줄·주석을 포함해 **400줄**로 제한하며 운영 CSS에도 같은 상한을 적용합니다.
+품질 검사와 Pages workflow에서 전체 검증과 데스크톱 Chromium E2E·접근성 검사를 실행하며 CI 테스트 worker는 최대 2개입니다. 아키텍처 테스트(dependency-cruiser + AST 규칙)로 계층 의존성, 순환 참조, 고아 파일, 어댑터 생성 위치를 검사하며 `npm run arch`로 보고서를, `npm run arch:graph`로 의존 그래프를 봅니다. 코드 파일은 빈 줄·주석을 포함해 **400줄**로 제한하며 운영 CSS에도 같은 상한을 적용합니다. `src`·`tests`·`scripts`의 폴더 하나에는 파일을 **10개**까지 두며 넘으면 주제별 하위 폴더로 나눕니다.
 
 각 npm 테스트 명령은 `test-results/<UTC 실행시각>-<종류>-<고유값>/`에 로그와 보고서를 저장합니다. 상대 심볼릭 링크로 실패를 포함한 최근 종료 결과에 접근할 수 있습니다.
 
@@ -143,18 +143,19 @@ npx playwright show-report test-results/latest-e2e/html
 
 ```text
 src/
-  app/           앱 조립, 문서 수명주기, Drive 연동
-  components/    툴바, 캔버스, 노드 편집, 대화상자
-  domain/        맵 모델과 편집 명령
-  application/   히스토리와 유스케이스
+  app/           앱 조립과 수명주기 (drive/, document/, drafts/)
+  components/    화면 (canvas/, rich-text/, editor/, menus/, dialogs/, drive/, shared/)
+  domain/        맵 모델, 편집 명령, 병합 (commands/, merge/, style/, rich-text/, util/)
+  application/   히스토리와 Drive 동기화 규칙
   adapters/      Maplet/MindMup 변환, 파일 입출력, IndexedDB, Google Drive
-  engine/        레이아웃과 연결선 좌표 계산
+  engine/        레이아웃, 기하, 뷰포트 계산 (layout/)
+  i18n/          메시지 카탈로그와 번역
   styles/        기본 요소, 에디터, 캔버스, 대화상자, 반응형 스타일
 tests/
-  unit/          도메인, 레이아웃, 포맷 변환, 어댑터 테스트
-  integration/   초안 저장소와 개발 도구 테스트
-  architecture/  의존성 경계와 순환 참조 검사
-  e2e/           브라우저 시나리오
+  unit/          src 레이어 구조를 따른 단위 테스트
+  integration/   앱·컴포넌트·저장소·개발 도구 통합 테스트
+  architecture/  레이어·순환 참조·고아 파일·코드 규칙 검사
+  e2e/           기능별 브라우저 시나리오 (drive/, editing/, layout/, app/)
   fixtures/      네이티브 및 합성 MindMup 샘플
 docs/            가이드, 화면 캡처, 아키텍처 결정 기록
 ```

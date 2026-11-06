@@ -8,7 +8,7 @@ import { clearDriveSession } from './adapters/drive/session';
 import { startPageLanguage } from './adapters/page-language';
 import { startPageTheme } from './adapters/page-theme';
 import { storedPreferences } from './adapters/storage/preferences';
-import { PreferencesContext } from './components/preferences';
+import { PreferencesContext } from './components/shared/preferences';
 import { DraftStore } from './adapters/storage/drafts';
 import { draftKey, startTab } from './adapters/storage/tab-session';
 

@@ -1,7 +1,7 @@
 import type { JsonObject } from '../domain/model';
-import type { LineStyle } from '../domain/node-colors';
-import { nodeMarkers } from '../domain/node-markers';
-import type { HighlightColor } from '../domain/rich-text';
+import type { LineStyle } from '../domain/style/node-colors';
+import { nodeMarkers } from '../domain/style/node-markers';
+import type { HighlightColor } from '../domain/rich-text/rich-text';
 
 /** Pixel sizes and paints shared by the canvas, text measurement and the SVG export. */
 export const NODE_PADDING_X = 12;

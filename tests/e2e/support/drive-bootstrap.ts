@@ -1,4 +1,4 @@
-import { google } from '../../../src/app/driveConnection';
+import { google } from '../../../src/app/drive/driveConnection';
 
 // Only the E2E build loads this dependency. Reloads use normal disconnected startup.
 if ((window as Window & { mapletDriveFixture?: boolean }).mapletDriveFixture) {

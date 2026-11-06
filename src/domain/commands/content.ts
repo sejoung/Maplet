@@ -1,6 +1,6 @@
 import type { JsonObject, MindMap, MindNode } from '../model';
 import { AppError } from '../errors';
-import { equalJson } from '../json';
+import { equalJson } from '../util/json';
 import { nodeOf, titleOf } from '../invariants';
 import { editNodes } from '../node-edits';
 import { setBranchSide } from './structure';

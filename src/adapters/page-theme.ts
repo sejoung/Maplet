@@ -1,5 +1,5 @@
 import type { Preferences, Theme } from '../domain/preferences';
-import type { Store } from '../domain/store';
+import type { Store } from '../domain/util/store';
 
 /** `system` leaves the palette to the operating system through CSS; the others pin it. */
 export function showTheme(theme: Theme): void {

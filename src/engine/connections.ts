@@ -1,5 +1,5 @@
 import type { MindMap } from '../domain/model';
-import type { Layout, LayoutNode } from './layout';
+import type { Layout, LayoutNode } from './layout/layout';
 
 export interface ConnectionLine {
   from: string;

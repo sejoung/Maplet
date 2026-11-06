@@ -1,5 +1,5 @@
-import { isNonEmptyString } from '../../domain/guards';
-import { isJsonObject } from '../../domain/json';
+import { isNonEmptyString } from '../../domain/util/guards';
+import { isJsonObject } from '../../domain/util/json';
 
 /** Messages exchanged between open tabs of the same origin; nothing is persisted. */
 export type AuthMessage =

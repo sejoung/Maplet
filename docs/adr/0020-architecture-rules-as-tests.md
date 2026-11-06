@@ -16,7 +16,7 @@ ADR 0001의 계층 규칙과 순환 참조 검사는 직접 만든 AST 검사기
   - 모든 레이어로 갈 수 있는 `app`처럼 절대 위반될 수 없는 규칙은 만들지 않는다.
 - 문법 트리가 필요한 코드 수준 규칙은 `tests/architecture/code-rules.ts`의 순수 함수로 둔다.
   - 순수 계층(domain·application·engine)의 브라우저 전역 사용 금지, 리터럴이 아닌 동적 import 금지.
-  - 상태를 가진 어댑터 클래스(adapters에서 export하고 상속이 없는 클래스)는 조립 지점(`main.tsx`, `app/driveConnection.ts`)에서만 생성한다. 나머지 코드는 전달받은 객체에 의존한다(DIP).
+  - 상태를 가진 어댑터 클래스(adapters에서 export하고 상속이 없는 클래스)는 조립 지점(`main.tsx`, `app/drive/driveConnection.ts`)에서만 생성한다. 나머지 코드는 전달받은 객체에 의존한다(DIP).
   - `use…` 훅은 React가 도는 계층(components·app, `i18n/react.ts`)에서만 선언한다.
 - 두 종류 모두 Vitest(`tests/architecture/architecture.test.ts`)에서 실행해 `npm run verify`에 포함한다. 각 규칙이 실제로 위반을 잡는지 증명한다.
   - 모듈 규칙: 테스트가 저장소 안 임시 폴더에 모든 규칙을 한 번씩 어기는 프로젝트를 생성하고, 설정된 규칙 이름 전체가 위반으로 보고되는지 확인한다. 레이어를 추가하면 위반 사례도 자동으로 생성된다.

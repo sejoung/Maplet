@@ -147,8 +147,33 @@
   cursor: pointer;
   touch-action: none;
 }
-.minimap rect {
-  fill: var(--border-strong);
+.minimap-edge {
+  fill: none;
+  stroke: var(--edge);
+  stroke-width: 1.25;
+}
+.minimap-link {
+  fill: none;
+  stroke: var(--link);
+  stroke-width: 1;
+  stroke-dasharray: 3 2;
+}
+.minimap-node {
+  fill: var(--node-bg);
+  stroke: var(--border-strong);
+  stroke-width: 1;
+}
+.minimap-node.root {
+  fill: var(--root-bg);
+  stroke: var(--root-border);
+}
+.minimap-node.selected {
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+.minimap-node.match {
+  stroke: var(--match-ring-strong);
+  stroke-width: 2;
 }
 .minimap .minimap-view {
   fill: var(--accent-tint);

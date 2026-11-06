@@ -1,4 +1,4 @@
-import type { HighlightColor } from './rich-text';
+import type { HighlightColor } from './rich-text/rich-text';
 
 export const THEMES = ['system', 'light', 'dark'] as const;
 /** `system` follows the operating system; the others pin the palette. */

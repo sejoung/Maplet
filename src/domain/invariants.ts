@@ -1,6 +1,6 @@
 import { MAX_DEPTH, MAX_NODE_COUNT, MAX_TITLE, type MindMap, type MindNode } from './model';
 import { AppError, formatCount } from './errors';
-import { isReservedId } from './ids';
+import { isReservedId } from './util/ids';
 import { depthOf, isDescendant, subtreeHeight } from './tree';
 
 /** Preconditions shared by commands; each throws (or returns) a user-facing error. */

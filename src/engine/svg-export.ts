@@ -1,15 +1,15 @@
 import type { MindMap, MindNode } from '../domain/model';
-import { FONT_FAMILIES, nodeTypography, type NodeTypography } from '../domain/typography';
+import { FONT_FAMILIES, nodeTypography, type NodeTypography } from '../domain/style/typography';
 import {
   LINE_COLORS,
   NODE_BACKGROUND,
   branchLine,
   nodeBackground,
   nodeBorder,
-} from '../domain/node-colors';
+} from '../domain/style/node-colors';
 import { connectionLines } from './connections';
 import { boundsOf } from './geometry';
-import type { Layout, LayoutNode } from './layout';
+import type { Layout, LayoutNode } from './layout/layout';
 import {
   DASHES,
   HIGHLIGHT_FILLS,

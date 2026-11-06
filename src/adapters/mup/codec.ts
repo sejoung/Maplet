@@ -6,11 +6,11 @@ import {
   type MindNode,
   type Side,
 } from '../../domain/model';
-import { isNodePosition } from '../../domain/positions';
-import { cleanConnections } from '../../domain/connections';
+import { isNodePosition } from '../../domain/commands/positions';
+import { cleanConnections } from '../../domain/commands/connections';
 import { AppError, formatCount } from '../../domain/errors';
-import { isReservedId } from '../../domain/ids';
-import { equalJson, isJsonObject } from '../../domain/json';
+import { isReservedId } from '../../domain/util/ids';
+import { equalJson, isJsonObject } from '../../domain/util/json';
 import { isValidRank, rankMagnitude } from '../../domain/ranks';
 import {
   assertDepth,

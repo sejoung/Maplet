@@ -23,7 +23,7 @@ const BROWSER_GLOBALS = [
   'navigator',
 ];
 /** Files that build stateful adapters (Drive client, auth, draft store) for the app. */
-export const COMPOSITION_ROOTS = ['main.tsx', 'app/driveConnection.ts'];
+export const COMPOSITION_ROOTS = ['main.tsx', 'app/drive/driveConnection.ts'];
 /** React hooks belong to the UI and composition layers. */
 const HOOK_LAYERS = ['components', 'app'];
 const HOOK_FILES = ['i18n/react.ts'];

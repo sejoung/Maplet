@@ -4,7 +4,7 @@ import {
   type MergedSnapshot,
   type RemoteFile,
 } from './drive-merge';
-import type { DriveBaseline, DriveSnapshot } from '../domain/snapshot';
+import type { DriveBaseline, DriveSnapshot } from '../domain/merge/snapshot';
 
 interface RestoreCheck<File extends RemoteFile> {
   /** Local work stays and is merged with Drive instead of being replaced by it. */

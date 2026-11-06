@@ -9,7 +9,7 @@ export default ts.config(
   js.configs.recommended,
   ...ts.configs.recommended,
   {
-    files: ['**/*.{ts,tsx,js,mjs}'],
+    files: ['**/*.{ts,tsx,js,mjs,cjs}'],
     languageOptions: { globals: { ...globals.browser, ...globals.node } },
     rules: { 'max-lines': ['error', { max: 400, skipBlankLines: false, skipComments: false }] },
   },

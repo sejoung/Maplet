@@ -1,7 +1,7 @@
 import { MAX_DEPTH, MAX_NODE_COUNT } from '../domain/model';
 import { AppError, formatCount } from '../domain/errors';
 import { depthLimit } from '../domain/invariants';
-import { parseFiniteJson } from '../domain/json';
+import { parseFiniteJson } from '../domain/util/json';
 import { safeUrl } from '../domain/commands';
 
 /** What an imported document may contain; every format reports a limit with the same key. */

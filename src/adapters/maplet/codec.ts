@@ -6,13 +6,13 @@ import {
   type MindMap,
   type MindNode,
 } from '../../domain/model';
-import { isNodePosition } from '../../domain/positions';
+import { isNodePosition } from '../../domain/commands/positions';
 import { AppError } from '../../domain/errors';
-import { isNodeId, own } from '../../domain/ids';
-import { isOneOf } from '../../domain/guards';
-import { isJsonObject } from '../../domain/json';
+import { isNodeId, own } from '../../domain/util/ids';
+import { isOneOf } from '../../domain/util/guards';
+import { isJsonObject } from '../../domain/util/json';
 import { hasDuplicateRanks, isValidRank, renumberRanks } from '../../domain/ranks';
-import { cleanConnections } from '../../domain/connections';
+import { cleanConnections } from '../../domain/commands/connections';
 import {
   assertDepth,
   assertNodeCount,

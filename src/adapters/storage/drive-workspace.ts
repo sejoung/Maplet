@@ -1,5 +1,5 @@
-import { isNonEmptyString } from '../../domain/guards';
-import { isJsonObject } from '../../domain/json';
+import { isNonEmptyString } from '../../domain/util/guards';
+import { isJsonObject } from '../../domain/util/json';
 import type { DriveFile, DriveFolder } from '../drive/types';
 import { readJsonItem, writeJsonItem, type StorageScope } from './web-storage';
 

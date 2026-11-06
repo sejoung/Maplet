@@ -1,6 +1,6 @@
 import { useCallback, useEffect } from 'react';
-import { useLatest } from '../components/useLatest';
-import { TEXT_EDITOR_SELECTOR } from '../components/canvas-dom';
+import { useLatest } from '../components/shared/useLatest';
+import { TEXT_EDITOR_SELECTOR } from '../components/canvas/canvas-dom';
 
 interface Shortcuts {
   save(): void;

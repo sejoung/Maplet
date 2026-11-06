@@ -7,9 +7,9 @@ import {
   type Side,
 } from '../model';
 import { AppError } from '../errors';
-import { own } from '../ids';
+import { own } from '../util/ids';
 import { nextRank, placeRank } from '../ranks';
-import { pruneConnections } from '../connections';
+import { pruneConnections } from './connections';
 import { assertNewId, assertRoom, depthLimit, moveViolation, nodeOf, titleOf } from '../invariants';
 import { applyRanks, attachChild, editNodes, placeBranch } from '../node-edits';
 import { depthOf, subtreeIds, topBranch } from '../tree';

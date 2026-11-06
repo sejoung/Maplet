@@ -1,6 +1,6 @@
 import type { MindMap } from '../domain/model';
 import { stripMapExtension } from '../domain/filename';
-import { isJsonObject } from '../domain/json';
+import { isJsonObject } from '../domain/util/json';
 import { MAPLET_JSON, mapletFromJson, serializeMaplet } from './maplet/codec';
 import { MUP_JSON, mupFromJson, serializeMup } from './mup/codec';
 import { mapToMarkdown, mapToOpml, markdownToMap, opmlToMap, textToMap } from './outline/outline';

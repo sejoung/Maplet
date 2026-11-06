@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
-import { ConfirmDialog, type ConfirmRequest } from '../components/ConfirmDialog';
+import { ConfirmDialog, type ConfirmRequest } from '../components/dialogs/ConfirmDialog';
 
 interface Pending {
   request: ConfirmRequest;
