@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, type LucideIcon } from 'lucide-react';
+import { focusMenuItem, moveMenuFocus } from './menu-keys';
 
 const items = (menu: HTMLElement) => [
   ...menu.querySelectorAll<HTMLButtonElement>('.menu-items button:not(:disabled)'),
@@ -21,39 +22,30 @@ function navigate(
   }
   const list = items(details);
   const onTrigger = event.target === trigger;
-  const move = (next: number) => {
-    event.preventDefault();
-    list[(next + list.length) % list.length]?.focus();
-  };
   if (onTrigger && (event.key === 'Enter' || event.key === ' ')) focusOnOpen.current = 'first';
   else if (onTrigger && (event.key === 'ArrowDown' || event.key === 'ArrowUp')) {
     event.preventDefault();
-    if (details.open) move(event.key === 'ArrowDown' ? 0 : list.length - 1);
+    if (details.open) focusMenuItem(list, event.key === 'ArrowDown' ? 0 : -1);
     else {
       focusOnOpen.current = event.key === 'ArrowDown' ? 'first' : 'last';
       details.open = true;
     }
-  } else if (!onTrigger) {
-    const index = list.indexOf(document.activeElement as HTMLButtonElement);
-    if (event.key === 'ArrowDown') move(index + 1);
-    else if (event.key === 'ArrowUp') move(index - 1);
-    else if (event.key === 'Home') move(0);
-    else if (event.key === 'End') move(list.length - 1);
-  }
+  } else if (!onTrigger) moveMenuFocus(list, event);
 }
 
 /**
  * A disclosure of command buttons. Keys match the context menu: ↓ opens and moves into the
  * list, ↑↓/Home/End move within it, and Escape closes it and returns focus to the trigger.
+ * Clicking a command closes the menu before the command runs.
  */
 export function ToolbarMenu({
   label,
-  icon,
+  icon: Icon,
   children,
   className = '',
 }: {
   label: string;
-  icon?: ReactNode;
+  icon?: LucideIcon;
   children: ReactNode;
   className?: string;
 }) {
@@ -85,21 +77,30 @@ export function ToolbarMenu({
         setOpen(details.open);
         const target = focusOnOpen.current;
         focusOnOpen.current = null;
-        if (details.open && target) {
-          const list = items(details);
-          (target === 'first' ? list[0] : list.at(-1))?.focus();
-        }
+        if (details.open && target) focusMenuItem(items(details), target === 'first' ? 0 : -1);
         // Closing while focus is inside (e.g. after a command) must not strand it.
         if (!details.open && details.contains(document.activeElement))
           if (document.activeElement !== trigger.current) trigger.current?.focus();
       }}
     >
       <summary ref={trigger} role="button" aria-label={label} title={label} aria-expanded={open}>
-        {icon}
+        {Icon && <Icon size={18} />}
         <span>{label}</span>
         <ChevronDown size={12} aria-hidden="true" />
       </summary>
-      <div className="menu-items">{children}</div>
+      <div
+        className="menu-items"
+        // Capture runs before the command: focus leaves the list it hides first, so a dialog
+        // the command opens restores focus to the visible trigger.
+        onClickCapture={(event) => {
+          if (!(event.target as Element).closest('button')) return;
+          const details = menu.current!;
+          if (details.contains(document.activeElement)) trigger.current?.focus();
+          details.open = false;
+        }}
+      >
+        {children}
+      </div>
     </details>
   );
 }

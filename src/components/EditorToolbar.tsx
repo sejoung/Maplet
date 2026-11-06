@@ -1,126 +1,62 @@
 import { useI18n } from '../i18n/react';
-import type { RefObject } from 'react';
-import {
-  CircleHelp,
-  CornerDownRight,
-  Eye,
-  Focus,
-  Link2,
-  MessageSquare,
-  Minus,
-  MoreHorizontal,
-  Palette,
-  Plus,
-  Redo2,
-  Search,
-  SquarePen,
-  Trash2,
-  Undo2,
-  WandSparkles,
-} from 'lucide-react';
+import { CircleHelp, Eye, Minus, MoreHorizontal, Plus, SquarePen } from 'lucide-react';
 import type { MindMap } from '../domain/model';
-import { canDeleteNodes } from '../domain/selection';
-import { ToolbarMenu } from './ToolbarMenu';
-import type { CanvasControls } from './canvas-types';
-import { NodeActionItems, type NodeAction, type NodeActionGroups } from './node-actions';
-import type { NodeTool } from './NodeToolsDialog';
 import type { FormatCommand } from '../domain/rich-text';
+import { ToolbarMenu } from './ToolbarMenu';
+import { ToolbarButton } from './ToolbarButton';
+import { findAction, MenuItems, withoutShortcut, type MenuAction } from './menu-actions';
+import type { CanvasActionGroups, NodeActionGroups } from './node-actions';
 import { FormatTools } from './FormatTools';
 
+/** The editing toolbar, built from the same actions as the node and canvas menus. */
 export function EditorToolbar({
   map,
-  selected,
   selection,
   actions,
-  canUndo,
-  canRedo,
-  onUndo,
-  onRedo,
-  onAdd,
-  onDelete,
-  onHelp,
-  onArrange,
-  openTool,
-  onFind,
-  viewActions,
-  command,
-  controls,
+  canvas,
   zoom,
+  onHelp,
   onFormatNodes,
 }: {
   map: MindMap;
-  selected: string;
   selection: string[];
   actions: NodeActionGroups;
-  canUndo: boolean;
-  canRedo: boolean;
-  onUndo(): void;
-  onRedo(): void;
-  onAdd(sibling?: boolean): void;
-  onDelete(): void;
-  onHelp(): void;
-  onArrange(): void;
-  openTool(tool: NodeTool): void;
-  onFind(): void;
-  viewActions: NodeAction[][];
-  command(action: () => void): () => void;
-  controls: RefObject<CanvasControls | null>;
+  canvas: CanvasActionGroups;
   zoom: number;
+  onHelp(): void;
   onFormatNodes(command: FormatCommand): void;
 }) {
   const { t } = useI18n();
-  const node = map.nodes[selected];
-  // The dot beside Notes is visual only; the name says the note exists.
-  const notesLabel = node.notes ? t('toolbar.notesWritten') : t('common.notes');
+  const node = (id: string) => findAction(actions, id);
+  const view = (id: string) => findAction(canvas, id);
+  const [undo, redo] = canvas.history;
+  // Shown as buttons on wide screens and gathered under More on narrow ones.
+  const quick = [node('notes'), node('link'), node('style'), view('find')];
+  const help: MenuAction = {
+    id: 'help',
+    label: t('toolbar.keyboardShortcuts'),
+    icon: CircleHelp,
+    run: onHelp,
+  };
+  const arrange = view('autoArrange');
   return (
     <div role="region" aria-label={t('toolbar.editingToolbar')}>
       <div className="editor-toolbar" role="toolbar" aria-label={t('toolbar.editingTools')}>
         <div className="toolbar-group">
-          <button
-            className="icon-button"
-            aria-label={t('common.undo')}
-            title={t('toolbar.undoCtrlCmdZ')}
-            disabled={!canUndo}
-            onClick={onUndo}
-          >
-            <Undo2 size={17} />
-          </button>
-          <button
-            className="icon-button"
-            aria-label={t('common.redo')}
-            title={t('toolbar.redoCtrlCmdShiftZ')}
-            disabled={!canRedo}
-            onClick={onRedo}
-          >
-            <Redo2 size={17} />
-          </button>
+          <ToolbarButton action={undo} hint />
+          <ToolbarButton action={redo} hint />
         </div>
         <span className="tool-divider" />
-        <button
-          className="tool-button add-node"
-          aria-label={t('common.addChildNode')}
-          title={t('toolbar.addChildNodeTab')}
-          onClick={() => onAdd()}
-        >
-          <CornerDownRight size={17} />
-          <span>{t('toolbar.childNode')}</span>
-        </button>
-        <button
-          className="tool-button delete-node"
-          aria-label={t('toolbar.deleteSelectedNode')}
-          title={t('toolbar.deleteSelectedNodeTitle')}
-          disabled={!canDeleteNodes(map, selection)}
-          onClick={onDelete}
-        >
-          <Trash2 size={17} />
-          <span>{t('toolbar.delete')}</span>
-        </button>
-        <ToolbarMenu
-          label={t('toolbar.nodeActions')}
-          icon={<SquarePen size={18} />}
-          className="node-menu"
-        >
-          <NodeActionItems
+        <ToolbarButton action={node('addChild')} labelled hint className="add-node" />
+        <ToolbarButton
+          action={node('delete')}
+          labelled
+          hint
+          label={t('toolbar.deleteSelectedNode')}
+          className="delete-node"
+        />
+        <ToolbarMenu label={t('toolbar.nodeActions')} icon={SquarePen} className="node-menu">
+          <MenuItems
             groups={[
               actions.create,
               actions.clipboard,
@@ -128,123 +64,34 @@ export function EditorToolbar({
               actions.view,
               actions.remove,
             ]}
-            wrap={command}
           />
         </ToolbarMenu>
         <span className="tool-divider" />
         <FormatTools map={map} selection={selection} onFormatNodes={onFormatNodes} />
         <span className="tool-divider desktop-tool" />
-        <button
-          className="tool-button desktop-tool"
-          aria-label={notesLabel}
-          title={notesLabel}
-          onClick={command(() => openTool('notes'))}
-        >
-          <MessageSquare size={16} />
-          <span>{t('common.notes')}</span>
-          {node.notes && <span className="tool-dot" aria-hidden="true" />}
-        </button>
-        <button
-          className="tool-button desktop-tool"
-          aria-label={t('common.link')}
-          title={t('common.link')}
-          onClick={command(() => openTool('link'))}
-        >
-          <Link2 size={16} />
-          <span>{t('common.link')}</span>
-        </button>
-        <button
-          className="tool-button desktop-tool"
-          aria-label={t('common.style')}
-          title={t('common.style')}
-          onClick={command(() => openTool('style'))}
-        >
-          <Palette size={16} />
-          <span>{t('common.style')}</span>
-        </button>
-        <button
-          className="tool-button desktop-tool"
-          aria-label={t('common.find')}
-          title={t('common.find')}
-          onClick={command(onFind)}
-        >
-          <Search size={16} />
-          <span>{t('common.find')}</span>
-        </button>
-        <ToolbarMenu
-          label={t('toolbar.more')}
-          icon={<MoreHorizontal size={18} />}
-          className="mobile-tools"
-        >
-          <button onClick={command(() => openTool('notes'))}>
-            <MessageSquare size={16} />
-            {notesLabel}
-          </button>
-          <button onClick={command(() => openTool('link'))}>
-            <Link2 size={16} />
-            {t('common.link')}
-          </button>
-          <button onClick={command(() => openTool('style'))}>
-            <Palette size={16} />
-            {t('common.style')}
-          </button>
-          <button onClick={command(onFind)}>
-            <Search size={16} />
-            {t('common.find')}
-          </button>
-          <hr />
-          <button onClick={command(onHelp)} aria-label={t('toolbar.keyboardShortcuts')}>
-            <CircleHelp size={16} />
-            {t('toolbar.keyboardShortcuts')}
-          </button>
+        {quick.map((action) => (
+          <ToolbarButton key={action.id} action={action} labelled className="desktop-tool" />
+        ))}
+        <ToolbarMenu label={t('toolbar.more')} icon={MoreHorizontal} className="mobile-tools">
+          <MenuItems groups={[quick.map(withoutShortcut), [help]]} />
         </ToolbarMenu>
-        <ToolbarMenu label={t('toolbar.view')} icon={<Eye size={18} />} className="view-menu">
-          <NodeActionItems groups={viewActions} wrap={command} />
+        <ToolbarMenu label={t('toolbar.view')} icon={Eye} className="view-menu">
+          <MenuItems groups={[canvas.levels, canvas.display]} />
         </ToolbarMenu>
-        <button
-          className="tool-button auto-layout-button"
-          aria-label={t('toolbar.autoArrangeEntireMap')}
+        <ToolbarButton
+          action={arrange}
+          labelled
+          label={t('toolbar.autoArrangeEntireMap')}
           title={t('toolbar.autoArrangeHint')}
-          onClick={onArrange}
-        >
-          <WandSparkles size={17} />
-          <span>{t('common.autoArrange')}</span>
-        </button>
+          className="auto-layout-button"
+        />
         <div className="zoom-tools">
-          <button
-            className="icon-button"
-            aria-label={t('common.zoomOut')}
-            title={t('common.zoomOut')}
-            onClick={() => controls.current?.zoomOut()}
-          >
-            <Minus size={17} />
-          </button>
+          <ToolbarButton action={view('zoomOut')} icon={Minus} />
           <output aria-label={t('toolbar.zoomLevel')}>{Math.round(zoom * 100)}%</output>
-          <button
-            className="icon-button"
-            aria-label={t('common.zoomIn')}
-            title={t('common.zoomIn')}
-            onClick={() => controls.current?.zoomIn()}
-          >
-            <Plus size={17} />
-          </button>
-          <button
-            className="icon-button"
-            aria-label={t('common.fitScreen')}
-            title={t('common.fitScreen')}
-            onClick={() => controls.current?.fit()}
-          >
-            <Focus size={17} />
-          </button>
+          <ToolbarButton action={view('zoomIn')} icon={Plus} />
+          <ToolbarButton action={view('fit')} />
         </div>
-        <button
-          className="icon-button help-button"
-          aria-label={t('toolbar.keyboardShortcuts')}
-          title={t('toolbar.keyboardShortcuts')}
-          onClick={onHelp}
-        >
-          <CircleHelp size={17} />
-        </button>
+        <ToolbarButton action={help} className="help-button" />
       </div>
     </div>
   );

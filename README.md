@@ -123,7 +123,7 @@ npm run test:e2e
 npm run test:watch
 ```
 
-The quality and Pages workflows run verification and desktop Chromium E2E tests, including accessibility checks, with at most two test workers in CI. Layer boundaries and circular dependencies are enforced by architecture tests. Code files are limited to **400 lines**, including comments and blank lines; source CSS has the same limit.
+The quality and Pages workflows run verification and desktop Chromium E2E tests, including accessibility checks, with at most two test workers in CI. Architecture tests (dependency-cruiser plus AST rules) enforce layer boundaries, circular dependencies, orphan files and where adapters are built; `npm run arch` prints the report and `npm run arch:graph` the dependency graph. Code files are limited to **400 lines**, including comments and blank lines; source CSS has the same limit.
 
 Each npm test command saves logs and reports in `test-results/<UTC timestamp>-<kind>-<unique suffix>/`. Relative symlinks point to the latest completed run, including failures:
 

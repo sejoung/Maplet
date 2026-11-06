@@ -62,14 +62,9 @@ export function mergeMaps(
     const b = own(base.nodes, id),
       r = own(remote.nodes, id);
     const merged = mergeValue(
-      b && withoutTree(b),
-      l && withoutTree(l),
-      r && withoutTree(r),
-      id,
-      [],
-      conflicts,
-      choices,
-      prefer,
+      { base: b && withoutTree(b), local: l && withoutTree(l), remote: r && withoutTree(r) },
+      { nodeId: id, path: [] },
+      resolution,
     );
     if (merged) nodes[id] = { ...(merged as MindNode), children: [] };
   }
@@ -79,24 +74,19 @@ export function mergeMaps(
     void _nodes;
     return rest;
   };
-  mergeLayout(base, local, remote, nodes, resolution);
+  const placed = mergeLayout(base, local, remote, nodes, resolution);
   const merged: MindMap = {
     ...(mergeValue(
-      metadata(base),
-      metadata(local),
-      metadata(remote),
-      null,
-      [],
-      conflicts,
-      choices,
-      prefer,
+      { base: metadata(base), local: metadata(local), remote: metadata(remote) },
+      { nodeId: null, path: [] },
+      resolution,
     ) as MindMap),
-    nodes,
+    nodes: placed,
     roots: [],
   };
-  if (!rebuildTree(merged)) resolveTree(merged, base, local, remote, resolution);
+  const tree = rebuildTree(merged) ?? resolveTree(merged, base, local, remote, resolution);
   // Cross-links merge as one value; drop any whose ends the merged tree no longer has.
-  return { map: pruneConnections(merged), conflicts };
+  return { map: pruneConnections(tree), conflicts };
 }
 
 export const equalMaps = (a: MindMap, b: MindMap) => equalValue(a, b);

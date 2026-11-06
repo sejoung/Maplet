@@ -1,5 +1,6 @@
 import { Cloud, Check, Clock, CloudUpload, CloudAlert, LoaderCircle } from 'lucide-react';
-import type { DriveSyncStatus } from '../application/drive-sync';
+import type { DriveSyncKind } from '../application/drive-sync';
+import { syncPresentation } from './drive-labels';
 import { useI18n } from '../i18n/react';
 
 const icons = {
@@ -19,7 +20,7 @@ const icons = {
 export function DriveConnectionButton({
   connected,
   busy,
-  sync: savedStatus,
+  sync: kind,
   editing,
   onClick,
   onRetry,
@@ -27,23 +28,20 @@ export function DriveConnectionButton({
 }: {
   connected: boolean;
   busy: boolean;
-  sync: DriveSyncStatus | null;
+  sync: DriveSyncKind | null;
   editing: boolean;
   onClick(): void;
   onRetry(): void;
   onRenew(): void;
 }) {
   const { t } = useI18n();
-  const sync =
-    editing && savedStatus && ['synced', 'pending', 'ready'].includes(savedStatus.kind)
-      ? { kind: 'pending' as const, label: 'drive.editing' }
-      : savedStatus;
+  const sync = kind && syncPresentation(kind, editing);
   const label = t(connected ? 'drive.googleDriveConnected' : 'drive.connectGoogleDrive');
-  const Icon = sync ? icons[sync.kind] : Cloud;
-  const attention = sync?.kind === 'error' || sync?.kind === 'reconnect';
+  const Icon = sync ? icons[sync.tone] : Cloud;
+  const attention = sync?.tone === 'error' || sync?.tone === 'reconnect';
   return (
     <div
-      className={`drive-control${sync ? ` has-status ${sync.kind}` : ''}${attention ? ' needs-attention' : ''}`}
+      className={`drive-control${sync ? ` has-status ${sync.tone}` : ''}${attention ? ' needs-attention' : ''}`}
     >
       <button
         className={`button drive-button${connected ? ' connected' : ''}`}
@@ -53,7 +51,7 @@ export function DriveConnectionButton({
         disabled={busy}
         onClick={onClick}
       >
-        <Icon size={16} className={sync?.kind === 'saving' ? 'sync-spinner' : undefined} />
+        <Icon size={16} className={sync?.tone === 'saving' ? 'sync-spinner' : undefined} />
         {sync ? (
           <span className="drive-label-status">Drive</span>
         ) : (
@@ -67,7 +65,7 @@ export function DriveConnectionButton({
       </button>
       {sync && (
         <span
-          className={`drive-sync-state ${sync.kind}`}
+          className={`drive-sync-state ${sync.tone}`}
           role="status"
           aria-label={t('drive.driveSyncStatus')}
           aria-atomic="true"
@@ -75,7 +73,7 @@ export function DriveConnectionButton({
           {t(sync.label)}
         </span>
       )}
-      {sync?.kind === 'error' && (
+      {sync?.tone === 'error' && (
         <button
           type="button"
           className="drive-retry"
@@ -86,7 +84,7 @@ export function DriveConnectionButton({
           {t('drive.retry')}
         </button>
       )}
-      {sync?.kind === 'expiring' && (
+      {sync?.tone === 'expiring' && (
         <button
           type="button"
           className="drive-retry drive-renew"

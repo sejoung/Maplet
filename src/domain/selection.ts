@@ -1,6 +1,7 @@
-import type { JsonObject, MindMap, MindNode, Side } from './model';
-import { moveNode, updateNode } from './commands';
-import { equalJson } from './json';
+import type { MindMap } from './model';
+import { ancestors } from './tree';
+
+/** Queries about a selection; the commands that act on one live in `commands`. */
 
 /** Selected nodes that are not inside another selected branch, in document order. */
 export function topLevel(map: MindMap, ids: readonly string[]): string[] {
@@ -14,15 +15,18 @@ export function topLevel(map: MindMap, ids: readonly string[]): string[] {
   return result;
 }
 
+const hidden = (map: MindMap, id: string) =>
+  ancestors(map, id).some((parent) => map.nodes[parent].collapsed);
+
 /** Selected nodes that still exist and are not hidden inside a collapsed branch. */
-export function visibleSelection(map: MindMap, ids: readonly string[]): string[] {
-  return ids.filter((id) => {
-    if (!Object.hasOwn(map.nodes, id)) return false;
-    for (let parent = map.nodes[id].parentId; parent; parent = map.nodes[parent].parentId)
-      if (map.nodes[parent].collapsed) return false;
-    return true;
-  });
-}
+export const visibleSelection = (map: MindMap, ids: readonly string[]): string[] =>
+  ids.filter((id) => Object.hasOwn(map.nodes, id) && !hidden(map, id));
+
+/** Nearest ancestor-or-self of `id` that is not hidden in a collapsed branch. */
+export const visibleAncestor = (map: MindMap, id: string): string =>
+  ancestors(map, id)
+    .filter((parent) => map.nodes[parent].collapsed)
+    .at(-1) ?? id;
 
 /** Whether deleting the selected branches would leave at least one root. */
 export function canDeleteNodes(map: MindMap, ids: readonly string[]): boolean {
@@ -30,46 +34,51 @@ export function canDeleteNodes(map: MindMap, ids: readonly string[]): boolean {
   return removed.size > 0 && map.roots.some((root) => !removed.has(root));
 }
 
-/** Reparent every selected branch under `parentId`, keeping their document order. */
-export function moveNodes(
-  map: MindMap,
-  ids: readonly string[],
-  parentId: string,
-  side?: Side,
-): MindMap {
-  return topLevel(map, ids).reduce((current, id) => moveNode(current, id, parentId, side), map);
+/** What to select once `ids` are deleted: the first one's parent, or a remaining root. */
+export const fallbackAfterDelete = (map: MindMap, ids: readonly string[]): string =>
+  map.nodes[ids[0]].parentId ?? map.roots.find((id) => !ids.includes(id))!;
+
+/** What the node commands may do for `id` with `selection`; menus enable their items from it. */
+export interface NodeCapabilities {
+  /** Several nodes are selected: branch commands act on all of them, order commands are off. */
+  group: boolean;
+  canAddSibling: boolean;
+  canDelete: boolean;
+  /** At least one selected branch is not a root, so it can be duplicated or reparented. */
+  canMoveBranches: boolean;
+  canMoveUp: boolean;
+  canMoveDown: boolean;
+  /** Some selected non-root branch sits on the other side. */
+  canPlace: Record<'left' | 'right', boolean>;
+  hasChildren: boolean;
 }
 
-type NodePatch = Partial<Pick<MindNode, 'notes' | 'links' | 'style' | 'collapsed' | 'side'>>;
-
-/**
- * Apply a patch made for `primary` to every selected node. Style changes carry only the
- * properties that differ from the primary node's style, so other formatting is kept.
- */
-export function updateNodes(
+export function nodeCapabilities(
   map: MindMap,
-  ids: readonly string[],
-  primary: string,
-  patch: NodePatch,
-): MindMap {
-  if (ids.length < 2 || patch.notes !== undefined || patch.links !== undefined)
-    return updateNode(map, primary, patch);
-  const from = map.nodes[primary]?.style ?? {};
-  return ids.reduce((current, id) => {
-    const node = current.nodes[id];
-    if (!node || (patch.side && node.parentId === null)) return current;
-    const next: NodePatch = { ...patch };
-    if (patch.style) next.style = restyle(node.style, from, patch.style);
-    return updateNode(current, id, next);
-  }, map);
-}
-
-function restyle(style: JsonObject, from: JsonObject, to: JsonObject): JsonObject {
-  const result = { ...style };
-  for (const key of new Set([...Object.keys(from), ...Object.keys(to)])) {
-    if (equalJson(from[key], to[key])) continue;
-    if (Object.hasOwn(to, key)) result[key] = to[key];
-    else delete result[key];
-  }
-  return result;
+  id: string,
+  selection: readonly string[] = [id],
+): NodeCapabilities {
+  const node = map.nodes[id];
+  const root = node.parentId === null;
+  const group = selection.length > 1;
+  const branches = (group ? topLevel(map, selection) : [id]).filter(
+    (key) => map.nodes[key].parentId !== null,
+  );
+  // Order is among siblings on the same side of the parent, as drawn.
+  const siblings = root
+    ? []
+    : map.nodes[node.parentId!].children.filter((key) => map.nodes[key].side === node.side);
+  const index = siblings.indexOf(id);
+  const elsewhere = (side: 'left' | 'right') =>
+    branches.some((key) => map.nodes[key].side !== side);
+  return {
+    group,
+    canAddSibling: !root,
+    canDelete: canDeleteNodes(map, group ? selection : [id]),
+    canMoveBranches: branches.length > 0,
+    canMoveUp: !group && index > 0,
+    canMoveDown: !group && !root && index < siblings.length - 1,
+    canPlace: { left: elsewhere('left'), right: elsewhere('right') },
+    hasChildren: node.children.length > 0,
+  };
 }

@@ -1,15 +1,19 @@
 import type { MindMap, MindNode } from './model';
 import { own } from './ids';
-import { decide, equalValue, type MergeResolution } from './merge-values';
+import { conflictId, decide, equalValue, type MergeResolution } from './merge-values';
 
-/** Overlapping subtree moves are resolved together, never as a partially applied drag. */
+/**
+ * `merged` with overlapping subtree moves resolved together, never as a partially applied
+ * drag. Position conflicts inside such a group are replaced by one group conflict.
+ */
 export function mergeLayout(
   base: MindMap,
   local: MindMap,
   remote: MindMap,
-  nodes: Record<string, MindNode>,
+  merged: Record<string, MindNode>,
   resolution: MergeResolution,
-) {
+): Record<string, MindNode> {
+  let nodes = merged;
   const { conflicts } = resolution;
   const links = new Map<string, Set<string>>();
   const link = (a: string, b: string) => {
@@ -64,7 +68,7 @@ export function mergeLayout(
         (id) => !group.includes((own(local.nodes, id) ?? remote.nodes[id]).parentId ?? ''),
       ) ?? group[0];
     const path = ['position', 'group'];
-    const id = JSON.stringify([nodeId, path]);
+    const id = conflictId(nodeId, path);
     const describe = (tree: MindMap) =>
       Object.fromEntries(
         group.map((key) => [
@@ -94,9 +98,12 @@ export function mergeLayout(
       id,
     );
     const chosen = side === 'remote' ? remote : local;
-    for (const key of group) {
+    const placed = group.flatMap((key) => {
+      const node = own(nodes, key);
       const source = own(chosen.nodes, key);
-      if (own(nodes, key) && source) nodes[key].position = source.position;
-    }
+      return node && source ? [[key, { ...node, position: source.position }] as const] : [];
+    });
+    nodes = { ...nodes, ...Object.fromEntries(placed) };
   }
+  return nodes;
 }

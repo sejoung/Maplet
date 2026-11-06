@@ -1,5 +1,10 @@
 import { useI18n } from '../i18n/react';
+import type { Language } from '../i18n/core';
 import { LANGUAGE_NAMES, setLanguage } from '../i18n/locale';
+import { isOneOf } from '../domain/guards';
+
+// The names table lists every supported language once.
+const LANGUAGES = Object.keys(LANGUAGE_NAMES) as Language[];
 
 /** The language field of the settings dialog. */
 export function LanguageSwitcher({ id, describedBy }: { id?: string; describedBy?: string }) {
@@ -10,9 +15,12 @@ export function LanguageSwitcher({ id, describedBy }: { id?: string; describedBy
       aria-label={t('settings.language')}
       aria-describedby={describedBy}
       value={language}
-      onChange={(event) => setLanguage(event.target.value === 'ko' ? 'ko' : 'en')}
+      onChange={(event) => {
+        const next = event.target.value;
+        if (isOneOf(LANGUAGES, next)) setLanguage(next);
+      }}
     >
-      {(['ko', 'en'] as const).map((code) => (
+      {LANGUAGES.map((code) => (
         <option key={code} value={code} lang={code}>
           {LANGUAGE_NAMES[code]}
         </option>

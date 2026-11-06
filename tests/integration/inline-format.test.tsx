@@ -4,7 +4,7 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import { InlineNodeEditor } from '../../src/components/InlineNodeEditor';
 import { RichLine } from '../../src/components/RichLine';
 import { readRuns, readSelection, renderRuns, writeSelection } from '../../src/components/rich-dom';
-import { EditHistory, runCommand } from '../../src/components/rich-editing';
+import { EditHistory, runCommand } from '../../src/domain/rich-editing';
 import { measureNode } from '../../src/engine/node-measure';
 import { createMap } from '../../src/domain/commands';
 import { formatRuns, richRuns } from '../../src/domain/rich-text';

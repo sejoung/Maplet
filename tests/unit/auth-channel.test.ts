@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, expect, it, vi } from 'vitest';
-import { GoogleConnection, type AuthEvent } from '../../src/adapters/drive/google';
+import { GoogleConnection } from '../../src/adapters/drive/google';
+import type { AuthEvent } from '../../src/adapters/drive/types';
 import {
   openAuthChannel,
   parseAuthMessage,

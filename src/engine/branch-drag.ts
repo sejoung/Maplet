@@ -1,8 +1,10 @@
 import type { MindMap, NodePosition, Side } from '../domain/model';
 import { canMoveNode } from '../domain/commands';
+import { subtreeIds } from '../domain/tree';
 import { isNodePosition, positionsForSubtreeMove } from '../domain/positions';
 import { layoutWithPositions, type Layout, type LayoutNode } from './layout';
 import { branchBounds } from './branch-regions';
+import { intersects, seedPositions, type Box } from './geometry';
 import { proposeSubtreeMove, type PlacementProposal } from './subtree-placement';
 
 /**
@@ -20,6 +22,8 @@ export interface DropTarget {
  * MAGNET and kept until the gap exceeds RELEASE. */
 export const DROP_MAGNET = 16;
 export const DROP_RELEASE = 32;
+/** Screen pixels a pointer travels before a press becomes a drag rather than a click. */
+export const DRAG_THRESHOLD = 4;
 
 /** A box in map coordinates; a point has no size. */
 export type Probe = NodePosition & { width?: number; height?: number };
@@ -129,10 +133,7 @@ export function translateBranches(
   ids: readonly string[],
   delta: NodePosition,
 ): PlacementProposal | null {
-  let positions: Record<string, NodePosition> = Object.fromEntries(
-    Object.values(map.nodes).flatMap((node) => (node.position ? [[node.id, node.position]] : [])),
-  );
-  for (const node of layout.nodes) positions[node.id] = { x: node.x, y: node.y };
+  let positions = seedPositions(map, layout.nodes);
   const regions: PlacementProposal['regions'] = [];
   for (const id of ids) {
     const start = positions[id];
@@ -140,12 +141,7 @@ export function translateBranches(
       x: start.x + delta.x,
       y: start.y + delta.y,
     });
-    const branch = new Set<string>();
-    const visit = (key: string) => {
-      branch.add(key);
-      map.nodes[key].children.forEach(visit);
-    };
-    visit(id);
+    const branch = new Set(subtreeIds(map, id));
     if ([...branch].some((key) => positions[key] && !isNodePosition(positions[key]))) return null;
     const boxes = layout.nodes
       .filter((node) => branch.has(node.id))
@@ -161,19 +157,8 @@ export function translateBranches(
 }
 
 /** Visible nodes that intersect a rectangle in map coordinates, in layout order. */
-export function nodesInRect(
-  layout: Layout,
-  rect: { x: number; y: number; width: number; height: number },
-): string[] {
-  return layout.nodes
-    .filter(
-      (node) =>
-        node.x < rect.x + rect.width &&
-        node.x + node.width > rect.x &&
-        node.y < rect.y + rect.height &&
-        node.y + node.height > rect.y,
-    )
-    .map((node) => node.id);
+export function nodesInRect(layout: Layout, rect: Box): string[] {
+  return layout.nodes.filter((node) => intersects(node, rect)).map((node) => node.id);
 }
 
 export interface DragState {
@@ -238,4 +223,33 @@ export function dragFrame(map: MindMap, start: Layout, state: DragState): DragFr
   const proposal = settle();
   if (!proposal) return null;
   return { layout: layoutWithPositions(start, moved.positions), proposal, target: null };
+}
+
+/** Map pixels between a sibling drop line and the node it is drawn above or below. */
+const DROP_LINE_ABOVE = 9;
+const DROP_LINE_BELOW = 6;
+
+/** How the canvas shows a drop: highlight the new parent, or draw a line where it inserts. */
+export type DropIndicator =
+  | { kind: 'child'; node: string }
+  | { kind: 'line'; node: string; x: number; y: number; width: number };
+
+export function dropIndicator(
+  layout: Layout,
+  target: DropTarget | null | undefined,
+): DropIndicator | null {
+  if (!target) return null;
+  if (target.place === 'child') return { kind: 'child', node: target.node };
+  const beside = layout.nodes.find((node) => node.id === target.node);
+  if (!beside) return null;
+  return {
+    kind: 'line',
+    node: beside.id,
+    x: beside.x,
+    y:
+      target.place === 'before'
+        ? beside.y - DROP_LINE_ABOVE
+        : beside.y + beside.height + DROP_LINE_BELOW,
+    width: beside.width,
+  };
 }

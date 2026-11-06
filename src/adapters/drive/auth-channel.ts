@@ -1,3 +1,6 @@
+import { isNonEmptyString } from '../../domain/guards';
+import { isJsonObject } from '../../domain/json';
+
 /** Messages exchanged between open tabs of the same origin; nothing is persisted. */
 export type AuthMessage =
   | { type: 'request' }
@@ -10,21 +13,21 @@ export interface AuthChannel {
   listen(receive: (message: AuthMessage) => void): void;
 }
 
+/** Messages come from other pages of the origin, so only well-formed ones are accepted. */
 export function parseAuthMessage(value: unknown): AuthMessage | null {
-  if (!value || typeof value !== 'object') return null;
-  const item = value as Record<string, unknown>;
-  const token = typeof item.token === 'string' && item.token.length > 0 ? item.token : null;
-  if (item.type === 'request') return { type: 'request' };
-  if (item.type === 'disconnected') return { type: 'disconnected' };
-  if (item.type === 'expired' && token) return { type: 'expired', token };
+  if (!isJsonObject(value)) return null;
+  const token = isNonEmptyString(value.token) ? value.token : null;
+  if (value.type === 'request') return { type: 'request' };
+  if (value.type === 'disconnected') return { type: 'disconnected' };
+  if (value.type === 'expired' && token) return { type: 'expired', token };
   if (
-    item.type === 'token' &&
+    value.type === 'token' &&
     token &&
-    typeof item.expiresIn === 'number' &&
-    Number.isFinite(item.expiresIn) &&
-    item.expiresIn > 0
+    typeof value.expiresIn === 'number' &&
+    Number.isFinite(value.expiresIn) &&
+    value.expiresIn > 0
   )
-    return { type: 'token', token, expiresIn: item.expiresIn };
+    return { type: 'token', token, expiresIn: value.expiresIn };
   return null;
 }
 

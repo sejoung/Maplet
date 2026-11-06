@@ -44,3 +44,28 @@ export interface MindMap {
 export const MAX_TITLE = 10_000;
 export const MAX_NODE_COUNT = 5_000;
 export const MAX_DEPTH = 100;
+
+/** A node with nothing but its title; by default the first child on the right. */
+export function blankNode(
+  id: string,
+  title: string,
+  parentId: string | null,
+  placement: Partial<Pick<MindNode, 'side' | 'rank' | 'position'>> = {},
+): MindNode {
+  return {
+    id,
+    originalId: id,
+    title,
+    children: [],
+    parentId,
+    rank: '1',
+    side: 'right',
+    collapsed: false,
+    style: {},
+    notes: '',
+    links: [],
+    position: null,
+    rawExtensions: {},
+    ...placement,
+  };
+}

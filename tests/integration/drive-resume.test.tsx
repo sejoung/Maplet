@@ -104,7 +104,7 @@ it('shows remembered metadata without authorizing or accessing Drive, then reope
   expect(api.save).toHaveBeenCalledExactlyOnceWith(
     expect.objectContaining({ id: 'file', version: '7' }),
     options.content,
-    false,
+    expect.objectContaining({ overwrite: false }),
   );
   expect(api.create).not.toHaveBeenCalled();
 });
@@ -113,7 +113,7 @@ it('keeps recovered local edits and resumes against their original version', asy
   const { result, options, rerender } = await setup();
   options.content = serializeMaplet(renameNode(map, map.roots[0], 'Recovered edit'));
   rerender();
-  act(() => result.current.restoreDraftWorkspace(workspace));
+  act(() => result.current.draft.restore(workspace));
   vi.useFakeTimers();
   await act(async () => result.current.resumeDrive());
   expect(options.replace).not.toHaveBeenCalled();
@@ -121,7 +121,7 @@ it('keeps recovered local edits and resumes against their original version', asy
   expect(api.save).toHaveBeenCalledWith(
     expect.objectContaining({ version: '7' }),
     options.content,
-    false,
+    expect.objectContaining({ overwrite: false }),
   );
 });
 
@@ -129,7 +129,7 @@ it('does not overwrite a remote change after recovering a local draft', async ()
   const { result, options, rerender } = await setup();
   options.content = serializeMaplet(renameNode(map, map.roots[0], 'Local edit'));
   rerender();
-  act(() => result.current.restoreDraftWorkspace(workspace));
+  act(() => result.current.draft.restore(workspace));
   api.open.mockResolvedValueOnce({ ...workspace.file, version: '9', content: saved });
   await act(async () => result.current.resumeDrive());
   expect(result.current.dialog).toBe('conflict');
@@ -155,7 +155,7 @@ it('recognizes local content already saved remotely and refreshes its version wi
   const { result, options, rerender } = await setup();
   options.content = saved;
   rerender();
-  act(() => result.current.restoreDraftWorkspace(workspace));
+  act(() => result.current.draft.restore(workspace));
   api.open.mockResolvedValueOnce({ ...workspace.file, version: '9', content: saved });
   await act(async () => result.current.resumeDrive());
   expect(result.current.driveFile?.version).toBe('9');
@@ -169,7 +169,7 @@ it('creates a copy in the remembered folder if the original file has moved elsew
   options.content = serializeMaplet(renameNode(map, map.roots[0], 'Recovered edit'));
   options.filename = 'saved.maplet';
   rerender();
-  act(() => result.current.restoreDraftWorkspace(workspace));
+  act(() => result.current.draft.restore(workspace));
   api.open.mockResolvedValueOnce({ ...workspace.file, parents: ['elsewhere'], content: saved });
   api.create.mockResolvedValueOnce({ ...workspace.file, id: 'copy' });
   vi.useFakeTimers();
@@ -191,7 +191,7 @@ it('retains copy semantics for a recovered source that was never an update targe
   options.content = serializeMaplet(renameNode(map, map.roots[0], 'Recovered imported file'));
   options.filename = 'saved.maplet';
   rerender();
-  act(() => result.current.restoreDraftWorkspace(sourceOnly));
+  act(() => result.current.draft.restore(sourceOnly));
   api.open.mockResolvedValueOnce({ ...workspace.file, version: '9', content: saved });
   api.create.mockResolvedValueOnce({ ...workspace.file, id: 'copy' });
   vi.useFakeTimers();
@@ -219,7 +219,7 @@ it('does not restore an old target after creating another document or explicitly
   expect(options.replace).not.toHaveBeenCalled();
   await act(async () => result.current.disconnect());
   expect(readDriveWorkspace('client')).toBeNull();
-  act(() => result.current.restoreDraftWorkspace(workspace));
+  act(() => result.current.draft.restore(workspace));
   expect(result.current.saveFolder).toBeNull();
   vi.useFakeTimers();
   options.content = 'later local edit';

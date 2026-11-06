@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { GoogleConnection } from '../../src/adapters/drive/google';
 
 const config = { clientId: 'public-client', apiKey: 'public-key', appId: 'project-number' };
+const options = { language: 'ko', title: 'Open' };
 function sdk(
   result: object = { access_token: 'memory-only', expires_in: 3600 },
   popupError = false,
@@ -68,7 +69,7 @@ describe('optional Google SDK bridge', () => {
   });
   it('does not open Picker without a token and returns chosen file or cancel', async () => {
     const connection = new GoogleConnection(config);
-    await expect(connection.pick()).rejects.toThrow('drive.connectGoogleDriveFirst');
+    await expect(connection.pick('file', options)).rejects.toThrow('drive.connectGoogleDriveFirst');
     sdk();
     await connection.connect();
     let callback: (value: {
@@ -111,7 +112,7 @@ describe('optional Google SDK bridge', () => {
       DocsViewMode: { LIST: 'list' },
       ViewId: { DOCS: 'docs', FOLDERS: 'folders' },
     } as unknown as NonNullable<typeof window.google>['picker'];
-    const selected = connection.pick();
+    const selected = connection.pick('file', options);
     callback({ action: 'loaded' });
     callback({ action: 'picked', docs: [{ id: 'selected-id', name: 'Map.maplet' }] });
     await expect(selected).resolves.toEqual({ id: 'selected-id', name: 'Map.maplet' });
@@ -121,10 +122,10 @@ describe('optional Google SDK bridge', () => {
     expect(view.setMode).toHaveBeenCalledWith('list');
     expect(visible).toHaveBeenCalledWith(true);
     expect(dispose).toHaveBeenCalledOnce();
-    const cancelled = connection.pick();
+    const cancelled = connection.pick('file', options);
     callback({ action: 'cancel' });
     await expect(cancelled).resolves.toBeNull();
-    const folder = connection.pick('folder', 'en');
+    const folder = connection.pick('folder', { language: 'en', title: 'Choose a save folder' });
     expect(docsView).toHaveBeenLastCalledWith('docs');
     expect(view.setParent).toHaveBeenLastCalledWith('root');
     expect(view.setMimeTypes).toHaveBeenLastCalledWith('application/vnd.google-apps.folder');

@@ -1,5 +1,7 @@
-import { createContext, useContext, useSyncExternalStore } from 'react';
+import { createContext, useContext } from 'react';
 import type { FormatCommand, RangeFormat } from '../domain/rich-text';
+import { createStore, type Store } from '../domain/store';
+import { useStore } from './useStore';
 
 /** What the open title editor offers to the toolbar. */
 export interface RichEditorHandle {
@@ -10,41 +12,26 @@ export interface RichEditorHandle {
 
 /**
  * Lets the toolbar format the selected text of the inline title editor while it is open,
- * and re-render as that selection changes.
+ * and re-render as that selection changes: every change publishes a fresh wrapper, since the
+ * handle stays the same while what it reports moves on.
  */
-export class RichEditorBridge {
-  current: RichEditorHandle | null = null;
-  private version = 0;
-  private listeners = new Set<() => void>();
+export type RichEditorBridge = Store<{ handle: RichEditorHandle | null }>;
 
-  attach(handle: RichEditorHandle | null) {
-    this.current = handle;
-    this.notify();
-  }
+export const createRichEditorBridge = (): RichEditorBridge => createStore({ handle: null });
 
-  notify() {
-    this.version++;
-    this.listeners.forEach((listener) => listener());
-  }
+export const attachEditor = (bridge: RichEditorBridge, handle: RichEditorHandle | null) =>
+  bridge.set({ handle });
 
-  subscribe = (listener: () => void) => {
-    this.listeners.add(listener);
-    return () => this.listeners.delete(listener);
-  };
-
-  snapshot = () => this.version;
-}
+/** The editor's selection or text changed. */
+export const notifyEditor = (bridge: RichEditorBridge) =>
+  bridge.set({ handle: bridge.get().handle });
 
 export const RichEditorContext = createContext<RichEditorBridge | null>(null);
 
 export const useRichEditorBridge = () => useContext(RichEditorContext);
 
-/** Re-render when the editor opens, closes or its selection changes. */
-export function useRichEditorState(bridge: RichEditorBridge | null) {
-  useSyncExternalStore(
-    bridge?.subscribe ?? (() => () => {}),
-    bridge?.snapshot ?? (() => 0),
-    bridge?.snapshot ?? (() => 0),
-  );
-  return bridge?.current ?? null;
-}
+const NO_EDITOR: RichEditorBridge = createRichEditorBridge();
+
+/** The open editor, re-rendering when it opens, closes or its selection changes. */
+export const useRichEditorState = (bridge: RichEditorBridge | null) =>
+  useStore(bridge ?? NO_EDITOR).handle;

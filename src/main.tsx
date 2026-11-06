@@ -2,15 +2,19 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './app/App';
 import './styles.css';
-import { getLanguage, initializeLanguage } from './i18n/locale';
+import { getLanguage } from './i18n/locale';
 import { translate } from './i18n/core';
 import { clearDriveSession } from './adapters/drive/session';
-import { applyTheme, readTheme } from './components/theme';
+import { startPageLanguage } from './adapters/page-language';
+import { startPageTheme } from './adapters/page-theme';
+import { storedPreferences } from './adapters/storage/preferences';
+import { PreferencesContext } from './components/preferences';
 import { DraftStore } from './adapters/storage/drafts';
 import { draftKey, startTab } from './adapters/storage/tab-session';
 
-initializeLanguage();
-applyTheme(readTheme());
+startPageLanguage();
+const preferences = storedPreferences();
+startPageTheme(preferences);
 // Migration: older releases stored Drive credentials; none are ever restored.
 clearDriveSession();
 
@@ -22,7 +26,9 @@ else {
   const tab = await startTab();
   createRoot(root).render(
     <StrictMode>
-      <App tab={tab} drafts={new DraftStore(undefined, undefined, draftKey(tab.id))} />
+      <PreferencesContext.Provider value={preferences}>
+        <App tab={tab} drafts={new DraftStore(undefined, undefined, draftKey(tab.id))} />
+      </PreferencesContext.Provider>
     </StrictMode>,
   );
 }

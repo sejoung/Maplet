@@ -1,6 +1,6 @@
 import { useI18n } from '../i18n/react';
 import { useCallback, useRef, useState } from 'react';
-import { FolderOpen, X } from 'lucide-react';
+import { FolderOpen } from 'lucide-react';
 import { EditorHeader } from './EditorHeader';
 import { EditorToolbar } from './EditorToolbar';
 import { SettingsDialog } from './SettingsDialog';
@@ -8,10 +8,15 @@ import { Canvas, type CanvasControls } from './Canvas';
 import { NodeToolsDialog, type NodeTool } from './NodeToolsDialog';
 import { NodeContextMenu } from './NodeContextMenu';
 import { FindBar } from './FindBar';
+import { DeletedToast, MessageBanner } from './MessageBanner';
+import { StatusBar } from './StatusBar';
 import { useEditorView } from './useEditorView';
+import { useFileDrop } from './useFileDrop';
+import { useTextEditorFocus } from './useTextEditorFocus';
 import type { EditorProps } from './editor-types';
 import { plainTitle } from '../domain/rich-text';
-import { RichEditorBridge, RichEditorContext } from './rich-editor-bridge';
+import { createRichEditorBridge, RichEditorContext } from './rich-editor-bridge';
+import { focusNodeLater } from './canvas-dom';
 export type { EditorProps } from './editor-types';
 
 export function Editor(props: EditorProps) {
@@ -20,143 +25,61 @@ export function Editor(props: EditorProps) {
   const controls = useRef<CanvasControls>(null);
   const [zoom, setZoom] = useState(1);
   const [tool, setTool] = useState<NodeTool | null>(null);
-  const [dragging, setDragging] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [editingText, setEditingText] = useState(false);
-  const [richEditor] = useState(() => new RichEditorBridge());
+  const [richEditor] = useState(createRichEditorBridge);
   const [menu, setMenu] = useState<{ x: number; y: number; canvas?: boolean } | null>(null);
+  const drop = useFileDrop(props.onOpen);
+  const textEditor = useTextEditorFocus();
   const closeSettings = useCallback(() => setSettingsOpen(false), []);
   const closeTool = useCallback(() => setTool(null), []);
   const view = useEditorView(props, controls, setTool);
   const { actions, find } = view;
-  const viewActions = view.canvasActions();
-  const command = (action: () => void) => () => {
-    // Focus leaves the hidden list first, so a dialog the action opens restores it visibly.
-    document.querySelectorAll<HTMLDetailsElement>('.toolbar-menu[open]').forEach((menu) => {
-      if (menu.contains(document.activeElement)) menu.querySelector('summary')?.focus();
-      menu.open = false;
-    });
-    action();
-  };
-  const focusNode = (id: string) =>
-    requestAnimationFrame(() =>
-      document.querySelector<HTMLElement>(`[data-node-id="${CSS.escape(id)}"]`)?.focus(),
-    );
   const closeMenu = useCallback(
     (restoreFocus: boolean) => {
       setMenu(null);
-      if (restoreFocus) focusNode(selected);
+      if (restoreFocus) focusNodeLater(selected);
     },
     [selected],
   );
-  const menuGroups = (at: { x: number; y: number }) => {
+  const menuGroups = (at: { x: number; y: number; canvas?: boolean }) => {
+    if (!at.canvas)
+      return [
+        actions.create,
+        actions.tools,
+        actions.clipboard,
+        actions.arrange,
+        actions.view,
+        actions.remove,
+      ];
     const groups = view.canvasActions(at);
     return [groups.history, groups.edit, groups.levels, groups.display, groups.layout];
   };
   return (
     <RichEditorContext.Provider value={richEditor}>
-      <div
-        className="editor-shell"
-        onFocusCapture={(event) =>
-          setEditingText(event.target.matches('[data-inline-editor],[data-filename-editor]'))
-        }
-        onBlurCapture={(event) => {
-          if (event.target.matches('[data-inline-editor],[data-filename-editor]'))
-            setEditingText(false);
-        }}
-        onDragOver={(event) => {
-          if (event.dataTransfer.types.includes('Files')) {
-            event.preventDefault();
-            setDragging(true);
-          }
-        }}
-        onDragLeave={(event) => {
-          if (!event.currentTarget.contains(event.relatedTarget as Node)) setDragging(false);
-        }}
-        onDrop={(event) => {
-          if (event.dataTransfer.files.length) {
-            event.preventDefault();
-            setDragging(false);
-            props.onOpen(event.dataTransfer.files[0]);
-          }
-        }}
-      >
+      <div className="editor-shell" {...textEditor.handlers} {...drop.handlers}>
         <a className="skip-link" href="#workspace">
           {t('editor.skipMindMap')}
         </a>
         <EditorHeader
-          filename={props.filename}
-          documentKey={props.documentKey}
-          onFilenameChange={props.onFilenameChange}
-          dirty={props.dirty}
+          {...props}
           original={map.original}
-          driveConfigured={props.driveConfigured}
-          driveConnected={props.driveConnected}
-          driveBusy={props.driveBusy}
-          driveSync={props.driveSync}
-          saveToDrive={props.saveToDrive}
-          canSaveCopy={props.canSaveCopy}
-          editingText={editingText || Boolean(props.editingId)}
-          onNew={props.onNew}
-          onOpen={props.onOpen}
-          onOpenDrive={props.onOpenDrive}
-          onSave={props.onSave}
-          onSaveCopy={props.onSaveCopy}
-          onDownload={props.onDownload}
-          onExportMup={props.onExportMup}
-          onBackup={props.onBackup}
-          onExportImage={props.onExportImage}
-          onExportOutline={props.onExportOutline}
-          onPrint={props.onPrint}
-          onDrive={props.onDrive}
-          onDriveRenew={props.onDriveRenew}
+          editingText={textEditor.editing || Boolean(props.editingId)}
           onSettings={() => setSettingsOpen(true)}
-          command={command}
         />
         <EditorToolbar
           map={map}
-          selected={selected}
           selection={props.selection}
           actions={actions}
-          canUndo={props.canUndo}
-          canRedo={props.canRedo}
-          onUndo={props.onUndo}
-          onRedo={props.onRedo}
-          onAdd={props.onAdd}
-          onDelete={props.onDelete}
-          onHelp={props.onHelp}
-          onArrange={command(view.arrangeMap)}
-          openTool={setTool}
-          onFind={find.show}
-          viewActions={[viewActions.levels, viewActions.display]}
-          command={command}
-          controls={controls}
+          canvas={view.canvasActions()}
           zoom={zoom}
+          onHelp={props.onHelp}
           onFormatNodes={props.onFormatNodes}
         />
         {props.error && (
-          <div className="message error" role="alert">
-            <span>{t(props.error)}</span>
-            <button
-              className="icon-button"
-              aria-label={t('editor.dismissError')}
-              onClick={props.onDismissError}
-            >
-              <X size={16} />
-            </button>
-          </div>
+          <MessageBanner kind="error" message={props.error} onDismiss={props.onDismissError} />
         )}
         {props.notice && (
-          <div className="message notice" role="status">
-            <span>{t(props.notice)}</span>
-            <button
-              className="icon-button"
-              aria-label={t('editor.dismissNotification')}
-              onClick={props.onDismissNotice}
-            >
-              <X size={16} />
-            </button>
-          </div>
+          <MessageBanner kind="notice" message={props.notice} onDismiss={props.onDismissNotice} />
         )}
         <main className="workspace" id="workspace" tabIndex={-1}>
           {view.focus && (
@@ -176,7 +99,7 @@ export function Editor(props: EditorProps) {
               find={find}
               onClose={() => {
                 find.close();
-                focusNode(selected);
+                focusNodeLater(selected);
               }}
             />
           )}
@@ -217,53 +140,15 @@ export function Editor(props: EditorProps) {
             controlsRef={controls}
             onZoomChange={setZoom}
           />
-          {props.deletedNotice && (
-            // Floats over the canvas so the map does not shift while it is shown.
-            <div className="canvas-toast" role="status">
-              <span>{t(props.deletedNotice.message)}</span>
-              <button
-                type="button"
-                className="text-button"
-                aria-label={t('app.undoDelete')}
-                onClick={props.deletedNotice.onUndo}
-              >
-                {t('common.undo')}
-              </button>
-              <button
-                type="button"
-                className="icon-button"
-                aria-label={t('editor.dismissNotification')}
-                onClick={props.deletedNotice.onDismiss}
-              >
-                <X size={16} />
-              </button>
-            </div>
-          )}
+          {props.deletedNotice && <DeletedToast {...props.deletedNotice} />}
         </main>
-        <footer className="status-bar">
-          <div
-            className="save-status"
-            role="status"
-            aria-live={props.driveSaveStatus ? 'off' : 'polite'}
-          >
-            <span className={`status-dot ${props.dirty ? 'pending' : ''}`} />
-            <span>{props.dirty ? t('common.unsavedChanges') : t('editor.noFileChanges')}</span>
-            <span className="status-separator">·</span>
-            <span title={t(props.draftStatus)}>
-              {t(props.driveSaveStatus ?? props.draftStatus)}
-            </span>
-          </div>
-          <div className="status-tools">
-            {props.selection.length > 1 && (
-              <span className="selection-count" role="status">
-                {t('editor.selectedCount', { count: props.selection.length })}
-              </span>
-            )}
-            <span className="node-count">
-              {t('editor.nodeCount', { count: Object.keys(map.nodes).length })}
-            </span>
-          </div>
-        </footer>
+        <StatusBar
+          dirty={props.dirty}
+          draftStatus={props.draftStatus}
+          driveSaveStatus={props.driveSaveStatus}
+          selectedCount={props.selection.length}
+          nodeCount={Object.keys(map.nodes).length}
+        />
         {settingsOpen && (
           <SettingsDialog onClose={closeSettings} draftPrivacy={props.draftPrivacy} />
         )}
@@ -283,24 +168,13 @@ export function Editor(props: EditorProps) {
         )}
         {menu && map.nodes[selected] && (
           <NodeContextMenu
-            groups={
-              menu.canvas
-                ? menuGroups(menu)
-                : [
-                    actions.create,
-                    actions.tools,
-                    actions.clipboard,
-                    actions.arrange,
-                    actions.view,
-                    actions.remove,
-                  ]
-            }
+            groups={menuGroups(menu)}
             label={menu.canvas ? 'editor.canvasMenu' : 'common.nodeMenu'}
             at={menu}
             onClose={closeMenu}
           />
         )}
-        {dragging && (
+        {drop.dragging && (
           <div className="file-drop-overlay">
             <FolderOpen size={36} />
             <p>{t('editor.dropMapletMupMarkdownOpml')}</p>

@@ -1,5 +1,6 @@
 import { expect, it } from 'vitest';
 import { autoSaveState, driveSyncStatus } from '../../src/application/drive-sync';
+import { syncPresentation } from '../../src/components/drive-labels';
 
 const saved = {
   connected: true,
@@ -14,26 +15,46 @@ const saved = {
   hasFile: true,
 };
 it.each([
-  [{}, 'synced', 'drive.synced'],
-  [{ dirty: true }, 'pending', 'drive.pendingSave'],
-  [{ busy: true, saving: true, dirty: true }, 'saving', 'drive.saving'],
-  [{ busy: true, awaitingRestore: true }, 'saving', 'drive.restoringConnection'],
-  [{ busy: true }, 'saving', 'drive.checking'],
-  [{ awaitingRestore: true }, 'reconnect', 'drive.reconnectRequired'],
-  [{ connected: false }, 'reconnect', 'drive.reconnectRequired'],
-  [{ paused: true, dirty: true }, 'error', 'drive.syncError'],
-  [{ paused: true, conflict: true }, 'error', 'drive.syncConflict'],
-  [{ expiring: true, dirty: true }, 'expiring', 'drive.connectionExpiring'],
-  [{ expiring: true, paused: true }, 'error', 'drive.syncError'],
-  [{ expiring: true, busy: true, saving: true }, 'saving', 'drive.saving'],
-  [{ hasFile: false }, 'ready', 'drive.readySave'],
-  [{ hasFolder: false, hasFile: false }, 'ready', 'drive.chooseSaveFolder'],
+  [{}, 'synced'],
+  [{ dirty: true }, 'pending'],
+  [{ busy: true, saving: true, dirty: true }, 'saving'],
+  [{ busy: true, awaitingRestore: true }, 'restoring'],
+  [{ busy: true }, 'checking'],
+  [{ awaitingRestore: true }, 'reconnect'],
+  [{ connected: false }, 'reconnect'],
+  [{ paused: true, dirty: true }, 'error'],
+  [{ paused: true, conflict: true }, 'conflict'],
+  [{ expiring: true, dirty: true }, 'expiring'],
+  [{ expiring: true, paused: true }, 'error'],
+  [{ expiring: true, busy: true, saving: true }, 'saving'],
+  [{ hasFile: false }, 'ready'],
+  [{ hasFolder: false, hasFile: false }, 'chooseFolder'],
 ] as const)(
   'reports the current save state rather than just authorization: %j',
-  (changes, kind, label) => {
-    expect(driveSyncStatus({ ...saved, ...changes })).toEqual({ kind, label });
+  (changes, kind) => {
+    expect(driveSyncStatus({ ...saved, ...changes })).toBe(kind);
   },
 );
+
+it.each([
+  ['synced', false, 'drive.synced', 'synced'],
+  ['pending', false, 'drive.pendingSave', 'pending'],
+  ['saving', false, 'drive.saving', 'saving'],
+  ['restoring', false, 'drive.restoringConnection', 'saving'],
+  ['checking', false, 'drive.checking', 'saving'],
+  ['reconnect', false, 'drive.reconnectRequired', 'reconnect'],
+  ['error', false, 'drive.syncError', 'error'],
+  ['conflict', false, 'drive.syncConflict', 'error'],
+  ['expiring', false, 'drive.connectionExpiring', 'expiring'],
+  ['ready', false, 'drive.readySave', 'ready'],
+  ['chooseFolder', false, 'drive.chooseSaveFolder', 'ready'],
+  ['synced', true, 'drive.editing', 'pending'],
+  ['chooseFolder', true, 'drive.editing', 'pending'],
+  ['error', true, 'drive.syncError', 'error'],
+  ['saving', true, 'drive.saving', 'saving'],
+] as const)('shows %s (editing: %s) as %s', (kind, editing, label, tone) => {
+  expect(syncPresentation(kind, editing)).toEqual({ label, tone });
+});
 
 it.each([
   [{ hasFolder: false }, null],

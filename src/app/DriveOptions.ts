@@ -1,7 +1,8 @@
 import type { MindMap } from '../domain/model';
+import type { DriveSnapshot } from '../domain/snapshot';
 import type { TabSession } from '../adapters/storage/tab-session';
-import type { DriveSnapshot } from './driveMerge';
 
+/** What the Drive hooks need from the open document. */
 export interface DriveOptions extends DriveSnapshot {
   documentKey: number;
   restorationReady?: boolean;

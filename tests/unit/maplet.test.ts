@@ -4,7 +4,7 @@ import { createMap, addNode, updateNode } from '../../src/domain/commands';
 import { setNodePositions } from '../../src/domain/positions';
 import { parseMaplet, serializeMaplet } from '../../src/adapters/maplet/codec';
 import { parseMup, serializeMup } from '../../src/adapters/mup/codec';
-import { parseDocument, nativeFilename, mupFilename } from '../../src/adapters/documents';
+import { exportMap, parseDocument, nativeFilename } from '../../src/adapters/formats';
 
 function document() {
   return JSON.parse(serializeMaplet(addNode(createMap('Topic'), 'root', 'child', 'Child')));
@@ -88,7 +88,7 @@ describe('Maplet native format v1', () => {
     expect(parseDocument('{"id":1,"title":"Root"}').roots).toEqual(['1']);
     expect(nativeFilename('map.mup')).toBe('map.maplet');
     expect(nativeFilename('map.maplet')).toBe('map.maplet');
-    expect(mupFilename('map.maplet')).toBe('map.mup');
+    expect(exportMap(createMap(), 'mup', 'map').name).toBe('map.mup');
     expect(() => parseDocument('{"format":"maplet","version":99}')).toThrow(
       'file.unsupportedMapletFileVersion',
     );

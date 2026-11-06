@@ -3,9 +3,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { FormatTools } from '../../src/components/FormatTools';
 import { InlineNodeEditor } from '../../src/components/InlineNodeEditor';
-import { RichEditorBridge, RichEditorContext } from '../../src/components/rich-editor-bridge';
+import { createRichEditorBridge, RichEditorContext } from '../../src/components/rich-editor-bridge';
 import { readRuns, writeSelection } from '../../src/components/rich-dom';
-import { highlightColor, setHighlightColor } from '../../src/components/highlight-color';
+import { PreferencesContext } from '../../src/components/preferences';
+import { storedPreferences } from '../../src/adapters/storage/preferences';
+import type { Preferences } from '../../src/domain/preferences';
+import type { Store } from '../../src/domain/store';
 import { addNode, createMap, updateNode } from '../../src/domain/commands';
 import { formatRuns } from '../../src/domain/rich-text';
 
@@ -15,22 +18,24 @@ const map = updateNode(addNode(createMap('중심'), 'root', 'a', '디자인 검�
 
 function setup(editing: boolean) {
   const onFormatNodes = vi.fn();
-  const bridge = new RichEditorBridge();
+  const bridge = createRichEditorBridge();
   render(
-    <RichEditorContext.Provider value={bridge}>
-      <FormatTools map={map} selection={['a']} onFormatNodes={onFormatNodes} />
-      {editing && (
-        <InlineNodeEditor
-          title="디자인 검토"
-          lines={1}
-          lineHeight={23}
-          onDraftChange={vi.fn()}
-          onCommit={vi.fn(() => true)}
-          onCancel={vi.fn()}
-          onAdd={vi.fn()}
-        />
-      )}
-    </RichEditorContext.Provider>,
+    <PreferencesContext.Provider value={preferences}>
+      <RichEditorContext.Provider value={bridge}>
+        <FormatTools map={map} selection={['a']} onFormatNodes={onFormatNodes} />
+        {editing && (
+          <InlineNodeEditor
+            title="디자인 검토"
+            lines={1}
+            lineHeight={23}
+            onDraftChange={vi.fn()}
+            onCommit={vi.fn(() => true)}
+            onCancel={vi.fn()}
+            onAdd={vi.fn()}
+          />
+        )}
+      </RichEditorContext.Provider>
+    </PreferencesContext.Provider>,
   );
   const button = (name: string | RegExp) => screen.getByRole('button', { name });
   return { onFormatNodes, button };
@@ -43,9 +48,10 @@ const select = (input: HTMLElement, start: number, end: number) =>
     document.dispatchEvent(new Event('selectionchange'));
   });
 
+let preferences: Store<Preferences>;
 beforeEach(() => {
   localStorage.clear();
-  setHighlightColor('yellow');
+  preferences = storedPreferences();
 });
 
 describe('the toolbar text formatting group', () => {
@@ -82,7 +88,7 @@ describe('the toolbar text formatting group', () => {
     fireEvent.click(button('형광펜 색 선택'));
     fireEvent.click(button('파랑 형광펜'));
     expect(onFormatNodes).toHaveBeenLastCalledWith({ kind: 'highlight', color: 'blue' });
-    expect(highlightColor()).toBe('blue');
+    expect(preferences.get().highlight).toBe('blue');
     expect(localStorage.getItem('maplet:highlight-color')).toBe('blue');
     expect(screen.queryByRole('button', { name: '파랑 형광펜' })).toBeNull();
     // The main button now uses the chosen color.

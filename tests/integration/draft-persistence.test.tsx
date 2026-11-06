@@ -2,7 +2,7 @@
 import { act, cleanup, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { useDraftPersistence } from '../../src/app/useDraftPersistence';
-import type { Draft, DraftStore } from '../../src/adapters/storage/drafts';
+import type { Draft } from '../../src/adapters/storage/drafts';
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -15,7 +15,7 @@ afterEach(() => {
 
 function setup(enabled = true) {
   const save = vi.fn<(draft: Draft) => Promise<void>>().mockResolvedValue(undefined);
-  const store = { save } as unknown as DraftStore;
+  const store = { save };
   const status = vi.fn(),
     error = vi.fn();
   const draft = {

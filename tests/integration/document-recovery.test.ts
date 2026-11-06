@@ -1,7 +1,7 @@
 import { expect, it } from 'vitest';
 import { restoreDraft } from '../../src/adapters/storage/recovery';
 import { serializeMaplet } from '../../src/adapters/maplet/codec';
-import { driveSaveTarget } from '../../src/adapters/documents';
+import { driveSaveTarget } from '../../src/adapters/formats';
 
 it('migrates legacy MUP drafts and their saved baseline without losing the original backup', () => {
   const content = '{"id":1,"title":"Edited","attr":{"maplet:position":{"x":12,"y":34}}}';

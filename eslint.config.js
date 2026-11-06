@@ -14,6 +14,12 @@ export default ts.config(
     rules: { 'max-lines': ['error', { max: 400, skipBlankLines: false, skipComments: false }] },
   },
   {
+    // Tool configs that must stay CommonJS (dependency-cruiser and its shared layer map).
+    files: ['**/*.cjs'],
+    languageOptions: { sourceType: 'commonjs', globals: globals.node },
+    rules: { '@typescript-eslint/no-require-imports': 'off' },
+  },
+  {
     files: ['src/**/*.{ts,tsx}'],
     plugins: { 'react-hooks': hooks, 'jsx-a11y': a11y },
     rules: {

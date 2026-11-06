@@ -24,8 +24,7 @@ describe('Drive transport contracts', () => {
       await client.save(
         { id: 'f', name: 'old.maplet', version: '1', etag: '"v1"', parents: ['maps'] },
         content,
-        false,
-        'renamed.maplet',
+        { name: 'renamed.maplet' },
       ),
     ).toMatchObject({ id: 'f', name: 'renamed.maplet', version: '2', parents: ['maps'] });
     const [url, request] = fetcher.mock.calls[1];
@@ -105,7 +104,7 @@ describe('Drive transport contracts', () => {
       etag: null,
     });
     expect(
-      await client.save({ id: 'f', name: 'x', version: '1', etag: null }, 'x', true),
+      await client.save({ id: 'f', name: 'x', version: '1', etag: null }, 'x', { overwrite: true }),
     ).toMatchObject({ id: 'f' });
   });
   it('updates validators after save and can create a separate copy', async () => {

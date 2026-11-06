@@ -1,7 +1,19 @@
-export interface DriveSyncStatus {
-  kind: 'ready' | 'pending' | 'saving' | 'synced' | 'error' | 'reconnect' | 'expiring';
-  label: string;
-}
+/**
+ * Drive state as kinds, one per distinct situation. Logic compares kinds; the UI decides how
+ * each one reads and looks.
+ */
+export type DriveSyncKind =
+  | 'restoring'
+  | 'saving'
+  | 'checking'
+  | 'reconnect'
+  | 'conflict'
+  | 'error'
+  | 'expiring'
+  | 'chooseFolder'
+  | 'ready'
+  | 'pending'
+  | 'synced';
 interface SyncInput {
   connected: boolean;
   expiring: boolean;
@@ -14,55 +26,35 @@ interface SyncInput {
   dirty: boolean;
   hasFile: boolean;
 }
-export function driveSyncStatus(state: SyncInput): DriveSyncStatus {
-  if (state.busy)
-    return {
-      kind: 'saving',
-      label: state.awaitingRestore
-        ? 'drive.restoringConnection'
-        : state.saving
-          ? 'drive.saving'
-          : 'drive.checking',
-    };
-  if (state.awaitingRestore || !state.connected)
-    return { kind: 'reconnect', label: 'drive.reconnectRequired' };
-  if (state.paused)
-    return { kind: 'error', label: state.conflict ? 'drive.syncConflict' : 'drive.syncError' };
-  if (state.expiring) return { kind: 'expiring', label: 'drive.connectionExpiring' };
-  if (!state.hasFolder) return { kind: 'ready', label: 'drive.chooseSaveFolder' };
-  if (state.dirty) return { kind: 'pending', label: 'drive.pendingSave' };
-  if (!state.hasFile) return { kind: 'ready', label: 'drive.readySave' };
-  return { kind: 'synced', label: 'drive.synced' };
+export function driveSyncStatus(state: SyncInput): DriveSyncKind {
+  if (state.busy) return state.awaitingRestore ? 'restoring' : state.saving ? 'saving' : 'checking';
+  if (state.awaitingRestore || !state.connected) return 'reconnect';
+  if (state.paused) return state.conflict ? 'conflict' : 'error';
+  if (state.expiring) return 'expiring';
+  if (!state.hasFolder) return 'chooseFolder';
+  if (state.dirty) return 'pending';
+  if (!state.hasFile) return 'ready';
+  return 'synced';
 }
 
-/** Latest Drive operation outcome. Logic compares kinds; only the UI reads labels. */
-export const DRIVE_ACTIVITY = {
-  idle: 'drive.notConnected',
-  saving: 'drive.savingDrive',
-  saved: 'drive.savedDrive',
-  waiting: 'drive.waitingSaveDrive',
-  conflict: 'drive.conflictCurrentEditsKept',
-  saveFailed: 'drive.saveFailedCurrentEditsKept',
-  reconnected: 'drive.reconnectedSaveLocationFile',
-  folderSelected: 'drive.saveFolderSelectedOpenFile',
-  folderCancelled: 'drive.saveLocationSelectionCancelled',
-  fileCancelled: 'drive.fileSelectionCancelled',
-  opened: 'drive.driveFileOpened',
-  openFailed: 'drive.openFailedLocalFileKept',
-  disconnected: 'drive.disconnected',
-} as const;
-export type DriveActivity = keyof typeof DRIVE_ACTIVITY;
+/** Latest Drive operation outcome. */
+export type DriveActivity =
+  | 'idle'
+  | 'saving'
+  | 'saved'
+  | 'waiting'
+  | 'conflict'
+  | 'saveFailed'
+  | 'reconnected'
+  | 'folderSelected'
+  | 'folderCancelled'
+  | 'fileCancelled'
+  | 'opened'
+  | 'openFailed'
+  | 'disconnected';
 
-export const AUTO_SAVE_LABELS = {
-  restoring: 'drive.restoringDriveConnection',
-  reconnect: 'drive.reconnectDrive',
-  stopped: 'drive.driveAutosavePaused',
-  saving: 'drive.savingDrive',
-  waiting: 'drive.waitingSaveDrive',
-  ready: 'drive.editsSavedAutomaticallySelectedFolder',
-  saved: 'drive.savedDrive',
-} as const;
-export type AutoSaveState = keyof typeof AUTO_SAVE_LABELS;
+export type AutoSaveState =
+  'restoring' | 'reconnect' | 'stopped' | 'saving' | 'waiting' | 'ready' | 'saved';
 
 interface AutoSaveInput {
   hasFolder: boolean;

@@ -1,20 +1,16 @@
 import type { MindMap, NodePosition } from '../domain/model';
 import { isNodePosition, positionsForSubtreeMove } from '../domain/positions';
+import { ancestors, subtreeIds } from '../domain/tree';
 import type { Layout } from './layout';
+import { intersects, seedPositions } from './geometry';
 import { branchBounds, type BranchBounds, type BranchRegion } from './branch-regions';
 
 export { BRANCH_CLEARANCE } from './branch-regions';
 const EPSILON = 1e-7;
 type Box = BranchBounds;
 
-function overlaps(a: Box, b: Box) {
-  return (
-    a.x < b.x + b.width - EPSILON &&
-    a.x + a.width > b.x + EPSILON &&
-    a.y < b.y + b.height - EPSILON &&
-    a.y + a.height > b.y + EPSILON
-  );
-}
+// Boxes that only touch within rounding error do not obstruct each other.
+const overlaps = (a: Box, b: Box) => intersects(a, b, -EPSILON);
 
 export interface PlacementProposal {
   positions: Record<string, NodePosition>;
@@ -30,36 +26,22 @@ export function proposeSubtreeMove(
   id: string,
   target: NodePosition,
 ): PlacementProposal | null {
-  const original = Object.fromEntries(
-    Object.values(map.nodes).flatMap((node) => (node.position ? [[node.id, node.position]] : [])),
-  );
-  for (const node of layout.nodes) original[node.id] = { x: node.x, y: node.y };
+  const original = seedPositions(map, layout.nodes);
   const positions = positionsForSubtreeMove(map, original, id, target);
-  const collect = (root: string, excluded = new Set<string>()) => {
-    const result = new Set<string>();
-    const visit = (key: string) => {
-      if (excluded.has(key)) return;
-      result.add(key);
-      map.nodes[key].children.forEach(visit);
-    };
-    visit(root);
-    return result;
-  };
+  const collect = (root: string, excluded?: ReadonlySet<string>) =>
+    new Set(subtreeIds(map, root, excluded));
   const dragged = collect(id);
   if ([...dragged].some((key) => positions[key] && !isNodePosition(positions[key]))) return null;
-  const ancestors = new Set<string>();
-  for (let parent = map.nodes[id].parentId; parent !== null; parent = map.nodes[parent].parentId)
-    ancestors.add(parent);
-  const branchRoot = (key: string) => {
-    if (ancestors.has(key)) return key;
-    let parent = map.nodes[key].parentId;
-    while (parent !== null && !ancestors.has(parent)) {
-      key = parent;
-      parent = map.nodes[key].parentId;
-    }
-    return key;
-  };
-  const boxes = layout.nodes.map((node) => ({ ...node, ...positions[node.id] }));
+  const path = new Set(ancestors(map, id));
+  // The highest node of `key`'s chain that is not on the dragged node's ancestor path.
+  const branchRoot = (key: string) =>
+    path.has(key)
+      ? key
+      : [key, ...ancestors(map, key)].find((node) => {
+          const parent = map.nodes[node].parentId;
+          return parent === null || path.has(parent);
+        })!;
+  let boxes = layout.nodes.map((node) => ({ ...node, ...positions[node.id] }));
   const boundsFor = (ids: Set<string>) => branchBounds(boxes.filter((node) => ids.has(node.id)));
   const anchored = boundsFor(dragged);
   // Each pass moves one group; caching the others' bounds keeps a pass linear in node count.
@@ -75,7 +57,7 @@ export function proposeSubtreeMove(
     ...new Set(boxes.filter((node) => !dragged.has(node.id)).map((node) => branchRoot(node.id))),
   ].map((root) => ({
     id: root,
-    ids: ancestors.has(root) ? new Set([root]) : collect(root),
+    ids: path.has(root) ? new Set([root]) : collect(root),
   }));
   const displaced = new Set<string>();
   let movedGroups: { id: string; ids: Set<string> }[] = [];
@@ -125,11 +107,11 @@ export function proposeSubtreeMove(
       const point = positions[key];
       if (point) positions[key] = { x: point.x + best.x, y: point.y + best.y };
     }
-    for (const node of moving) {
-      node.x += best.x;
-      node.y += best.y;
-      displaced.add(node.id);
-    }
+    const shift = best;
+    boxes = boxes.map((node) =>
+      group.has(node.id) ? { ...node, x: node.x + shift.x, y: node.y + shift.y } : node,
+    );
+    moving.forEach((node) => displaced.add(node.id));
     for (const other of groups)
       if ([...other.ids].some((key) => group.has(key))) cached.delete(other.id);
   }

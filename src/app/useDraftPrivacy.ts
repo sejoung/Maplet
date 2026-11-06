@@ -1,9 +1,10 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import type { DraftStore } from '../adapters/storage/drafts';
+import { useEffect, useState } from 'react';
+import type { DraftRepository } from '../adapters/storage/drafts';
+import { useLatest } from '../components/useLatest';
 import { DRAFT_PRIVACY_KEY, keepLocalDrafts } from '../adapters/storage/privacy';
 
 export function useDraftPrivacy(
-  store: DraftStore,
+  store: DraftRepository,
   status: (message: string) => void,
   error: (message: string) => void,
 ) {
@@ -21,10 +22,7 @@ export function useDraftPrivacy(
       setBusy(false);
     }
   };
-  const latestChange = useRef(change);
-  useLayoutEffect(() => {
-    latestChange.current = change;
-  });
+  const latestChange = useLatest(change);
   // Follow the setting when another tab changes it; subscribe once, not on every render.
   useEffect(() => {
     const changed = (event: StorageEvent) => {
@@ -33,6 +31,6 @@ export function useDraftPrivacy(
     };
     window.addEventListener('storage', changed);
     return () => window.removeEventListener('storage', changed);
-  }, []);
+  }, [latestChange]);
   return { enabled, busy, change };
 }

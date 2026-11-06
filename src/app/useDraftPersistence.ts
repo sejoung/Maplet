@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react';
-import type { Draft, DraftStore } from '../adapters/storage/drafts';
+import type { Draft, DraftRepository } from '../adapters/storage/drafts';
 
 export function useDraftPersistence(
-  store: DraftStore,
+  store: Pick<DraftRepository, 'save'>,
   draft: Omit<Draft, 'updatedAt'>,
   enabled: boolean,
   onStatus: (status: string) => void,

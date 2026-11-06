@@ -1,4 +1,5 @@
-import type { MindMap, MindNode, Side } from '../domain/model';
+import type { MindMap, Side } from '../domain/model';
+import { editNodes, placeBranch } from '../domain/node-edits';
 import { signedRank } from '../domain/ranks';
 import type { TextMeasurer } from './node-measure';
 import { BRANCH_GAP, measureTree } from './tree-measure';
@@ -6,23 +7,9 @@ import { BRANCH_GAP, measureTree } from './tree-measure';
 /** Balance whole subtrees by their visible height, retaining order on each side. */
 export function autoArrange(map: MindMap, measureText?: TextMeasurer): MindMap {
   const sizes = measureTree(map, measureText, true);
-  let nodes = map.nodes;
-  const patch = (id: string, values: Partial<Pick<MindNode, 'side' | 'rank'>>) => {
-    const node = nodes[id];
-    if (
-      node.position === null &&
-      Object.entries(values).every(([key, value]) => node[key as keyof MindNode] === value)
-    )
-      return;
-    if (nodes === map.nodes) nodes = { ...nodes };
-    nodes[id] = { ...node, ...values, position: null };
-  };
-  const branch = (id: string, side: Side, rank?: string) => {
-    patch(id, { side, ...(rank !== undefined && { rank }) });
-    map.nodes[id].children.forEach((child) => branch(child, side));
-  };
+  const edits = editNodes(map);
   for (const rootId of map.roots) {
-    patch(rootId, {});
+    edits.set(rootId, { position: null });
     const children = map.nodes[rootId].children;
     const heights = { left: 0, right: 0 };
     const sides = new Map<string, Side>();
@@ -38,9 +25,10 @@ export function autoArrange(map: MindMap, measureText?: TextMeasurer): MindMap {
     }
     children.forEach((id, index) => {
       const side = sides.get(id)!;
+      placeBranch(edits, id, side);
       // Distinct absolute ranks retain the global sibling order in MUP too.
-      branch(id, side, signedRank(index + 1, side));
+      edits.set(id, { rank: signedRank(index + 1, side) });
     });
   }
-  return nodes === map.nodes ? map : { ...map, nodes };
+  return edits.done();
 }

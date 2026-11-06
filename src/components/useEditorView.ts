@@ -1,5 +1,5 @@
 import { useEffect, useState, type RefObject } from 'react';
-import { isDescendant } from '../domain/commands';
+import { isDescendant } from '../domain/tree';
 import { visibleSelection } from '../domain/selection';
 import { useI18n } from '../i18n/react';
 import { canvasActionGroups, nodeActionGroups } from './node-actions';
@@ -8,15 +8,8 @@ import type { CanvasControls } from './canvas-types';
 import type { EditorProps } from './editor-types';
 import { useAutoArrange } from './useAutoArrange';
 import { useFind } from './useFind';
+import { usePreferences } from './preferences';
 
-const MINIMAP_KEY = 'maplet:minimap';
-const readMinimap = () => {
-  try {
-    return localStorage.getItem(MINIMAP_KEY) !== 'off';
-  } catch {
-    return true;
-  }
-};
 const editable = (target: EventTarget | null) =>
   target instanceof Element &&
   Boolean(target.closest('input,textarea,select,[contenteditable=true]'));
@@ -33,7 +26,7 @@ export function useEditorView(
   const { t } = useI18n();
   const { map, selected } = props;
   const [focusId, setFocusId] = useState<string | null>(null);
-  const [minimap, setMinimap] = useState(readMinimap);
+  const [{ minimap }, updatePreferences] = usePreferences();
   const find = useFind(map, selected, props.onSelect);
   // Focus ends when its branch is deleted or the selection leaves it (undo, find, menus).
   const focus =
@@ -118,15 +111,7 @@ export function useEditorView(
         focused: Boolean(focus),
         onExitFocus: () => setFocusId(null),
         minimap,
-        onToggleMinimap: () =>
-          setMinimap((shown) => {
-            try {
-              localStorage.setItem(MINIMAP_KEY, shown ? 'off' : 'on');
-            } catch {
-              // The choice still applies for this visit.
-            }
-            return !shown;
-          }),
+        onToggleMinimap: () => updatePreferences({ minimap: !minimap }),
       },
       t,
     );
@@ -137,6 +122,5 @@ export function useEditorView(
     find,
     actions,
     canvasActions,
-    arrangeMap,
   };
 }

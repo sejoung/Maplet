@@ -1,29 +1,52 @@
-import type { ClipboardEvent, KeyboardEvent, RefObject } from 'react';
+import type { ClipboardEvent, KeyboardEvent } from 'react';
+import type { HighlightColor } from '../domain/rich-text';
 import type { CanvasProps } from './canvas-types';
-import { formatShortcut } from './rich-editing';
+import { formatShortcut } from './rich-shortcuts';
+
+type KeyboardProps = Pick<
+  CanvasProps,
+  | 'map'
+  | 'selected'
+  | 'selection'
+  | 'onSelect'
+  | 'onSelectNodes'
+  | 'onAdd'
+  | 'onEdit'
+  | 'onDelete'
+  | 'onToggle'
+  | 'onFormatNodes'
+  | 'onDuplicate'
+  | 'onReorder'
+>;
+
+export interface KeyboardActions {
+  /** Whether a pointer gesture holds the canvas; Escape abandons it. */
+  isBusy(): boolean;
+  cancelGesture(): void;
+  pan(): void;
+  openMenu(): void;
+  selectAll(): void;
+  focusNode(id: string): void;
+  /** The highlighter color the shortcut applies. */
+  highlight: HighlightColor;
+}
 
 export function canvasKeydown(
   event: KeyboardEvent,
-  props: CanvasProps,
-  viewport: RefObject<HTMLDivElement | null>,
-  actions: {
-    isDragging(): boolean;
-    cancelDrag(): void;
-    pan(): void;
-    openMenu(): void;
-    selectAll(): void;
-  },
+  props: KeyboardProps,
+  actions: KeyboardActions,
 ) {
+  // Checked first: the resize handle that holds focus mid-resize is a button.
+  if (event.key === 'Escape' && actions.isBusy()) {
+    event.preventDefault();
+    actions.cancelGesture();
+    return;
+  }
   if ((event.target as HTMLElement).closest('button,input,textarea,select,[data-inline-editor]'))
     return;
   if (event.nativeEvent.isComposing) return;
   const { map, selected, onSelect, onAdd, onEdit, onDelete, onToggle } = props;
   const node = map.nodes[selected];
-  if (event.key === 'Escape' && actions.isDragging()) {
-    event.preventDefault();
-    actions.cancelDrag();
-    return;
-  }
   if (event.key === 'Escape' && props.selection.length > 1) {
     event.preventDefault();
     onSelect(selected);
@@ -34,7 +57,7 @@ export function canvasKeydown(
     actions.selectAll();
     return;
   }
-  const format = formatShortcut(event);
+  const format = formatShortcut(event, actions.highlight);
   if (format) {
     event.preventDefault();
     props.onFormatNodes(format);
@@ -84,11 +107,7 @@ export function canvasKeydown(
       if (event.shiftKey)
         props.onSelectNodes([...props.selection.filter((id) => id !== next), next], next);
       else onSelect(next);
-      requestAnimationFrame(() =>
-        viewport.current
-          ?.querySelector<HTMLElement>(`[data-node-id="${CSS.escape(next!)}"]`)
-          ?.focus(),
-      );
+      actions.focusNode(next);
     }
   } else if (event.key === ' ') {
     event.preventDefault();
@@ -101,7 +120,13 @@ const isEditable = (target: EventTarget | null) =>
   Boolean(target.closest('input,textarea,select,[data-inline-editor]'));
 
 /** Copy and cut share the selected branch with other apps as an indented outline. */
-export function canvasClipboard(props: CanvasProps, selected: string, editingId: string | null) {
+export function canvasClipboard({
+  selected,
+  editingId,
+  onCopy,
+  onCut,
+  onPaste,
+}: Pick<CanvasProps, 'selected' | 'editingId' | 'onCopy' | 'onCut' | 'onPaste'>) {
   const take = (event: ClipboardEvent, action: (id: string) => string | null) => {
     if (editingId || isEditable(event.target)) return;
     const text = action(selected);
@@ -110,12 +135,12 @@ export function canvasClipboard(props: CanvasProps, selected: string, editingId:
     event.clipboardData.setData('text/plain', text);
   };
   return {
-    onCopy: (event: ClipboardEvent) => take(event, props.onCopy),
-    onCut: (event: ClipboardEvent) => take(event, props.onCut),
+    onCopy: (event: ClipboardEvent) => take(event, onCopy),
+    onCut: (event: ClipboardEvent) => take(event, onCut),
     onPaste: (event: ClipboardEvent) => {
       if (editingId || isEditable(event.target)) return;
       event.preventDefault();
-      props.onPaste(selected, event.clipboardData.getData('text/plain'));
+      onPaste(selected, event.clipboardData.getData('text/plain'));
     },
   };
 }

@@ -13,13 +13,11 @@ import {
   initializeLanguage,
   setLanguage,
   subscribeLanguage,
-  LANGUAGE_STORAGE_KEY,
 } from '../../src/i18n/locale';
 
 afterEach(() => {
   vi.restoreAllMocks();
   setLanguage('ko');
-  localStorage.removeItem(LANGUAGE_STORAGE_KEY);
 });
 
 describe('language selection and translation', () => {
@@ -77,41 +75,25 @@ describe('language selection and translation', () => {
       ),
     ).toBe(english['file.legacyLinksPreserved']);
   });
-  it('persists selection, updates metadata, and notifies subscribers', () => {
+  it('holds the language as state and notifies subscribers of changes', () => {
+    initializeLanguage(['ja-JP', 'en-US'], null);
+    expect(getLanguage()).toBe('en');
+    initializeLanguage(['en-US'], 'ko');
+    expect(getLanguage()).toBe('ko');
     const listener = vi.fn();
     const unsubscribe = subscribeLanguage(listener);
     setLanguage('en');
     expect(getLanguage()).toBe('en');
-    expect(document.documentElement.lang).toBe('en');
-    expect(document.title).toBe('Maplet — Mind map editor');
-    expect(localStorage.getItem(LANGUAGE_STORAGE_KEY)).toBe('en');
     expect(listener).toHaveBeenCalledOnce();
     unsubscribe();
     setLanguage('ko');
     expect(listener).toHaveBeenCalledOnce();
   });
-  it('keeps language selection usable when browser storage is blocked', () => {
-    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
-      throw new Error('blocked');
-    });
-    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
-      throw new Error('blocked');
-    });
-    vi.spyOn(navigator, 'languages', 'get').mockReturnValue(['ko-KR']);
-    initializeLanguage();
-    expect(getLanguage()).toBe('ko');
-    expect(() => setLanguage('en')).not.toThrow();
-    expect(getLanguage()).toBe('en');
-  });
-  it('restores preferences and localizes the page description', () => {
-    const description = document.createElement('meta');
-    description.name = 'description';
-    document.head.append(description);
-    localStorage.setItem(LANGUAGE_STORAGE_KEY, 'en');
-    initializeLanguage();
-    expect(getLanguage()).toBe('en');
-    expect(description.content).toContain('local-first mind map editor');
-    description.remove();
+  it('fills parameters of plain keys through translateMessage', () => {
+    expect(translateMessage('editor.nodeCount', 'en', { count: 2 })).toBe('2 nodes');
+    expect(translateMessage({ key: 'editor.nodeCount', params: { count: 1 } }, 'en')).toBe(
+      '1 node',
+    );
   });
 });
 

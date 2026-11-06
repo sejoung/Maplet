@@ -7,7 +7,7 @@ import {
   pasteFragment,
   type Fragment,
 } from '../domain/clipboard';
-import { canDeleteNodes } from '../domain/selection';
+import { canDeleteNodes, fallbackAfterDelete } from '../domain/selection';
 import type { DocumentState } from './useDocument';
 
 /** Branch copy, cut, paste, duplicate and sibling order for the selected nodes. */
@@ -62,7 +62,7 @@ export function useNodeClipboard(doc: DocumentState, report: (reason: unknown) =
       if (!canDeleteNodes(map, ids)) return null;
       const text = copy(id);
       if (text === null) return null;
-      const fallback = map.nodes[ids[0]].parentId ?? map.roots.find((root) => !ids.includes(root))!;
+      const fallback = fallbackAfterDelete(map, ids);
       if (doc.edit((current) => deleteNodes(current, ids))) doc.setSelected(fallback);
       return text;
     },

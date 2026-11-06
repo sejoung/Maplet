@@ -1,5 +1,6 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import type { GoogleConnection } from '../adapters/drive/google';
+import { useEffect, useRef, useState } from 'react';
+import type { DriveAuth } from '../adapters/drive/types';
+import { useLatest } from '../components/useLatest';
 import { messageOf } from '../domain/errors';
 
 /**
@@ -9,7 +10,7 @@ import { messageOf } from '../domain/errors';
  * renews, so a closed or blocked popup is not reopened on every click.
  */
 export function useAuthRenewal(
-  google: GoogleConnection | null,
+  google: DriveAuth | null,
   active: boolean,
   setNotice: (message: string) => void,
 ) {
@@ -29,10 +30,7 @@ export function useAuthRenewal(
       setExpiring(google.expiring());
     }
   };
-  const latest = useRef(renew);
-  useLayoutEffect(() => {
-    latest.current = renew;
-  });
+  const latest = useLatest(renew);
   useEffect(() => {
     if (!google) return;
     setExpiring(google.expiring());
@@ -51,6 +49,6 @@ export function useAuthRenewal(
     };
     window.addEventListener('click', click, true);
     return () => window.removeEventListener('click', click, true);
-  }, [expiring, automatic, active]);
+  }, [expiring, automatic, active, latest]);
   return { expiring, renew: () => renew(true) };
 }

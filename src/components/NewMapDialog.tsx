@@ -1,6 +1,6 @@
 import { useI18n } from '../i18n/react';
 import { useState } from 'react';
-import { Dialog } from './Dialog';
+import { Dialog, DialogActions } from './Dialog';
 
 export function NewMapDialog({
   onClose,
@@ -29,14 +29,7 @@ export function NewMapDialog({
           required
           maxLength={10000}
         />
-        <div className="dialog-actions">
-          <button className="button quiet" type="button" onClick={onClose}>
-            {t('common.cancel')}
-          </button>
-          <button className="button primary" type="submit">
-            {t('header.create')}
-          </button>
-        </div>
+        <DialogActions onCancel={onClose} submitLabel={t('header.create')} />
       </form>
     </Dialog>
   );

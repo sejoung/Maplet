@@ -2,7 +2,7 @@
 import { beforeAll, beforeEach, afterAll, afterEach, describe, expect, it, vi } from 'vitest';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { DriveDialogs } from '../../src/app/DriveDialogs';
+import { DriveDialogs } from '../../src/components/DriveDialogs';
 import { DriveConflict } from '../../src/adapters/drive/client';
 
 const bridge = vi.hoisted(() => ({
@@ -13,6 +13,8 @@ const bridge = vi.hoisted(() => ({
   disconnect: vi.fn(),
   clearToken: vi.fn(),
 }));
+// useDrive passes the Picker its language and translated title.
+const folderPicker = { language: 'ko', title: '저장할 폴더 선택' };
 const api = vi.hoisted(() => ({ open: vi.fn(), save: vi.fn(), create: vi.fn() }));
 vi.mock('../../src/adapters/drive/google', () => ({
   GoogleConnection: class {
@@ -68,7 +70,7 @@ describe('Drive autosave after choosing a native destination', () => {
     expect(api.save).toHaveBeenCalledExactlyOnceWith(
       expect.objectContaining({ id: 'created', name: 'local.maplet' }),
       'latest edit',
-      false,
+      expect.objectContaining({ overwrite: false }),
     );
     expect(options.markSaved).toHaveBeenLastCalledWith('latest edit');
     expect(bridge.pick).toHaveBeenCalledOnce();
@@ -97,7 +99,7 @@ describe('Drive autosave after choosing a native destination', () => {
     expect(api.save).toHaveBeenLastCalledWith(
       expect.objectContaining({ version: '2', etag: '"v2"' }),
       'snapshot B',
-      false,
+      expect.objectContaining({ overwrite: false }),
     );
     expect(options.markSaved).toHaveBeenLastCalledWith('snapshot B');
   });
@@ -197,7 +199,7 @@ async function setup(allowReplace = true, chooseFolder = true) {
         <button onClick={controller.showDrive}>Drive</button>
         <button onClick={() => controller.clearFile()}>Clear file</button>
         <span>{controller.autoSaveStatus}</span>
-        <DriveDialogs controller={controller} save={() => {}} />
+        <DriveDialogs {...controller.dialogs} onDownload={() => {}} />
       </>
     );
   }
@@ -232,7 +234,7 @@ describe('Drive actions continue through sign-in and selection', () => {
       expect(screen.getByRole('button', { name: 'Drive에서 열기' })).toBeEnabled(),
     );
     expect(bridge.pick).toHaveBeenCalledOnce();
-    expect(bridge.pick).toHaveBeenCalledWith('folder', 'ko');
+    expect(bridge.pick).toHaveBeenCalledWith('folder', folderPicker);
     expect(api.create).not.toHaveBeenCalled();
     expect(api.save).not.toHaveBeenCalled();
     expect(screen.getByText('작업 폴더')).toBeVisible();
@@ -253,7 +255,7 @@ describe('Drive actions continue through sign-in and selection', () => {
         expect.any(String),
       ),
     );
-    expect(bridge.pick).toHaveBeenCalledWith('folder', 'ko');
+    expect(bridge.pick).toHaveBeenCalledWith('folder', folderPicker);
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     options.content = 'updated content';
     refresh();
@@ -337,7 +339,7 @@ describe('Drive actions continue through sign-in and selection', () => {
     await user.click(screen.getByRole('button', { name: 'Drive에서 열기' }));
     expect(options.allowReplace).toHaveBeenCalledOnce();
     expect(bridge.connect).toHaveBeenCalledOnce();
-    expect(bridge.pick).toHaveBeenCalledExactlyOnceWith('folder', 'ko');
+    expect(bridge.pick).toHaveBeenCalledExactlyOnceWith('folder', folderPicker);
     expect(options.replace).not.toHaveBeenCalled();
   });
 
@@ -387,7 +389,7 @@ describe('Drive actions continue through sign-in and selection', () => {
       expect(api.save).toHaveBeenCalledWith(
         expect.objectContaining({ id: 'native-copy', name: 'source.maplet' }),
         options.content,
-        false,
+        expect.objectContaining({ overwrite: false }),
       ),
     );
     expect(api.create).toHaveBeenCalledOnce();

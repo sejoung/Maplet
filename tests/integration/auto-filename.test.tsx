@@ -46,7 +46,7 @@ afterEach(async () => {
 async function mount() {
   // Recovery reads this tab's draft, then those left by closed tabs.
   const others = vi.spyOn(DraftStore.prototype, 'others');
-  const view = render(<App />);
+  const view = render(<App drafts={store} />);
   await act(async () => {
     await vi.waitFor(() => expect(others).toHaveBeenCalled());
     await others.mock.results.at(-1)!.value;

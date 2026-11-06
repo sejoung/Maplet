@@ -1,5 +1,4 @@
-import { useI18n } from '../i18n/react';
-import { Dialog } from './Dialog';
+import { Dialog, DialogActions } from './Dialog';
 
 export interface ConfirmRequest {
   title: string;
@@ -17,22 +16,16 @@ export function ConfirmDialog({
   request: ConfirmRequest;
   onAnswer(confirmed: boolean): void;
 }) {
-  const { t } = useI18n();
   return (
     <Dialog title={request.title} onClose={() => onAnswer(false)}>
       <p>{request.message}</p>
-      <div className="dialog-actions">
-        <button type="button" className="button" data-autofocus onClick={() => onAnswer(false)}>
-          {t('common.cancel')}
-        </button>
-        <button
-          type="button"
-          className={`button ${request.danger ? 'danger' : 'primary'}`}
-          onClick={() => onAnswer(true)}
-        >
-          {request.confirmLabel}
-        </button>
-      </div>
+      <DialogActions
+        onCancel={() => onAnswer(false)}
+        focusCancel
+        submitLabel={request.confirmLabel}
+        danger={request.danger}
+        onSubmit={() => onAnswer(true)}
+      />
     </Dialog>
   );
 }

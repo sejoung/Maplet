@@ -1,12 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
-import {
-  DriveClient,
-  DriveConflict,
-  DriveAuthError,
-  DriveRequestError,
-} from '../../src/adapters/drive/client';
-import { DriveDocumentSaver } from '../../src/app/DriveDocumentSaver';
-import { DriveMergeConflict, mergeDriveSnapshots } from '../../src/app/driveMerge';
+import { DriveConflict, DriveAuthError, DriveRequestError } from '../../src/adapters/drive/client';
+import { createDriveSaver, merge } from '../../src/app/driveRules';
+import { DriveMergeConflict } from '../../src/application/drive-merge';
 import { createMap, renameNode, updateNode } from '../../src/domain/commands';
 import { serializeMaplet, parseMaplet } from '../../src/adapters/maplet/codec';
 
@@ -20,7 +15,7 @@ const snapshot = (title: string) => ({
 });
 function setup() {
   const api = { save: vi.fn(), open: vi.fn() };
-  const saver = new DriveDocumentSaver(api as unknown as DriveClient, async () => {});
+  const saver = createDriveSaver(api, async () => {});
   return { api, saver };
 }
 describe('Drive save reconciliation', () => {
@@ -114,10 +109,10 @@ describe('Drive save reconciliation', () => {
   });
   it('merges external filenames but asks on conflicting concurrent renames', () => {
     expect(
-      mergeDriveSnapshots(baseline, snapshot('Local'), { content, filename: 'remote.maplet' }),
+      merge.merge(baseline, snapshot('Local'), { content, filename: 'remote.maplet' }),
     ).toMatchObject({ filename: 'remote.maplet', conflicts: [] });
     expect(
-      mergeDriveSnapshots(
+      merge.merge(
         baseline,
         { content, filename: 'local.maplet' },
         { content, filename: 'remote.maplet' },

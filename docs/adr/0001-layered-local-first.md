@@ -11,7 +11,7 @@ React + TypeScript + Vite 정적 앱. 서버·계정·분석 SDK를 두지 않�
 
 ## 강제 방법
 
-TypeScript AST로 실제 import/export/dynamic import를 수집하는 아키텍처 테스트에서 허용 계층·외부 패키지·테스트 의존·순환 참조를 검사한다. 검사기 자체도 의도적으로 잘못된 그래프로 검증한다. ESLint, TypeScript strict, Vitest, Playwright를 CI 필수 관문으로 둔다. 새 동작은 실패 테스트→최소 구현→리팩터링 순서로 개발한다.
+아키텍처 테스트에서 허용 계층·외부 패키지·테스트 의존·순환 참조를 검사한다. 검사기 자체도 의도적으로 잘못된 프로젝트로 검증한다. 2026-11-06부터 모듈 규칙은 dependency-cruiser, 코드 규칙은 AST 검사로 나눴다([ADR 0020](0020-architecture-rules-as-tests.md)). ESLint, TypeScript strict, Vitest, Playwright를 CI 필수 관문으로 둔다. 새 동작은 실패 테스트→최소 구현→리팩터링 순서로 개발한다.
 
 ## 결과
 

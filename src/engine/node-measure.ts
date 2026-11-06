@@ -1,15 +1,26 @@
 import type { MindNode } from '../domain/model';
-import { characterWidth, nodeTypography } from '../domain/typography';
-import { nodeMarkers } from '../domain/node-markers';
+import { nodeTypography, type NodeTypography } from '../domain/typography';
 import { richRuns, type TextRun } from '../domain/rich-text';
-import {
-  MIN_NODE_HEIGHT,
-  MIN_NODE_WIDTH,
-  NODE_PADDING_X,
-  NODE_PADDING_Y,
-  NODE_BORDER,
-  sizeValue,
-} from '../domain/node-size';
+import { MIN_NODE_HEIGHT, MIN_NODE_WIDTH, sizeValue } from '../domain/node-size';
+import { markerMetrics, NODE_BORDER, NODE_PADDING_X, NODE_PADDING_Y } from './render-metrics';
+
+/** Width of a node without a set width, before it wraps. */
+const DEFAULT_NODE_WIDTH = 236;
+
+// Conservative glyph widths keep wrapping deterministic without browser APIs.
+function characterWidth(char: string, typography: NodeTypography) {
+  const units =
+    char.codePointAt(0)! > 127
+      ? 1
+      : typography.fontFamily === 'mono'
+        ? 0.62
+        : /[MWmw@%&]/.test(char)
+          ? 1
+          : /[A-Z]/.test(char)
+            ? 0.85
+            : 0.65;
+  return units * typography.fontSize * (typography.bold ? 1.08 : 1);
+}
 
 /** Width of `text` in the node's font, with any inline bold or italic of that text. */
 export type TextMeasurer = (
@@ -33,8 +44,8 @@ export function measureNode(node: MindNode, measureText: TextMeasurer = estimate
   const width = sizeValue(node.style.width, MIN_NODE_WIDTH);
   // Icons and task boxes sit before the text and take part of the content width.
   const insetX =
-    2 * (NODE_PADDING_X + NODE_BORDER) + nodeMarkers(node.style, typography.fontSize).width;
-  const contentWidth = (width ?? 236) - insetX;
+    2 * (NODE_PADDING_X + NODE_BORDER) + markerMetrics(node.style, typography.fontSize).width;
+  const contentWidth = (width ?? DEFAULT_NODE_WIDTH) - insetX;
   const runs: MeasuredRun[][] = [];
   let line: MeasuredRun[] = [];
   let lineWidth = 0;

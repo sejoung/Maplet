@@ -1,25 +1,36 @@
-import { useCallback, useLayoutEffect, useRef } from 'react';
-import type { DriveController } from './useDrive';
+import { useCallback } from 'react';
 import { driveSyncStatus } from '../application/drive-sync';
+import { useLatest } from '../components/useLatest';
+import type { DriveController } from './useDrive';
 
-export function usePrimarySave(drive: DriveController, download: () => void, documentKey: number) {
-  const latest = useRef({ drive, download, documentKey });
-  useLayoutEffect(() => {
-    latest.current = { drive, download, documentKey };
-  });
+type DriveSaveState = Pick<
+  DriveController,
+  | 'busy'
+  | 'connected'
+  | 'expiring'
+  | 'saveFolder'
+  | 'awaitingRestore'
+  | 'driveFile'
+  | 'driveDirty'
+  | 'activity'
+  | 'autoSave'
+  | 'saveDrive'
+  | 'showDrive'
+>;
+
+/** The one Save command: to Drive once it is set up, otherwise a download. */
+export function usePrimarySave(drive: DriveSaveState, download: () => void) {
+  const latest = useLatest({ drive, download });
   const save = useCallback(() => {
-    const current = latest.current;
-    const target = current.drive;
-    if (target.busy) {
-      void target.saveDrive();
-      return;
-    }
-    if (!target.connected && !target.saveFolder) return current.download();
+    const { drive: target, download: fallback } = latest.current;
+    // A running save queues this request behind it.
+    if (target.busy) return void target.saveDrive();
+    if (!target.connected && !target.saveFolder) return fallback();
     if (!target.connected || !target.saveFolder || target.awaitingRestore)
       return target.showDrive();
     if (target.driveFile && !target.driveDirty && target.autoSave === 'saved') return;
     void target.saveDrive();
-  }, []);
+  }, [latest]);
   const saveToDrive = Boolean(drive.connected || drive.saveFolder);
   return {
     save,

@@ -1,7 +1,8 @@
 import type { MindMap, NodePosition, Side } from '../domain/model';
 import type { MeasuredRun, TextMeasurer } from './node-measure';
 import { positionsForSubtreeMove } from '../domain/positions';
-import { BRANCH_GAP, LEVEL_GAP, NODE_GAP, measureTree } from './tree-measure';
+import { BRANCH_GAP, LEVEL_GAP, NODE_GAP, measureTree, stackSpan } from './tree-measure';
+import { boundsOf, intersects, type Box } from './geometry';
 
 export interface LayoutNode {
   id: string;
@@ -30,41 +31,79 @@ export interface Layout {
   minY: number;
 }
 
+/** Space around the laid-out map, so edge nodes are not flush with the canvas border. */
+export const LAYOUT_MARGIN = 80;
+/** Vertical space between the trees of separate central topics. */
+const ROOT_GAP = 120;
+/** Space a pinned layout keeps between automatically placed nodes and others. */
+const CLEARANCE = 24;
+/** The least curvature of a connector, so short ones still read as curves. */
+const MIN_BEND = 24;
+
+type Sizes = ReturnType<typeof measureTree>;
+type Relation = Omit<LayoutEdge, 'path'>;
+
 export function layoutMap(map: MindMap, measureText?: TextMeasurer): Layout {
+  const nodes = applyManualPositions(map, placeTree(map, measureTree(map, measureText)));
+  return finishLayout(
+    nodes,
+    nodes
+      .filter((node) => map.nodes[node.id].parentId !== null)
+      .map((node) => ({ from: map.nodes[node.id].parentId!, to: node.id, branch: node.branch })),
+  );
+}
+
+/** Vertical centers of `ids` stacked around `center`, each taking its span plus `gap`. */
+function stackChildren(ids: readonly string[], center: number, gap: number, sizes: Sizes) {
+  let top =
+    center -
+    stackSpan(
+      ids.map((id) => sizes.get(id)!.span),
+      gap,
+    ) /
+      2;
+  return ids.map((id) => {
+    const span = sizes.get(id)!.span;
+    const middle = top + span / 2;
+    top += span + gap;
+    return { id, center: middle };
+  });
+}
+
+/**
+ * The automatic layout: each central topic with its branches fanned out left and right,
+ * the topics stacked top to bottom, shifted so the whole map starts at the margin.
+ */
+function placeTree(map: MindMap, sizes: Sizes): LayoutNode[] {
   const nodes: LayoutNode[] = [];
-  const sizes = measureTree(map, measureText);
-  let rootTop = 80;
-  let branch = 0;
-  const place = (id: string, x: number, cy: number, side: Side, branchId: number) => {
+  const box = (id: string, x: number, center: number, side: Side, branch: number) => {
     const size = sizes.get(id)!;
-    nodes.push({
+    const node: LayoutNode = {
       id,
       x,
-      y: cy - size.height / 2,
+      y: center - size.height / 2,
       width: size.width,
       height: size.height,
       lines: size.lines,
       runs: size.runs,
-      branch: branchId,
+      branch,
       side,
-    });
-    const node = map.nodes[id];
-    if (node.collapsed) return;
-    const children = node.children;
-    let top =
-      cy - children.reduce((sum, child) => sum + sizes.get(child)!.span + NODE_GAP, -NODE_GAP) / 2;
-    for (const child of children) {
-      const childSize = sizes.get(child)!;
-      place(
-        child,
-        side === 'right' ? x + size.width + LEVEL_GAP : x - childSize.width - LEVEL_GAP,
-        top + childSize.span / 2,
-        side,
-        branchId,
-      );
-      top += childSize.span + NODE_GAP;
-    }
+    };
+    nodes.push(node);
+    return node;
   };
+  const beside = (parentX: number, parentWidth: number, id: string, side: Side) =>
+    side === 'right'
+      ? parentX + parentWidth + LEVEL_GAP
+      : parentX - sizes.get(id)!.width - LEVEL_GAP;
+  const placeBranch = (id: string, x: number, center: number, side: Side, branch: number) => {
+    const node = box(id, x, center, side, branch);
+    if (map.nodes[id].collapsed) return;
+    for (const child of stackChildren(map.nodes[id].children, center, NODE_GAP, sizes))
+      placeBranch(child.id, beside(x, node.width, child.id, side), child.center, side, branch);
+  };
+  let top = LAYOUT_MARGIN;
+  let branch = 0;
   for (const rootId of map.roots) {
     const root = map.nodes[rootId];
     const rootSize = sizes.get(rootId)!;
@@ -76,86 +115,70 @@ export function layoutMap(map: MindMap, measureText?: TextMeasurer): Layout {
     const span = Math.max(
       rootSize.height,
       ...Object.values(groups).map((ids) =>
-        ids.reduce((sum, id) => sum + sizes.get(id)!.span + BRANCH_GAP, -BRANCH_GAP),
+        stackSpan(
+          ids.map((id) => sizes.get(id)!.span),
+          BRANCH_GAP,
+        ),
       ),
     );
-    const cy = rootTop + span / 2;
-    nodes.push({
-      id: rootId,
-      x: 0,
-      y: cy - rootSize.height / 2,
-      width: rootSize.width,
-      height: rootSize.height,
-      lines: rootSize.lines,
-      runs: rootSize.runs,
-      branch: -1,
-      side: 'right',
-    });
-    for (const side of ['left', 'right'] as const) {
-      let top =
-        cy -
-        groups[side].reduce((sum, id) => sum + sizes.get(id)!.span + BRANCH_GAP, -BRANCH_GAP) / 2;
-      for (const child of groups[side]) {
-        const size = sizes.get(child)!;
-        place(
-          child,
-          side === 'right' ? rootSize.width + LEVEL_GAP : -size.width - LEVEL_GAP,
-          top + size.span / 2,
+    const center = top + span / 2;
+    box(rootId, 0, center, 'right', -1);
+    for (const side of ['left', 'right'] as const)
+      for (const child of stackChildren(groups[side], center, BRANCH_GAP, sizes))
+        placeBranch(
+          child.id,
+          beside(0, rootSize.width, child.id, side),
+          child.center,
           side,
           branch++,
         );
-        top += size.span + BRANCH_GAP;
-      }
-    }
-    rootTop += span + 120;
+    top += span + ROOT_GAP;
   }
-  const minX = Math.min(...nodes.map((n) => n.x)) - 80;
-  const minY = Math.min(...nodes.map((n) => n.y)) - 80;
-  nodes.forEach((node) => {
-    node.x -= minX;
-    node.y -= minY;
-  });
-  const manual = Object.values(map.nodes).some((node) => node.position !== null);
-  const occupied = new OccupiedRows();
-  const byId = new Map(nodes.map((node) => [node.id, node]));
-  for (const node of nodes) {
-    const point = map.nodes[node.id].position;
-    if (point) {
-      node.x = point.x;
-      node.y = point.y;
-      if (manual) occupied.add(node);
-    }
-  }
-  for (const node of nodes) {
-    if (map.nodes[node.id].position) continue;
-    const parentId = map.nodes[node.id].parentId;
-    if (manual && parentId !== null) {
-      const parent = byId.get(parentId)!;
-      node.x =
-        node.side === 'right'
-          ? parent.x + parent.width + LEVEL_GAP
-          : parent.x - node.width - LEVEL_GAP;
-      node.y = parent.y + (parent.height - node.height) / 2;
-      occupied.moveBelowCollisions(node);
-    }
-    if (manual) occupied.add(node);
-  }
-  return finishLayout(
-    nodes,
-    nodes
-      .filter((node) => map.nodes[node.id].parentId !== null)
-      .map((node) => ({ from: map.nodes[node.id].parentId!, to: node.id, branch: node.branch })),
-  );
+  const { x, y } = boundsOf(nodes, LAYOUT_MARGIN);
+  return nodes.map((node) => ({ ...node, x: node.x - x, y: node.y - y }));
 }
 
-const CLEARANCE = 24;
+/**
+ * Pinned nodes take their saved positions. Once any node is pinned, the others are placed
+ * beside their parent and moved down out of the way, so nothing lands on a pinned node.
+ */
+function applyManualPositions(map: MindMap, placed: LayoutNode[]): LayoutNode[] {
+  const pinned = placed.map((node) => {
+    const point = map.nodes[node.id].position;
+    return point ? { ...node, x: point.x, y: point.y } : node;
+  });
+  if (!Object.values(map.nodes).some((node) => node.position !== null)) return pinned;
+  const occupied = new OccupiedRows();
+  pinned.forEach((node) => {
+    if (map.nodes[node.id].position) occupied.add(node);
+  });
+  const final = new Map<string, LayoutNode>();
+  return pinned.map((node) => {
+    const { position, parentId } = map.nodes[node.id];
+    let result = node;
+    if (!position) {
+      if (parentId !== null) {
+        const parent = final.get(parentId)!;
+        const x =
+          node.side === 'right'
+            ? parent.x + parent.width + LEVEL_GAP
+            : parent.x - node.width - LEVEL_GAP;
+        const beside = { ...node, x, y: parent.y + (parent.height - node.height) / 2 };
+        result = { ...beside, y: occupied.freeY(beside) };
+      }
+      occupied.add(result);
+    }
+    final.set(node.id, result);
+    return result;
+  });
+}
 
 /** Placed boxes ordered by top edge, so a collision search only visits nearby rows. */
 class OccupiedRows {
-  private boxes: LayoutNode[] = [];
+  private boxes: Box[] = [];
   private tallest = 0;
 
-  add(box: LayoutNode) {
+  add(box: Box) {
     let low = 0,
       high = this.boxes.length;
     while (low < high) {
@@ -168,11 +191,12 @@ class OccupiedRows {
   }
 
   /**
-   * Move `node` down to the first free slot. It only moves downward, so one sweep in top
-   * order reaches the same slot as rescanning every box after each move.
+   * The top of the first free slot at or below `box`. It only moves downward, so one sweep
+   * in top order reaches the same slot as rescanning every box after each move.
    */
-  moveBelowCollisions(node: LayoutNode) {
-    const reach = node.y - this.tallest - CLEARANCE;
+  freeY(box: Box): number {
+    let y = box.y;
+    const reach = y - this.tallest - CLEARANCE;
     let index = 0,
       high = this.boxes.length;
     while (index < high) {
@@ -182,14 +206,10 @@ class OccupiedRows {
     }
     for (; index < this.boxes.length; index++) {
       const other = this.boxes[index];
-      if (other.y >= node.y + node.height + CLEARANCE) break;
-      if (
-        node.x < other.x + other.width + CLEARANCE &&
-        node.x + node.width + CLEARANCE > other.x &&
-        node.y < other.y + other.height + CLEARANCE
-      )
-        node.y = other.y + other.height + CLEARANCE;
+      if (other.y >= y + box.height + CLEARANCE) break;
+      if (intersects({ ...box, y }, other, CLEARANCE)) y = other.y + other.height + CLEARANCE;
     }
+    return y;
   }
 }
 
@@ -209,43 +229,54 @@ function joinsSideways(parent: LayoutNode, child: LayoutNode, dx: number, dy: nu
   );
 }
 
-function finishLayout(nodes: LayoutNode[], relations: Omit<LayoutEdge, 'path'>[]): Layout {
-  const byId = new Map(nodes.map((node) => [node.id, node]));
+/** The connector from `parent` to `child`, whose centers are `dx`, `dy` apart. */
+function connectorPath(parent: LayoutNode, child: LayoutNode, dx: number, dy: number) {
+  if (joinsSideways(parent, child, dx, dy)) {
+    const fromX = dx < 0 ? parent.x : parent.x + parent.width;
+    const toX = dx < 0 ? child.x + child.width : child.x;
+    const fromY = parent.y + parent.height / 2;
+    const toY = child.y + child.height / 2;
+    const bend = Math.max(MIN_BEND, Math.abs(toX - fromX) / 2) * (dx < 0 ? -1 : 1);
+    return `M ${fromX} ${fromY} C ${fromX + bend} ${fromY}, ${toX - bend} ${toY}, ${toX} ${toY}`;
+  }
+  const fromX = parent.x + parent.width / 2;
+  const toX = child.x + child.width / 2;
+  const fromY = dy < 0 ? parent.y : parent.y + parent.height;
+  const toY = dy < 0 ? child.y + child.height : child.y;
+  const bend = Math.max(MIN_BEND, Math.abs(toY - fromY) / 2) * (dy < 0 ? -1 : 1);
+  return `M ${fromX} ${fromY} C ${fromX} ${fromY + bend}, ${toX} ${toY - bend}, ${toX} ${toY}`;
+}
+
+/** The canvas extent of `nodes`: their bounds plus the margin, always including the origin. */
+export function layoutBounds(nodes: readonly Box[]) {
+  const box = boundsOf(nodes, LAYOUT_MARGIN);
+  const minX = Math.min(0, box.x);
+  const minY = Math.min(0, box.y);
+  return {
+    minX,
+    minY,
+    width: Math.max(...nodes.map((node) => node.x + node.width)) + LAYOUT_MARGIN - minX,
+    height: Math.max(...nodes.map((node) => node.y + node.height)) + LAYOUT_MARGIN - minY,
+  };
+}
+
+/** Draw connectors and size the canvas; a child's side follows where it now sits. */
+function finishLayout(placed: LayoutNode[], relations: Relation[]): Layout {
+  const byId = new Map(placed.map((node) => [node.id, node]));
+  const sides = new Map<string, Side>();
   const edges = relations.map((edge) => {
     const parent = byId.get(edge.from)!;
     const child = byId.get(edge.to)!;
     const dx = child.x + child.width / 2 - parent.x - parent.width / 2;
     const dy = child.y + child.height / 2 - parent.y - parent.height / 2;
-    const horizontal = joinsSideways(parent, child, dx, dy);
-    child.side = dx < 0 ? 'left' : 'right';
-    let path: string;
-    if (horizontal) {
-      const fromX = dx < 0 ? parent.x : parent.x + parent.width;
-      const toX = dx < 0 ? child.x + child.width : child.x;
-      const fromY = parent.y + parent.height / 2;
-      const toY = child.y + child.height / 2;
-      const bend = Math.max(24, Math.abs(toX - fromX) / 2) * (dx < 0 ? -1 : 1);
-      path = `M ${fromX} ${fromY} C ${fromX + bend} ${fromY}, ${toX - bend} ${toY}, ${toX} ${toY}`;
-    } else {
-      const fromX = parent.x + parent.width / 2;
-      const toX = child.x + child.width / 2;
-      const fromY = dy < 0 ? parent.y : parent.y + parent.height;
-      const toY = dy < 0 ? child.y + child.height : child.y;
-      const bend = Math.max(24, Math.abs(toY - fromY) / 2) * (dy < 0 ? -1 : 1);
-      path = `M ${fromX} ${fromY} C ${fromX} ${fromY + bend}, ${toX} ${toY - bend}, ${toX} ${toY}`;
-    }
-    return { ...edge, path };
+    sides.set(child.id, dx < 0 ? 'left' : 'right');
+    return { ...edge, path: connectorPath(parent, child, dx, dy) };
   });
-  const minX = Math.min(0, ...nodes.map((node) => node.x - 80));
-  const minY = Math.min(0, ...nodes.map((node) => node.y - 80));
-  return {
-    nodes,
-    edges,
-    minX,
-    minY,
-    width: Math.max(...nodes.map((node) => node.x + node.width)) + 80 - minX,
-    height: Math.max(...nodes.map((node) => node.y + node.height)) + 80 - minY,
-  };
+  const nodes = placed.map((node) => {
+    const side = sides.get(node.id) ?? node.side;
+    return side === node.side ? node : { ...node, side };
+  });
+  return { nodes, edges, ...layoutBounds(nodes) };
 }
 
 export function moveLayoutSubtree(

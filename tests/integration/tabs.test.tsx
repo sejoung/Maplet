@@ -142,8 +142,8 @@ it.each([
   const mine = { folder, file: { ...file, id: 'own-file' }, source: null };
   if (own) writeTabWorkspace('client', mine);
   const { result } = renderHook(() => useDriveWorkspace('client', session));
-  expect(result.current.saveFolder).toEqual(folder);
-  expect(result.current.pending?.workspace).toEqual(
+  expect(result.current.state.folder).toEqual(folder);
+  expect(result.current.state.pending?.workspace).toEqual(
     expected === 'own' ? mine : expected === 'shared' ? shared : folderOnly,
   );
 });
@@ -155,12 +155,24 @@ it('leaves the shared record alone at startup and claims it once this tab change
   );
   expect(readDriveWorkspaceOwner('client')).toBe('owner');
   // Settling on the same folder-only target is not a change.
-  act(() => result.current.setPending(null));
+  act(() =>
+    result.current.dispatch({ type: 'folderPicked', folder, local: { content: '', filename: '' } }),
+  );
   expect(readDriveWorkspaceOwner('client')).toBe('owner');
   const created = { ...file, id: 'created' };
-  act(() => result.current.setDriveFile(created));
+  act(() =>
+    result.current.dispatch({
+      type: 'restored',
+      folder,
+      file: created,
+      source: null,
+      synced: { baseline: null, content: null, filename: null },
+    }),
+  );
   expect(readDriveWorkspace('client')).toEqual({ folder, file: created, source: null });
   expect(readDriveWorkspaceOwner('client')).toBe('mine');
-  act(() => result.current.setSaveFolder(null));
+  act(() =>
+    result.current.dispatch({ type: 'disconnected', local: { content: '', filename: '' } }),
+  );
   expect(readDriveWorkspace('client')).toBeNull();
 });

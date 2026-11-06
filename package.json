@@ -16,6 +16,8 @@
     "manual:capture": "playwright test -c playwright.manual.config.ts",
     "test:coverage": "node scripts/run-tests.mjs coverage",
     "test:architecture": "node scripts/run-tests.mjs architecture",
+    "arch": "depcruise src --config .dependency-cruiser.cjs",
+    "arch:graph": "depcruise src --config .dependency-cruiser.cjs --output-type mermaid --collapse \"^src/[^/]+\"",
     "test:e2e": "node scripts/run-tests.mjs e2e",
     "verify": "npm run format:check && npm run lint && npm run typecheck && npm run test:coverage && npm run build"
   },
@@ -36,6 +38,7 @@
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^5.0.4",
     "@vitest/coverage-v8": "^4.1.12",
+    "dependency-cruiser": "16.10.4",
     "eslint": "^9.39.0",
     "eslint-plugin-jsx-a11y": "^6.10.2",
     "eslint-plugin-react-hooks": "^7.0.0",

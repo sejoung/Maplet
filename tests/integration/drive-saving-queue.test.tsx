@@ -1,11 +1,11 @@
 // @vitest-environment jsdom
-import { useRef, useState } from 'react';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { expect, it, vi } from 'vitest';
 import { useDriveSaving } from '../../src/app/useDriveSaving';
-import { DriveClient } from '../../src/adapters/drive/client';
+import { useDriveOperation } from '../../src/app/useDriveOperation';
 import { createMap } from '../../src/domain/commands';
 import { serializeMaplet } from '../../src/adapters/maplet/codec';
+import type { DriveFiles } from '../../src/adapters/drive/types';
 
 it.each(['success', 'failure'])(
   'preserves a new document save queued behind an old document %s',
@@ -28,33 +28,30 @@ it.each(['success', 'failure'])(
     const content = serializeMaplet(createMap('Current'));
     const { result, rerender } = renderHook(
       ({ key }) => {
-        const [busy, setBusy] = useState(false);
-        const inFlight = useRef(false),
-          generation = useRef(0);
+        const operation = useDriveOperation();
         return useDriveSaving({
           content,
           filename: 'map.maplet',
           documentKey: key,
-          drive: api as unknown as DriveClient,
+          drive: api as unknown as DriveFiles,
           folder: { id: 'folder', name: 'Folder' },
           file: { id: key === 0 ? 'old' : 'new', name: 'map.maplet', version: '1', etag: null },
           baseline: null,
-          busy,
+          operation,
           blocked: false,
           paused: false,
           dirty: true,
-          inFlight,
-          generation,
           copyLabel: 'Copy',
           authorize: async () => {},
           pickFolder: async () => null,
-          begin: () => setBusy(true),
-          finish: () => setBusy(false),
-          unchanged: vi.fn(),
-          success,
-          fail: failure,
-          resolved: vi.fn(),
-          rebase: vi.fn(),
+          events: {
+            begin: vi.fn(),
+            unchanged: vi.fn(),
+            success,
+            fail: failure,
+            resolved: vi.fn(),
+            rebase: vi.fn(),
+          },
         });
       },
       { initialProps: { key: 0 } },

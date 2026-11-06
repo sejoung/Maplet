@@ -1,6 +1,4 @@
 import {
-  MAX_DEPTH,
-  MAX_NODE_COUNT,
   MAX_TITLE,
   type Json,
   type JsonObject,
@@ -10,40 +8,79 @@ import {
 } from '../../domain/model';
 import { isNodePosition } from '../../domain/positions';
 import { cleanConnections } from '../../domain/connections';
-import { safeUrl } from '../../domain/commands';
 import { AppError, formatCount } from '../../domain/errors';
 import { isReservedId } from '../../domain/ids';
-import { equalJson, isJsonObject, parseFiniteJson } from '../../domain/json';
-import { rankMagnitude } from '../../domain/ranks';
-import { assertSize, MAX_MUP_BYTES, utf8Length } from '../limits';
-import { UNSAFE_LINK_WARNING } from '../maplet/codec';
+import { equalJson, isJsonObject } from '../../domain/json';
+import { isValidRank, rankMagnitude } from '../../domain/ranks';
+import {
+  assertDepth,
+  assertNodeCount,
+  MAX_MUP_BYTES,
+  readJson,
+  safeLinks,
+  UNSAFE_LINK_WARNING,
+  type JsonErrors,
+} from '../limits';
 
-export const MAX_BYTES = MAX_MUP_BYTES;
-export const MAX_NODES = MAX_NODE_COUNT;
-const object = isJsonObject;
-const obj = (value: Json | undefined): JsonObject => (object(value) ? value : {});
-const validRank = (rank: string) =>
-  rank.trim() !== '' && Number.isFinite(Number(rank)) && Number(rank) !== 0;
-/** Only openable links enter the model; the raw hyperlink stays in the preserved source. */
-const safeLinks = (attr: JsonObject) =>
-  typeof attr.hyperlink === 'string' && safeUrl(attr.hyperlink) ? [attr.hyperlink] : [];
+export const MUP_JSON: JsonErrors = {
+  sizeKey: 'file.filesMustMibSmaller',
+  jsonKey: 'file.invalidMupJson',
+};
+const objectOr = (value: Json | undefined): JsonObject => (isJsonObject(value) ? value : {});
+const hyperlinks = (attr: JsonObject) =>
+  typeof attr.hyperlink === 'string' ? [attr.hyperlink] : [];
+/** Notes live in `attr.notes`, or in a plain-text attachment written by older MindMup. */
+function readNotes(attr: JsonObject): string {
+  if (typeof attr.notes === 'string') return attr.notes;
+  const attachment = objectOr(attr.attachment);
+  return attachment.contentType === 'text/plain' && typeof attachment.content === 'string'
+    ? attachment.content
+    : '';
+}
 
-export const MUP_JSON_ERROR = 'file.invalidMupJson';
+/**
+ * Where an idea keeps its look: version 1 on the idea itself with `collapsed` inside the
+ * style, later versions in `attr`. Writes go to `idea` and `attr`, which the caller owns.
+ */
+function styleHost(idea: JsonObject, attr: JsonObject, version: number) {
+  const host = version === 1 ? idea : attr;
+  return {
+    style: () => objectOr(host.style),
+    collapsed: () => Boolean((version === 1 ? objectOr(host.style) : host).collapsed),
+    setStyle: (style: JsonObject) => {
+      host.style = style;
+    },
+    setCollapsed: (collapsed: boolean) => {
+      if (version === 1) host.style = { ...objectOr(host.style), collapsed };
+      else host.collapsed = collapsed;
+    },
+  };
+}
 
 export function parseMup(source: string): MindMap {
-  assertSize(utf8Length(source), MAX_BYTES);
-  let raw: unknown;
-  try {
-    raw = parseFiniteJson(source);
-  } catch {
-    throw new AppError(MUP_JSON_ERROR);
-  }
-  return mupFromJson(raw, source);
+  return mupFromJson(readJson(source, MAX_MUP_BYTES, MUP_JSON), source);
+}
+
+/** Notices for MindMup features that are kept in the file but not shown. */
+function collectWarnings(idea: JsonObject, attr: JsonObject, warnings: Set<string>) {
+  const attachment = objectOr(attr.attachment);
+  if (attachment.contentType && attachment.contentType !== 'text/plain')
+    warnings.add('file.attachmentsPreserved');
+  if (idea.resources || idea.icon || attr.icon) warnings.add('file.iconsResourcesPreserved');
+  if (hyperlinks(attr).length && !safeLinks(hyperlinks(attr)).length)
+    warnings.add(UNSAFE_LINK_WARNING);
+}
+
+/** Children sorted by rank; every key must be a valid rank. */
+function rankedEntries(ideas: JsonObject, invalidKey: string, order: (rank: string) => number) {
+  const entries = Object.entries(ideas);
+  if (!entries.every(([rank]) => isValidRank(rank))) throw new AppError(invalidKey);
+  return entries.sort(([a], [b]) => order(a) - order(b));
 }
 
 /** Convert an already parsed MindMup document; `source` is kept as the original backup. */
 export function mupFromJson(raw: unknown, source: string): MindMap {
-  if (!object(raw)) throw new AppError('file.mindMapMustJsonObject');
+  if (!isJsonObject(raw)) throw new AppError('file.mindMapMustJsonObject');
   const version = raw.formatVersion ?? 1;
   if (version !== 1 && version !== 2 && version !== 3)
     throw new AppError('file.unsupportedMupVersion');
@@ -58,10 +95,10 @@ export function mupFromJson(raw: unknown, source: string): MindMap {
     inheritedSide: Side,
     depth: number,
   ): string => {
-    if (depth > MAX_DEPTH) throw new AppError('file.nodeDepthMustLess', { max: MAX_DEPTH });
-    if (++count > MAX_NODES)
-      throw new AppError('file.mapMustHaveMostNodes', { max: formatCount(MAX_NODES) });
-    if (!object(value) || seen.has(value)) throw new AppError('file.invalidNodeCyclicReference');
+    assertDepth(depth);
+    assertNodeCount(++count);
+    if (!isJsonObject(value) || seen.has(value))
+      throw new AppError('file.invalidNodeCyclicReference');
     seen.add(value);
     if (
       (typeof value.id !== 'number' && typeof value.id !== 'string') ||
@@ -74,15 +111,11 @@ export function mupFromJson(raw: unknown, source: string): MindMap {
       throw new AppError('common.duplicateInvalidNodeId');
     if (value.title.length > MAX_TITLE)
       throw new AppError('file.nodeTitlesMustCharactersShorter', { max: formatCount(MAX_TITLE) });
-    const attr = obj(value.attr);
-    const style = version === 1 ? obj(value.style) : obj(attr.style);
-    const attachment = obj(attr.attachment);
-    if (attachment.contentType && attachment.contentType !== 'text/plain')
-      warnings.add('file.attachmentsPreserved');
-    if (value.resources || value.icon || attr.icon) warnings.add('file.iconsResourcesPreserved');
-    const links = safeLinks(attr);
-    if (typeof attr.hyperlink === 'string' && !links.length) warnings.add(UNSAFE_LINK_WARNING);
-    const side =
+    const attr = objectOr(value.attr);
+    collectWarnings(value, attr, warnings);
+    const look = styleHost(value, attr, version);
+    // First-level branches take their side from the sign of their rank; deeper ones inherit.
+    const side: Side =
       parentId && nodes[parentId].parentId === null
         ? Number(rank) < 0
           ? 'left'
@@ -91,48 +124,40 @@ export function mupFromJson(raw: unknown, source: string): MindMap {
     const rawExtensions = { ...value };
     if (value.ideas === undefined) delete rawExtensions.ideas;
     else rawExtensions.ideas = {};
+    const position = attr['maplet:position'];
     nodes[id] = {
       id,
-      originalId: value.id as string | number,
+      originalId: value.id,
       title: value.title,
       parentId,
       rank,
       side,
       children: [],
-      collapsed: Boolean(version === 1 ? style.collapsed : attr.collapsed),
-      style: { ...style },
-      notes:
-        typeof attr.notes === 'string'
-          ? attr.notes
-          : attachment.contentType === 'text/plain' && typeof attachment.content === 'string'
-            ? attachment.content
-            : '',
-      links,
-      position: isNodePosition(attr['maplet:position'])
-        ? { x: attr['maplet:position'].x, y: attr['maplet:position'].y }
-        : null,
+      collapsed: look.collapsed(),
+      style: { ...look.style() },
+      notes: readNotes(attr),
+      links: safeLinks(hyperlinks(attr)),
+      position: isNodePosition(position) ? { x: position.x, y: position.y } : null,
       rawExtensions,
     };
     if (value.ideas !== undefined) {
-      if (!object(value.ideas)) throw new AppError('file.ideasMustObjectContainingOrder');
-      const entries = Object.entries(value.ideas);
-      if (!entries.every(([key]) => validRank(key)))
-        throw new AppError('file.nodeRankMustFiniteNonzero');
-      entries.sort(([a], [b]) => rankMagnitude(a) - rankMagnitude(b));
-      nodes[id].children = entries.map(([key, child]) => visit(child, id, key, side, depth + 1));
+      if (!isJsonObject(value.ideas)) throw new AppError('file.ideasMustObjectContainingOrder');
+      nodes[id].children = rankedEntries(
+        value.ideas,
+        'file.nodeRankMustFiniteNonzero',
+        rankMagnitude,
+      ).map(([key, child]) => visit(child, id, key, side, depth + 1));
     }
     return id;
   };
   let roots: string[];
   const extensions: JsonObject = version === 3 ? { ...raw } : {};
   if (version === 3) {
-    if (!object(raw.ideas) || !Object.keys(raw.ideas).length)
+    if (!isJsonObject(raw.ideas) || !Object.keys(raw.ideas).length)
       throw new AppError('file.emptyMapNoCentralNode');
-    const entries = Object.entries(raw.ideas);
-    if (!entries.every(([rank]) => validRank(rank))) throw new AppError('file.invalidRootRank');
-    roots = entries
-      .sort(([a], [b]) => Number(a) - Number(b))
-      .map(([rank, child]) => visit(child, null, rank, 'right', 1));
+    roots = rankedEntries(raw.ideas, 'file.invalidRootRank', Number).map(([rank, child]) =>
+      visit(child, null, rank, 'right', 1),
+    );
     delete extensions.ideas;
   } else roots = [visit(raw, null, '1', 'right', 1)];
   if (raw.resources) warnings.add('file.resourcesPreserved');
@@ -146,7 +171,7 @@ export function mupFromJson(raw: unknown, source: string): MindMap {
   };
   // Version 3 keeps cross-links beside the roots; older versions on the root idea.
   if (Array.isArray(raw.links)) {
-    const links = raw.links.filter(object).map((link) => ({
+    const links = raw.links.filter(isJsonObject).map((link) => ({
       from: String(link.ideaIdFrom),
       to: String(link.ideaIdTo),
     }));
@@ -160,7 +185,7 @@ export function mupFromJson(raw: unknown, source: string): MindMap {
 
 /** Cross-links in MindMup form, keeping the attributes of links that still exist. */
 function mupLinks(map: MindMap, previous: unknown): Json[] {
-  const old = Array.isArray(previous) ? previous.filter(object) : [];
+  const old = Array.isArray(previous) ? previous.filter(isJsonObject) : [];
   return (map.connections ?? []).map(({ from, to }) => {
     const ideaIdFrom = map.nodes[from].originalId;
     const ideaIdTo = map.nodes[to].originalId;
@@ -174,69 +199,70 @@ function mupLinks(map: MindMap, previous: unknown): Json[] {
   });
 }
 
-export function serializeMup(map: MindMap): string {
-  const visit = (id: string): JsonObject => {
-    const node = map.nodes[id];
-    const raw = structuredClone(node.rawExtensions);
-    raw.id = node.originalId;
-    raw.title = node.title;
-    const attr = { ...obj(raw.attr) };
-    if (node.position)
-      attr['maplet:position'] = {
-        ...obj(attr['maplet:position']),
-        x: node.position.x,
-        y: node.position.y,
-      };
-    else if (isNodePosition(attr['maplet:position'])) {
-      const remaining = { ...obj(attr['maplet:position']) };
-      delete remaining.x;
-      delete remaining.y;
-      if (Object.keys(remaining).length) attr['maplet:position'] = remaining;
-      else delete attr['maplet:position'];
-    }
-    const originalStyle = map.formatVersion === 1 ? obj(raw.style) : obj(attr.style);
-    const originalCollapsed = Boolean(
-      map.formatVersion === 1 ? originalStyle.collapsed : attr.collapsed,
+// Writers change a field only when the model differs from what the file said, so untouched
+// ideas export byte-for-byte the same JSON.
+
+/** The position is Maplet's own attribute; other keys a tool added next to it stay. */
+function writePosition(attr: JsonObject, position: MindNode['position']) {
+  const previous = objectOr(attr['maplet:position']);
+  if (position) attr['maplet:position'] = { ...previous, x: position.x, y: position.y };
+  else if (isNodePosition(attr['maplet:position'])) {
+    const remaining = { ...previous };
+    delete remaining.x;
+    delete remaining.y;
+    if (Object.keys(remaining).length) attr['maplet:position'] = remaining;
+    else delete attr['maplet:position'];
+  }
+}
+
+function writeLook(look: ReturnType<typeof styleHost>, node: MindNode) {
+  const before = { style: look.style(), collapsed: look.collapsed() };
+  if (!equalJson(before.style, node.style)) look.setStyle({ ...node.style });
+  if (before.collapsed !== node.collapsed) look.setCollapsed(node.collapsed);
+}
+
+function writeNotes(attr: JsonObject, notes: string) {
+  if (readNotes(attr) === notes) return;
+  attr.notes = notes;
+  const attachment = objectOr(attr.attachment);
+  if (attachment.contentType === 'text/plain') attr.attachment = { ...attachment, content: notes };
+}
+
+/** MindMup holds one hyperlink; an unsafe original stays unless the link was edited. */
+function writeLinks(attr: JsonObject, links: readonly string[]) {
+  if (equalJson(safeLinks(hyperlinks(attr)), links)) return;
+  if (links[0]) attr.hyperlink = links[0];
+  else delete attr.hyperlink;
+}
+
+function writeIdea(map: MindMap, id: string): JsonObject {
+  const node = map.nodes[id];
+  const idea = structuredClone(node.rawExtensions);
+  idea.id = node.originalId;
+  idea.title = node.title;
+  const attr = { ...objectOr(idea.attr) };
+  writePosition(attr, node.position);
+  writeLook(styleHost(idea, attr, map.formatVersion), node);
+  writeNotes(attr, node.notes);
+  writeLinks(attr, node.links);
+  if (Object.keys(attr).length || idea.attr !== undefined) idea.attr = attr;
+  if (node.children.length || node.rawExtensions.ideas !== undefined)
+    idea.ideas = Object.fromEntries(
+      node.children.map((child) => [map.nodes[child].rank, writeIdea(map, child)]),
     );
-    const style = { ...node.style };
-    if (!equalJson(originalStyle, style)) {
-      if (map.formatVersion === 1) raw.style = style;
-      else attr.style = style;
-    }
-    if (originalCollapsed !== node.collapsed) {
-      if (map.formatVersion === 1) raw.style = { ...obj(raw.style), collapsed: node.collapsed };
-      else attr.collapsed = node.collapsed;
-    }
-    const originalAttachment = obj(attr.attachment);
-    const originalNotes =
-      typeof attr.notes === 'string'
-        ? attr.notes
-        : originalAttachment.contentType === 'text/plain'
-          ? (originalAttachment.content ?? '')
-          : '';
-    if (originalNotes !== node.notes) {
-      attr.notes = node.notes;
-      if (originalAttachment.contentType === 'text/plain')
-        attr.attachment = { ...originalAttachment, content: node.notes };
-    }
-    if (!equalJson(safeLinks(attr), node.links)) {
-      if (node.links[0]) attr.hyperlink = node.links[0];
-      else delete attr.hyperlink;
-    }
-    if (Object.keys(attr).length || raw.attr !== undefined) raw.attr = attr;
-    if (node.children.length || node.rawExtensions.ideas !== undefined)
-      raw.ideas = Object.fromEntries(
-        node.children.map((child) => [map.nodes[child].rank, visit(child)]),
-      );
-    return raw;
-  };
+  return idea;
+}
+
+export function serializeMup(map: MindMap): string {
   const raw =
     map.formatVersion === 3
       ? {
           ...map.rawExtensions,
-          ideas: Object.fromEntries(map.roots.map((id) => [map.nodes[id].rank, visit(id)])),
+          ideas: Object.fromEntries(
+            map.roots.map((id) => [map.nodes[id].rank, writeIdea(map, id)]),
+          ),
         }
-      : visit(map.roots[0]);
+      : writeIdea(map, map.roots[0]);
   if (map.connections) {
     const links = mupLinks(map, raw.links);
     if (links.length) raw.links = links;

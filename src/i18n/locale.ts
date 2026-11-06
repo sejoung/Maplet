@@ -1,6 +1,7 @@
-import { detectLanguage, translate, type Language } from './core';
+import { detectLanguage, type Language } from './core';
 
-export const LANGUAGE_STORAGE_KEY = 'maplet-language';
+// The interface language as plain state; the composition root mirrors it to browser storage
+// and the page (see adapters/page-language.ts), so this layer touches no browser globals.
 let language: Language = 'ko';
 const listeners = new Set<() => void>();
 export const getLanguage = () => language;
@@ -11,35 +12,14 @@ export const subscribeLanguage = (listener: () => void) => {
   };
 };
 
-function applyLanguage(next: Language) {
-  language = next;
-  document.documentElement.lang = next;
-  document.title = translate('meta.title', next);
-  document
-    .querySelector('meta[name="description"]')
-    ?.setAttribute('content', translate('meta.description', next));
-  listeners.forEach((listener) => listener());
+/** Start with a saved choice if any, otherwise the first supported preferred language. */
+export function initializeLanguage(preferred: readonly string[], saved: string | null = null) {
+  language = detectLanguage(preferred, saved);
 }
 
 export function setLanguage(next: Language) {
-  try {
-    localStorage.setItem(LANGUAGE_STORAGE_KEY, next);
-  } catch {
-    /* Selection still works without storage. */
-  }
-  applyLanguage(next);
-}
-
-export function initializeLanguage() {
-  let saved: string | null = null;
-  try {
-    saved = localStorage.getItem(LANGUAGE_STORAGE_KEY);
-  } catch {
-    /* Use browser preferences. */
-  }
-  applyLanguage(
-    detectLanguage(navigator.languages.length ? navigator.languages : [navigator.language], saved),
-  );
+  language = next;
+  listeners.forEach((listener) => listener());
 }
 
 /** Each language is named in itself, whatever the interface language. */

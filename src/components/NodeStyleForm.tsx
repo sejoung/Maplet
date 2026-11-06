@@ -4,6 +4,7 @@ import type { JsonObject } from '../domain/model';
 import { FONT_SIZES, nodeTypography } from '../domain/typography';
 import { useI18n } from '../i18n/react';
 import { NodeStyleExtras } from './NodeStyleExtras';
+import { DialogActions } from './Dialog';
 
 const colors = [
   ['style.backgroundSage', '#e9f1e8'],
@@ -126,14 +127,7 @@ export function NodeStyleForm({
         </button>
       </fieldset>
       <NodeStyleExtras style={style} onChange={setStyle} />
-      <div className="dialog-actions">
-        <button className="button" type="button" onClick={onClose}>
-          {t('common.cancel')}
-        </button>
-        <button className="button primary" type="submit">
-          {t('style.applyStyle')}
-        </button>
-      </div>
+      <DialogActions onCancel={onClose} submitLabel={t('style.applyStyle')} />
     </form>
   );
 }

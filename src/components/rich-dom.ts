@@ -1,11 +1,7 @@
-import { HIGHLIGHT_COLORS, HIGHLIGHT_FILLS, HIGHLIGHT_TEXT, PLAIN } from '../domain/rich-text';
+import { HIGHLIGHT_COLORS, PLAIN } from '../domain/rich-text';
 import type { HighlightColor, TextFormat, TextRun } from '../domain/rich-text';
-
-/** Plain-text position of the selection inside the editor, in UTF-16 units. */
-export interface TextSelection {
-  start: number;
-  end: number;
-}
+import type { TextSelection } from '../domain/rich-editing';
+import { richWrappers } from './rich-markup';
 
 const isColor = (value: string | undefined): value is HighlightColor =>
   HIGHLIGHT_COLORS.includes(value as HighlightColor);
@@ -21,23 +17,14 @@ const isBlock = (node: Node) => node instanceof HTMLElement && /^(DIV|P)$/.test(
 
 /** Wrap text in the elements the node display uses for its formatting. */
 export function richElement(run: TextRun): Node {
-  let node: Node = document.createTextNode(run.text);
-  const wrap = (tag: string, className: string) => {
+  return richWrappers(run).reduce<Node>((inner, { tag, className, highlight, style }) => {
     const element = document.createElement(tag);
     element.className = className;
-    element.append(node);
-    node = element;
+    if (highlight) element.dataset.highlight = highlight;
+    if (style) Object.assign(element.style, style);
+    element.append(inner);
     return element;
-  };
-  if (run.italic) wrap('em', 'rich-italic');
-  if (run.bold) wrap('strong', 'rich-bold');
-  if (run.highlight) {
-    const mark = wrap('mark', 'rich-mark');
-    mark.dataset.highlight = run.highlight;
-    mark.style.background = HIGHLIGHT_FILLS[run.highlight];
-    mark.style.color = HIGHLIGHT_TEXT;
-  }
-  return node;
+  }, document.createTextNode(run.text));
 }
 
 /** Draw runs as editable DOM using the same elements as the node display. */

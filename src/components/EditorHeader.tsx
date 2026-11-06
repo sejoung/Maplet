@@ -1,59 +1,34 @@
 import { useI18n } from '../i18n/react';
 import { manualPath } from '../i18n/locale';
 import { useRef } from 'react';
-import {
-  ArrowDownToLine,
-  BookOpen,
-  Cloud,
-  CloudUpload,
-  Copy,
-  FilePlus2,
-  FileText,
-  FolderOpen,
-  Image,
-  ListTree,
-  Printer,
-  Settings,
-} from 'lucide-react';
+import { ArrowDownToLine, BookOpen, Settings } from 'lucide-react';
 import { ToolbarMenu } from './ToolbarMenu';
 import { DocumentName } from './DocumentName';
 import { DriveConnectionButton } from './DriveConnectionButton';
-import type { DriveSyncStatus } from '../application/drive-sync';
+import { MenuItems } from './menu-actions';
+import { fileActionGroups } from './file-actions';
+import type { DriveIndicators, EditorCanvasProps, FileActions } from './editor-types';
+import { SHORTCUTS, withShortcut } from './shortcuts';
 
-interface HeaderProps {
-  filename: string;
-  documentKey: number;
-  onFilenameChange(name: string): void;
-  dirty: boolean;
+export interface HeaderProps
+  extends
+    FileActions,
+    Omit<DriveIndicators, 'driveSaveStatus'>,
+    Pick<EditorCanvasProps, 'documentKey'> {
+  /** The opened file's original text when it was converted on open. */
   original: string | null;
-  driveConfigured: boolean;
-  driveConnected: boolean;
-  driveBusy: boolean;
-  driveSync: DriveSyncStatus | null;
-  saveToDrive: boolean;
-  canSaveCopy: boolean;
+  /** A title or file-name editor has focus. */
   editingText: boolean;
-  onNew(): void;
-  onOpen(file: File): void;
-  onOpenDrive(): void;
-  onSave(): void;
-  onSaveCopy(): void;
-  onDownload(): void;
-  onExportMup(): void;
-  onBackup(): void;
-  onExportImage(format: 'png' | 'svg'): void;
-  onExportOutline(format: 'md' | 'opml'): void;
-  onPrint(): void;
-  onDrive(): void;
-  onDriveRenew(): void;
   onSettings(): void;
-  command(action: () => void): () => void;
 }
 export function EditorHeader(props: HeaderProps) {
   const { t, language } = useI18n();
   const input = useRef<HTMLInputElement>(null);
-  const { command } = props;
   const download = t('header.downloadMaplet');
+  const fileGroups = fileActionGroups(
+    { ...props, onPickFile: () => input.current?.click(), hasOriginal: Boolean(props.original) },
+    t,
+  );
   return (
     <header className="app-header">
       <h1 className="visually-hidden">{t('header.mapletMindMapEditor')}</h1>
@@ -62,74 +37,7 @@ export function EditorHeader(props: HeaderProps) {
         <span>Maplet</span>
       </div>
       <ToolbarMenu label={t('header.file')} className="file-menu">
-        <button onClick={command(props.onNew)}>
-          <FilePlus2 size={17} />
-          {t('header.newMap')}
-        </button>
-        <button onClick={command(() => input.current?.click())}>
-          <FolderOpen size={17} />
-          {t('header.open')}
-        </button>
-        {props.driveConfigured && (
-          <button onClick={command(props.onOpenDrive)}>
-            <Cloud size={17} />
-            {t('common.openDrive')}
-          </button>
-        )}
-        {props.saveToDrive && (
-          <>
-            <hr />
-            <button onClick={command(props.onSave)} aria-keyshortcuts="Control+S Meta+S">
-              <CloudUpload size={17} />
-              {t('header.saveNow')}
-              <kbd aria-hidden="true">Ctrl/⌘ S</kbd>
-            </button>
-            {props.canSaveCopy && (
-              <button onClick={command(props.onSaveCopy)}>
-                <Copy size={17} />
-                {t('header.saveCopyElsewhere')}
-              </button>
-            )}
-          </>
-        )}
-        <hr />
-        <span className="menu-label" aria-hidden="true">
-          {t('header.download')}
-        </span>
-        <button onClick={command(props.onDownload)}>
-          <ArrowDownToLine size={17} />
-          {download}
-        </button>
-        <button onClick={command(props.onExportMup)}>
-          <ArrowDownToLine size={17} />
-          {t('header.downloadMupMindmupCompatible')}
-        </button>
-        <button onClick={command(() => props.onExportImage('png'))}>
-          <Image size={17} />
-          {t('header.downloadPngImage')}
-        </button>
-        <button onClick={command(() => props.onExportImage('svg'))}>
-          <Image size={17} />
-          {t('header.downloadSvgImage')}
-        </button>
-        <button onClick={command(() => props.onExportOutline('md'))}>
-          <FileText size={17} />
-          {t('header.downloadMarkdownMd')}
-        </button>
-        <button onClick={command(() => props.onExportOutline('opml'))}>
-          <ListTree size={17} />
-          {t('header.downloadOpmlOpml')}
-        </button>
-        <button onClick={command(props.onPrint)}>
-          <Printer size={17} />
-          {t('header.printSavePdf')}
-        </button>
-        {props.original && (
-          <button onClick={command(props.onBackup)}>
-            <ArrowDownToLine size={17} />
-            {t('header.downloadOriginalBackup')}
-          </button>
-        )}
+        <MenuItems groups={fileGroups} />
       </ToolbarMenu>
       <div className="document-name" title={props.filename}>
         <DocumentName
@@ -150,7 +58,7 @@ export function EditorHeader(props: HeaderProps) {
             busy={props.driveBusy}
             sync={props.driveSync}
             editing={props.editingText}
-            onClick={command(props.onDrive)}
+            onClick={props.onDrive}
             onRetry={props.onSave}
             onRenew={props.onDriveRenew}
           />
@@ -160,7 +68,7 @@ export function EditorHeader(props: HeaderProps) {
           <button
             className={`button save-button${props.dirty ? ' primary' : ''}`}
             aria-label={download}
-            title={`${download} (Ctrl/Cmd+S)`}
+            title={withShortcut(download, SHORTCUTS.save, 'plain')}
             onClick={props.onSave}
           >
             <ArrowDownToLine size={16} />
@@ -183,7 +91,7 @@ export function EditorHeader(props: HeaderProps) {
           aria-label={t('common.settings')}
           title={t('common.settings')}
           aria-haspopup="dialog"
-          onClick={command(props.onSettings)}
+          onClick={props.onSettings}
         >
           <Settings size={16} />
           <span>{t('common.settings')}</span>

@@ -1,5 +1,6 @@
 import type { MindMap } from '../domain/model';
-import { DASHES, branchLine } from '../domain/node-colors';
+import { branchLine } from '../domain/node-colors';
+import { DASHES } from '../engine/render-metrics';
 import { connectionLines } from '../engine/connections';
 import type { Layout } from '../engine/layout';
 
@@ -21,7 +22,7 @@ export function CanvasLines({ map, layout }: { map: MindMap; layout: Layout }) {
         </marker>
       </defs>
       {layout.edges.map((edge) => {
-        const line = branchLine(map.nodes, edge.to);
+        const line = branchLine(map, edge.to);
         return (
           <path
             key={edge.to}

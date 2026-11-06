@@ -1,8 +1,17 @@
-import { MAX_DEPTH, MAX_NODE_COUNT, MAX_TITLE, type MindMap, type MindNode } from './model';
+import {
+  blankNode,
+  MAX_DEPTH,
+  MAX_NODE_COUNT,
+  MAX_TITLE,
+  type MindMap,
+  type MindNode,
+} from './model';
 import { AppError } from './errors';
-import { attachChild, depthLimit, depthOf, nodeLimit } from './commands';
 import { isReservedId } from './ids';
+import { assertRoom, depthLimit, nodeLimit } from './invariants';
+import { attachChild, editNodes } from './node-edits';
 import { rankMagnitude, signedRank } from './ranks';
+import { depthOf, subtreeHeight, subtreeIds } from './tree';
 
 /** Detached branches: `roots` are pasted as siblings, `nodes` keep their own child lists. */
 export interface Fragment {
@@ -18,17 +27,10 @@ export function copySubtree(map: MindMap, id: string): Fragment {
 export function copyBranches(map: MindMap, ids: readonly string[]): Fragment {
   if (!ids.length || ids.some((id) => !Object.hasOwn(map.nodes, id)))
     throw new AppError('edit.nodeNotFound');
-  const nodes: Record<string, MindNode> = {};
-  const visit = (key: string) => {
-    nodes[key] = structuredClone(map.nodes[key]);
-    map.nodes[key].children.forEach(visit);
-  };
-  ids.forEach(visit);
-  return { roots: [...ids], nodes };
+  // Nodes are never changed in place, so the fragment can share them with the map.
+  const keys = ids.flatMap((id) => subtreeIds(map, id));
+  return { roots: [...ids], nodes: Object.fromEntries(keys.map((key) => [key, map.nodes[key]])) };
 }
-
-const height = (fragment: Fragment, id: string): number =>
-  1 + Math.max(0, ...fragment.nodes[id].children.map((child) => height(fragment, child)));
 
 /**
  * Insert copies of `fragment` under `parentId` (after `afterId` when given) with fresh IDs.
@@ -42,10 +44,10 @@ export function pasteFragment(
   afterId?: string,
 ): { map: MindMap; roots: string[] } {
   if (!Object.hasOwn(map.nodes, parentId)) throw new AppError('edit.nodeNotFound');
-  if (Object.keys(map.nodes).length + Object.keys(fragment.nodes).length > MAX_NODE_COUNT)
-    throw nodeLimit();
+  assertRoom(map, Object.keys(fragment.nodes).length);
   const depth = depthOf(map, parentId);
-  if (fragment.roots.some((root) => depth + height(fragment, root) > MAX_DEPTH)) throw depthLimit();
+  if (fragment.roots.some((root) => depth + subtreeHeight(fragment, root) > MAX_DEPTH))
+    throw depthLimit();
   const ids = new Map<string, string>();
   for (const key of Object.keys(fragment.nodes)) {
     let id = createId();
@@ -53,11 +55,11 @@ export function pasteFragment(
     ids.set(key, id);
   }
   const side = afterId ? map.nodes[afterId].side : map.nodes[parentId].side;
-  const result = structuredClone(map);
+  const edits = editNodes(map);
   for (const [key, node] of Object.entries(fragment.nodes)) {
     const id = ids.get(key)!;
-    result.nodes[id] = {
-      ...structuredClone(node),
+    edits.add({
+      ...node,
       id,
       originalId: id,
       parentId: node.parentId !== null && ids.has(node.parentId) ? ids.get(node.parentId)! : null,
@@ -66,16 +68,15 @@ export function pasteFragment(
       rank: signedRank(rankMagnitude(node.rank) || 1, side),
       // Pasted branches start beside their new parent rather than at the copied coordinates.
       position: null,
-    };
+    });
   }
   let previous = afterId;
   for (const root of fragment.roots) {
     const id = ids.get(root)!;
-    result.nodes[id].parentId = parentId;
-    attachChild(result, result, parentId, id, previous);
+    attachChild(edits, parentId, id, previous);
     previous = id;
   }
-  return { map: result, roots: fragment.roots.map((root) => ids.get(root)!) };
+  return { map: edits.done(), roots: fragment.roots.map((root) => ids.get(root)!) };
 }
 
 const bullet = /^(?:[-*+•▪◦]|\d+[.)])\s+/;
@@ -98,25 +99,11 @@ export function fragmentFromOutline(text: string): Fragment | null {
     const id = `line-${index}`;
     while (stack.length && stack.at(-1)!.indent >= indent) stack.pop();
     const parentId = stack.at(-1)?.id ?? null;
-    fragment.nodes[id] = {
-      id,
-      originalId: id,
-      title: title.slice(0, MAX_TITLE),
-      children: [],
-      parentId,
-      rank: '1',
-      side: 'right',
-      collapsed: false,
-      style: {},
-      notes: '',
-      links: [],
-      position: null,
-      rawExtensions: {},
-    };
-    if (parentId) {
-      fragment.nodes[id].rank = String(fragment.nodes[parentId].children.length + 1);
-      fragment.nodes[parentId].children.push(id);
-    } else fragment.roots.push(id);
+    // The fragment is still being built here, so its own child lists can grow in place.
+    const siblings = parentId ? fragment.nodes[parentId].children : fragment.roots;
+    const rank = parentId ? String(siblings.length + 1) : '1';
+    fragment.nodes[id] = blankNode(id, title.slice(0, MAX_TITLE), parentId, { rank });
+    siblings.push(id);
     stack.push({ indent, id });
   });
   return fragment;

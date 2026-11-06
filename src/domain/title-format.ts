@@ -9,16 +9,10 @@ import {
   type FormatCommand,
   type TextRun,
 } from './rich-text';
+import { legacyEmphasis } from './typography';
+import { editNodes } from './node-edits';
 
-/**
- * Older documents stored bold and italic for a whole node in `style.fontWeight` and
- * `style.fontStyle`. They still display as before; the first formatting change or title
- * edit moves them into the title, so a document only changes when the user changes it.
- */
-export function legacyEmphasis(style: JsonObject) {
-  return { bold: style.fontWeight === 'bold', italic: style.fontStyle === 'italic' };
-}
-
+/** `style` without the whole-node emphasis of older documents (see `legacyEmphasis`). */
 export function withoutLegacyEmphasis(style: JsonObject): JsonObject {
   if (!('fontWeight' in style) && !('fontStyle' in style)) return style;
   return Object.fromEntries(
@@ -52,16 +46,15 @@ export function formatNodeTitles(map: MindMap, ids: readonly string[], command: 
   const all = targets.map((id) => effectiveRuns(map.nodes[id]));
   const joined = all.flat();
   const patch = commandPatch(command, rangeFormat(joined, 0, runsText(joined).length));
-  let next = map;
+  const edits = editNodes(map);
   targets.forEach((id, index) => {
-    const node = map.nodes[id];
     const runs = formatRange(all[index], 0, runsText(all[index]).length, patch);
-    const title = formatRuns(runs);
-    const style = withoutLegacyEmphasis(node.style);
-    if (title === node.title && style === node.style) return;
-    next = { ...next, nodes: { ...next.nodes, [id]: { ...node, title, style } } };
+    edits.set(id, {
+      title: formatRuns(runs),
+      style: withoutLegacyEmphasis(map.nodes[id].style),
+    });
   });
-  return next;
+  return edits.done();
 }
 
 /** Formatting the whole titles of `ids` share, as the toolbar shows it. */

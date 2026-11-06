@@ -1,4 +1,5 @@
 import { equalJson, isJsonObject } from './json';
+import { own } from './ids';
 
 export type MergeChoice = 'local' | 'remote';
 export interface MergeConflict {
@@ -10,13 +11,31 @@ export interface MergeConflict {
   remote: unknown;
 }
 export type MergeChoices = Record<string, MergeChoice>;
-/** Explicit choices win; `prefer` resolves every other conflict in the same pass. */
+/**
+ * Explicit choices win; `prefer` resolves every other conflict in the same pass. `conflicts`
+ * collects what one merge reports, so a merge owns its resolution.
+ */
 export interface MergeResolution {
   conflicts: MergeConflict[];
   choices: MergeChoices;
   prefer?: MergeChoice;
 }
+/** The three versions of one value. */
+export interface MergeSides {
+  base: unknown;
+  local: unknown;
+  remote: unknown;
+}
+/** Where a value lives: a node (or the document, `null`) and the path inside it. */
+export interface MergePlace {
+  nodeId: string | null;
+  path: string[];
+}
 export const equalValue = equalJson;
+
+/** The ID a choice is stored under, stable across merges of the same documents. */
+export const conflictId = (nodeId: string | null, path: readonly string[]) =>
+  JSON.stringify([nodeId, path]);
 
 /** Record the conflict when undecided, and return which side to take. */
 export function decide(
@@ -29,18 +48,11 @@ export function decide(
   return choice ?? resolution.prefer ?? 'local';
 }
 
-const own = (value: Record<string, unknown> | undefined, key: string) =>
-  value && Object.hasOwn(value, key) ? value[key] : undefined;
-
+/** Three-way merge of one JSON value; objects merge per property, other values as a whole. */
 export function mergeValue(
-  base: unknown,
-  local: unknown,
-  remote: unknown,
-  nodeId: string | null,
-  path: string[],
-  conflicts: MergeConflict[],
-  choices: MergeChoices,
-  prefer?: MergeChoice,
+  { base, local, remote }: MergeSides,
+  { nodeId, path }: MergePlace,
+  resolution: MergeResolution,
 ): unknown {
   if (equalJson(local, remote) || equalJson(base, remote)) return local;
   if (equalJson(base, local)) return remote;
@@ -56,24 +68,15 @@ export function mergeValue(
         .map((key) => [
           key,
           mergeValue(
-            own(base, key),
-            own(local, key),
-            own(remote, key),
-            nodeId,
-            [...path, key],
-            conflicts,
-            choices,
-            prefer,
+            { base: base && own(base, key), local: own(local, key), remote: own(remote, key) },
+            { nodeId, path: [...path, key] },
+            resolution,
           ),
         ])
         .filter(([, value]) => value !== undefined),
     );
   }
-  const id = JSON.stringify([nodeId, path]);
-  const side = decide(
-    { conflicts, choices, prefer },
-    () => ({ id, nodeId, path, base, local, remote }),
-    id,
-  );
+  const id = conflictId(nodeId, path);
+  const side = decide(resolution, () => ({ id, nodeId, path, base, local, remote }), id);
   return side === 'remote' ? remote : local;
 }

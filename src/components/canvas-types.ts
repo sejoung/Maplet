@@ -2,12 +2,9 @@ import type { ResizeAction } from './useNodeResize';
 import type { Ref } from 'react';
 import type { MindMap, NodePosition, Side } from '../domain/model';
 import type { FormatCommand } from '../domain/rich-text';
+import type { View } from '../engine/viewport';
 
-export interface CanvasView {
-  x: number;
-  y: number;
-  zoom: number;
-}
+export type CanvasView = View;
 export interface CanvasControls {
   zoomIn(): void;
   zoomOut(): void;

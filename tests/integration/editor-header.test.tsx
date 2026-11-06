@@ -33,7 +33,6 @@ function header(overrides: Partial<Parameters<typeof EditorHeader>[0]> = {}) {
     onDrive: vi.fn(),
     onDriveRenew: vi.fn(),
     onSettings: vi.fn(),
-    command: (action: () => void) => action,
     ...overrides,
   };
   render(<EditorHeader {...props} />);
@@ -60,7 +59,7 @@ it('replaces the save button with the sync state while Drive autosaves', () => {
     saveToDrive: true,
     driveConnected: true,
     canSaveCopy: true,
-    driveSync: { kind: 'synced', label: '동기화 완료' },
+    driveSync: 'synced',
   });
   expect(within(actions()).queryByRole('button', { name: '.maplet 다운로드' })).toBeNull();
   expect(screen.getByRole('status', { name: 'Drive 동기화 상태' })).toHaveTextContent(
@@ -78,7 +77,7 @@ it('asks for attention and offers a retry only when saving failed', () => {
   const props = header({
     saveToDrive: true,
     driveConnected: true,
-    driveSync: { kind: 'error', label: '동기화 오류' },
+    driveSync: 'error',
   });
   expect(screen.getByRole('banner').querySelector('.drive-control')).toHaveClass('needs-attention');
   fireEvent.click(screen.getByRole('button', { name: 'Drive 저장 다시 시도' }));
@@ -90,7 +89,7 @@ it('offers to extend an expiring connection without treating it as a failure', (
     saveToDrive: true,
     driveConnected: true,
     editingText: true,
-    driveSync: { kind: 'expiring', label: 'drive.connectionExpiring' },
+    driveSync: 'expiring',
   });
   expect(screen.getByRole('banner').querySelector('.drive-control')).not.toHaveClass(
     'needs-attention',

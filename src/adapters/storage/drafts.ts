@@ -1,6 +1,6 @@
 import { AppError } from '../../domain/errors';
 import type { DriveWorkspace } from './drive-workspace';
-import type { DriveBaseline } from './drive-baseline';
+import type { DriveBaseline } from '../../domain/snapshot';
 import { keepLocalDrafts, rememberLocalDrafts } from './privacy';
 import { draftOwner } from './tab-session';
 
@@ -22,7 +22,20 @@ export interface StoredDraft {
   draft: Draft;
 }
 
-export class DraftStore {
+/** Where this tab keeps its draft; `DraftStore` implements it on IndexedDB. */
+export interface DraftRepository {
+  /** Whether drafts are kept on this device at all (a privacy setting). */
+  readonly enabled: boolean;
+  /** Turn drafts on or off; turning them off deletes every tab's draft. */
+  configure(enabled: boolean): Promise<void>;
+  load(): Promise<Draft | null>;
+  others(live: ReadonlySet<string>): Promise<StoredDraft[]>;
+  save(draft: Draft): Promise<void>;
+  remove(key: string): Promise<void>;
+  clear(everyTab?: boolean): Promise<void>;
+}
+
+export class DraftStore implements DraftRepository {
   enabled = keepLocalDrafts();
   private generation = 0;
   private queue: Promise<unknown> = Promise.resolve();

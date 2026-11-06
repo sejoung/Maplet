@@ -1,12 +1,12 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { createMap, updateNode } from '../domain/commands';
 import type { MindMap } from '../domain/model';
-import { topLevel, visibleSelection } from '../domain/selection';
 import { commit, createHistory, redo, undo, type History } from '../application/history';
 import { mergeHistory } from '../application/merge-history';
-import { nativeFilename } from '../adapters/documents';
+import type { DriveSnapshot } from '../domain/snapshot';
+import { nativeFilename } from '../adapters/formats';
 import { parseMaplet, serializeMaplet } from '../adapters/maplet/codec';
-import type { DriveSnapshot } from './driveMerge';
+import { useSelection } from './useSelection';
 
 interface Options {
   title: string;
@@ -26,16 +26,12 @@ export function useDocument({ title, filename: initialFilename, onEdited, onErro
   }, []);
   const map = history.present;
   const content = useMemo(() => serializeMaplet(map), [map]);
-  const [savedContent, setSavedContent] = useState(content);
   const [filename, setFilename] = useState(initialFilename);
+  // Until the user names the file, it follows the central topic.
   const [filenamePending, setFilenamePending] = useState(true);
-  const [savedFilename, setSavedFilename] = useState(initialFilename);
-  const [selected, setFocused] = useState(map.roots[0]);
-  const [selection, setSelection] = useState([map.roots[0]]);
-  const setSelected = (id: string) => {
-    setFocused(id);
-    setSelection([id]);
-  };
+  /** What the file on disk or Drive holds, for the unsaved-changes marker. */
+  const [saved, setSaved] = useState({ content, filename: initialFilename });
+  const selection = useSelection(map);
   const [documentKey, setDocumentKey] = useState(0);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [hasWork, setHasWork] = useState(false);
@@ -54,14 +50,14 @@ export function useDocument({ title, filename: initialFilename, onEdited, onErro
   };
 
   const replace = (next: MindMap, name: string, lastSaved?: string, lastSavedName?: string) => {
+    const native = nativeFilename(name);
     setHasWork(true);
     setEditingId(null);
     update(() => createHistory(next));
-    setSelected(next.roots[0]);
-    setFilename(nativeFilename(name));
+    selection.setSelected(next.roots[0]);
+    setFilename(native);
     setFilenamePending(false);
-    setSavedFilename(lastSavedName ?? nativeFilename(name));
-    setSavedContent(lastSaved ?? serializeMaplet(next));
+    setSaved({ content: lastSaved ?? serializeMaplet(next), filename: lastSavedName ?? native });
     setDocumentKey((key) => key + 1);
   };
 
@@ -73,32 +69,7 @@ export function useDocument({ title, filename: initialFilename, onEdited, onErro
     for (let parent = current.nodes[id].parentId; parent; parent = next.nodes[parent].parentId)
       if (next.nodes[parent].collapsed) next = updateNode(next, parent, { collapsed: false });
     if (next !== current) edit(() => next);
-    setSelected(id);
-  };
-
-  const selectedId = Object.hasOwn(map.nodes, selected) ? selected : map.roots[0];
-  const selectedIds = useMemo(() => {
-    const visible = visibleSelection(map, selection);
-    return visible.includes(selectedId) ? visible : [selectedId];
-  }, [map, selection, selectedId]);
-  /** Add a node to the selection and focus it, or remove it and focus the last remaining one. */
-  const toggleSelect = (id: string) => {
-    if (!Object.hasOwn(map.nodes, id)) return;
-    if (!selectedIds.includes(id)) {
-      setSelection([...selectedIds, id]);
-      setFocused(id);
-      return;
-    }
-    if (selectedIds.length === 1) return;
-    const rest = selectedIds.filter((key) => key !== id);
-    setSelection(rest);
-    if (id === selectedId) setFocused(rest.at(-1)!);
-  };
-  // Not validated here: callers may select nodes an edit has just added. Rendering drops
-  // unknown or hidden IDs.
-  const selectNodes = (ids: string[], primary: string) => {
-    setSelection(ids.includes(primary) ? ids : [...ids, primary]);
-    setFocused(primary);
+    selection.setSelected(id);
   };
 
   const step = (direction: typeof undo) => {
@@ -111,26 +82,18 @@ export function useDocument({ title, filename: initialFilename, onEdited, onErro
     content,
     canUndo: history.past.length > 0,
     canRedo: history.future.length > 0,
-    dirty: content !== savedContent || filename !== savedFilename,
-    savedContent,
+    dirty: content !== saved.content || filename !== saved.filename,
+    savedContent: saved.content,
     filename,
     filenamePending,
-    savedFilename,
-    selectedId,
-    /** Every selected node, including `selectedId`. */
-    selection: selectedIds,
-    /** The branches a command on `id` acts on: the whole selection when `id` is part of it. */
-    targets: (id: string) =>
-      selectedIds.length > 1 && selectedIds.includes(id) ? topLevel(map, selectedIds) : [id],
+    savedFilename: saved.filename,
+    ...selection,
     documentKey,
     editingId,
     hasWork,
     edit,
     replace,
     select,
-    toggleSelect,
-    selectNodes,
-    setSelected,
     setEditingId,
     setFilenamePending,
     undo: () => step(undo),
@@ -140,13 +103,9 @@ export function useDocument({ title, filename: initialFilename, onEdited, onErro
       setFilename(name);
       setFilenamePending(false);
     },
-    markDownloaded: () => {
-      setSavedContent(content);
-      setSavedFilename(filename);
-    },
-    markSaved: (saved: string, name = filename) => {
-      setSavedContent(saved);
-      setSavedFilename(name);
+    markDownloaded: () => setSaved({ content, filename }),
+    markSaved: (savedContent: string, name = filename) => {
+      setSaved({ content: savedContent, filename: name });
       setFilename((current) => (current === filename ? name : current));
     },
     applyMerge: (base: DriveSnapshot, incoming: DriveSnapshot) => {

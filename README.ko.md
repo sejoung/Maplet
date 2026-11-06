@@ -123,7 +123,7 @@ npm run test:e2e
 npm run test:watch
 ```
 
-품질 검사와 Pages workflow에서 전체 검증과 데스크톱 Chromium E2E·접근성 검사를 실행하며 CI 테스트 worker는 최대 2개입니다. 아키텍처 테스트로 계층 의존성과 순환 참조를 검사합니다. 코드 파일은 빈 줄·주석을 포함해 **400줄**로 제한하며 운영 CSS에도 같은 상한을 적용합니다.
+품질 검사와 Pages workflow에서 전체 검증과 데스크톱 Chromium E2E·접근성 검사를 실행하며 CI 테스트 worker는 최대 2개입니다. 아키텍처 테스트(dependency-cruiser + AST 규칙)로 계층 의존성, 순환 참조, 고아 파일, 어댑터 생성 위치를 검사하며 `npm run arch`로 보고서를, `npm run arch:graph`로 의존 그래프를 봅니다. 코드 파일은 빈 줄·주석을 포함해 **400줄**로 제한하며 운영 CSS에도 같은 상한을 적용합니다.
 
 각 npm 테스트 명령은 `test-results/<UTC 실행시각>-<종류>-<고유값>/`에 로그와 보고서를 저장합니다. 상대 심볼릭 링크로 실패를 포함한 최근 종료 결과에 접근할 수 있습니다.
 

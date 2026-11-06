@@ -6,9 +6,6 @@ import { setNodePositions } from './positions';
 export const MIN_NODE_WIDTH = 56;
 export const MIN_NODE_HEIGHT = 36;
 export const MAX_NODE_SIZE = 1200;
-export const NODE_PADDING_X = 12;
-export const NODE_PADDING_Y = 6;
-export const NODE_BORDER = 1;
 
 export function sizeValue(value: unknown, minimum: number): number | null {
   return typeof value === 'number' &&

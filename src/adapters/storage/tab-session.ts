@@ -1,3 +1,5 @@
+import { readItem, writeItem } from './web-storage';
+
 /** This tab's identity: its draft and Drive target stay separate from other open tabs. */
 export interface TabSession {
   id: string;
@@ -25,21 +27,6 @@ const RELOAD_WAIT = 1000;
 
 export const draftKey = (id: string) => `tab:${id}`;
 export const draftOwner = (key: string) => (key.startsWith('tab:') ? key.slice(4) : null);
-
-function readId(): string | null {
-  try {
-    return sessionStorage.getItem(ID_KEY);
-  } catch {
-    return null;
-  }
-}
-function writeId(id: string): void {
-  try {
-    sessionStorage.setItem(ID_KEY, id);
-  } catch {
-    // The tab still works; a reload just starts as a new tab.
-  }
-}
 
 /** Hold the tab's lock until the page closes; false if another tab already holds it. */
 function hold(locks: LockManager, id: string, wait: number): Promise<boolean> {
@@ -72,14 +59,15 @@ export async function startTab(
   locks: LockManager | undefined = navigator.locks,
 ): Promise<TabSession> {
   const newMap = takeNewMapRequest();
-  const previous = newMap === null ? readId() : null;
+  const previous = newMap === null ? readItem('session', ID_KEY) : null;
   let id = previous;
   let reopened = false;
   if (previous) reopened = locks ? await hold(locks, previous, RELOAD_WAIT) : true;
   if (!reopened) {
     // A duplicated tab copies sessionStorage; the original keeps its ID.
     id = crypto.randomUUID();
-    writeId(id);
+    // Without storage the tab still works; a reload just starts as a new tab.
+    writeItem('session', ID_KEY, id);
     if (locks) await hold(locks, id, 0);
   }
   const live = new Set<string>();

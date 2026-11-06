@@ -1,6 +1,7 @@
 import { useRef, type PointerEvent } from 'react';
+import { boundsOf } from '../engine/geometry';
 import type { Layout } from '../engine/layout';
-import type { CanvasView } from './canvas-types';
+import { visibleRect, type Size, type View } from '../engine/viewport';
 
 const WIDTH = 180;
 const HEIGHT = 120;
@@ -17,20 +18,17 @@ export function Minimap({
   onCenter,
 }: {
   layout: Layout;
-  view: CanvasView;
-  size: { width: number; height: number };
+  view: View;
+  size: Size;
   onCenter(point: { x: number; y: number }): void;
 }) {
   const pressed = useRef(false);
   if (!layout.nodes.length) return null;
-  const minX = Math.min(...layout.nodes.map((node) => node.x));
-  const minY = Math.min(...layout.nodes.map((node) => node.y));
-  const maxX = Math.max(...layout.nodes.map((node) => node.x + node.width));
-  const maxY = Math.max(...layout.nodes.map((node) => node.y + node.height));
-  const scale = Math.min((WIDTH - 2 * PAD) / (maxX - minX), (HEIGHT - 2 * PAD) / (maxY - minY));
+  const bounds = boundsOf(layout.nodes);
+  const scale = Math.min((WIDTH - 2 * PAD) / bounds.width, (HEIGHT - 2 * PAD) / bounds.height);
   const offset = {
-    x: PAD + (WIDTH - 2 * PAD - (maxX - minX) * scale) / 2 - minX * scale,
-    y: PAD + (HEIGHT - 2 * PAD - (maxY - minY) * scale) / 2 - minY * scale,
+    x: PAD + (WIDTH - 2 * PAD - bounds.width * scale) / 2 - bounds.x * scale,
+    y: PAD + (HEIGHT - 2 * PAD - bounds.height * scale) / 2 - bounds.y * scale,
   };
   const center = (event: PointerEvent<SVGSVGElement>) => {
     const rect = event.currentTarget.getBoundingClientRect();
@@ -39,11 +37,12 @@ export function Minimap({
       y: (event.clientY - rect.top - offset.y) / scale,
     });
   };
+  const shown = visibleRect(view, size);
   const frame = {
-    x: offset.x + (-view.x / view.zoom) * scale,
-    y: offset.y + (-view.y / view.zoom) * scale,
-    width: (size.width / view.zoom) * scale,
-    height: (size.height / view.zoom) * scale,
+    x: offset.x + shown.x * scale,
+    y: offset.y + shown.y * scale,
+    width: shown.width * scale,
+    height: shown.height * scale,
   };
   return (
     <svg

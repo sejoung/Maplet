@@ -1,5 +1,7 @@
 import { AppError } from './errors';
 import type { MindMap, NodePosition } from './model';
+import { editNodes } from './node-edits';
+import { subtreeIds } from './tree';
 
 export function isNodePosition(value: unknown): value is NodePosition {
   if (!value || typeof value !== 'object') return false;
@@ -19,14 +21,13 @@ export function setNodePositions(map: MindMap, positions: Record<string, NodePos
     if (!Object.hasOwn(map.nodes, id)) throw new AppError('edit.nodeNotFound');
     if (!isNodePosition(point)) throw new AppError('edit.nodePositionsMustFiniteCoordinates');
   }
-  let nodes = map.nodes;
+  const edits = editNodes(map);
   for (const [id, point] of Object.entries(positions)) {
-    const node = nodes[id];
-    if (node.position?.x === point.x && node.position.y === point.y) continue;
-    if (nodes === map.nodes) nodes = { ...nodes };
-    nodes[id] = { ...node, position: { x: point.x, y: point.y } };
+    const { position } = map.nodes[id];
+    if (position?.x !== point.x || position.y !== point.y)
+      edits.set(id, { position: { x: point.x, y: point.y } });
   }
-  return nodes === map.nodes ? map : { ...map, nodes };
+  return edits.done();
 }
 
 export function positionsForSubtreeMove(
@@ -39,15 +40,11 @@ export function positionsForSubtreeMove(
     throw new AppError('edit.couldNotFindPositionNode');
   const dx = target.x - positions[id].x;
   const dy = target.y - positions[id].y;
-  const result = { ...positions };
-  const translate = (key: string) => {
-    const node = map.nodes[key];
-    const point = positions[key] ?? node.position;
-    if (point) result[key] = { x: point.x + dx, y: point.y + dy };
-    node.children.forEach(translate);
-  };
-  translate(id);
-  return result;
+  const moved = subtreeIds(map, id).flatMap((key) => {
+    const point = positions[key] ?? map.nodes[key].position;
+    return point ? [[key, { x: point.x + dx, y: point.y + dy }] as const] : [];
+  });
+  return { ...positions, ...Object.fromEntries(moved) };
 }
 
 export function resetNodePositions(map: MindMap): MindMap {

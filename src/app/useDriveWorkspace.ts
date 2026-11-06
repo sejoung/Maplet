@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import {
   parseDriveWorkspace,
   readDriveWorkspace,
@@ -9,11 +9,10 @@ import {
   type DriveWorkspace,
 } from '../adapters/storage/drive-workspace';
 import { FRESH_TAB, type TabSession } from '../adapters/storage/tab-session';
-import type { DriveFile } from '../adapters/drive/client';
-import type { GoogleSelection } from '../adapters/drive/google';
+import { driveWorkspaceReducer, initialDriveWorkspace } from './driveWorkspaceState';
 
 /** A reopened tab resumes its own file; others take the last file only if no open tab has it. */
-function initialWorkspace(clientId: string, tab: TabSession): DriveWorkspace | null {
+function rememberedWorkspace(clientId: string, tab: TabSession): DriveWorkspace | null {
   const shared = readDriveWorkspace(clientId);
   const owner = readDriveWorkspaceOwner(clientId);
   const own = tab.reopened ? readTabWorkspace(clientId) : null;
@@ -24,23 +23,17 @@ function initialWorkspace(clientId: string, tab: TabSession): DriveWorkspace | n
   return shared;
 }
 
+/** The Drive workspace state, remembered per tab and shared with tabs opened later. */
 export function useDriveWorkspace(clientId: string, tab: TabSession = FRESH_TAB) {
-  const [initial] = useState(() => initialWorkspace(clientId, tab));
+  const [initial] = useState(() => rememberedWorkspace(clientId, tab));
   // Starting up must not replace the record another tab may still be relying on.
   const [initialRecord] = useState(() => JSON.stringify(initial));
   const changed = useRef(false);
-  const [saveFolder, setSaveFolder] = useState<GoogleSelection | null>(initial?.folder ?? null);
-  const [driveFile, setDriveFile] = useState<DriveFile | null>(null);
-  const [sourceFile, setSourceFile] = useState<DriveFile | null>(null);
-  const [pending, setPending] = useState<{ workspace: DriveWorkspace; keepLocal: boolean } | null>(
-    initial ? { workspace: initial, keepLocal: false } : null,
-  );
+  const [state, dispatch] = useReducer(driveWorkspaceReducer, initial, initialDriveWorkspace);
+  const { folder, file, source, pending } = state;
   const active = useMemo(
-    () =>
-      parseDriveWorkspace(
-        saveFolder ? { folder: saveFolder, file: driveFile, source: sourceFile } : null,
-      ),
-    [saveFolder, driveFile, sourceFile],
+    () => parseDriveWorkspace(folder ? { folder, file, source } : null),
+    [folder, file, source],
   );
   useEffect(() => {
     const workspace = pending?.workspace ?? active;
@@ -48,24 +41,10 @@ export function useDriveWorkspace(clientId: string, tab: TabSession = FRESH_TAB)
     changed.current ||= JSON.stringify(workspace) !== initialRecord;
     if (changed.current) writeDriveWorkspace(clientId, workspace, tab.id);
   }, [clientId, pending, active, initialRecord, tab.id]);
-  const restoreDraftWorkspace = (value: unknown) => {
-    const candidate = parseDriveWorkspace(value);
-    const workspace = candidate?.folder.id === saveFolder?.id ? candidate : null;
-    setDriveFile(null);
-    setSourceFile(null);
-    if (workspace) setSaveFolder(workspace.folder);
-    setPending(workspace ? { workspace, keepLocal: true } : null);
-  };
   return {
-    saveFolder,
-    setSaveFolder,
-    driveFile,
-    setDriveFile,
-    sourceFile,
-    setSourceFile,
-    pending,
-    setPending,
-    restoreDraftWorkspace,
+    state,
+    dispatch,
+    /** What a draft remembers: the workspace still waiting to be resumed, or the active one. */
     draftWorkspace: pending?.keepLocal ? pending.workspace : active,
   };
 }

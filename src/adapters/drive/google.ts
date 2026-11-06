@@ -1,121 +1,30 @@
 import { AppError } from '../../domain/errors';
-import { translate, type Language } from '../../i18n/core';
 import { clearDriveSession } from './session';
 import type { AuthChannel, AuthMessage } from './auth-channel';
+import { loadScript, reloadScript } from './script-loader';
+import { showPicker } from './picker';
+import type { AuthEvent, DriveAuth, DriveItem, PickKind, PickOptions } from './types';
 
 export interface GoogleConfig {
   clientId: string;
   apiKey: string;
   appId: string;
 }
-interface TokenResponse {
-  access_token?: string;
-  expires_in?: number;
-  error?: string;
-}
-interface PickerResult {
-  action: string;
-  docs?: { id: string; name: string }[];
-}
-export type AuthEvent = 'connected' | 'expiring' | 'expired' | 'disconnected';
 /** Google's popup needs a user gesture, so renewal is offered this long before expiry. */
 export const RENEW_BEFORE = 10 * 60_000;
-export interface GoogleSelection {
-  id: string;
-  name: string;
-}
-interface Picker {
-  setVisible(visible: boolean): void;
-  dispose(): void;
-}
-interface DocsView {
-  setIncludeFolders(enabled: boolean): DocsView;
-  setSelectFolderEnabled(enabled: boolean): DocsView;
-  setMode(mode: unknown): DocsView;
-  setParent(parentId: string): DocsView;
-  setMimeTypes(mimeTypes: string): DocsView;
-}
-interface PickerBuilder {
-  setLocale(locale: string): PickerBuilder;
-  setTitle(title: string): PickerBuilder;
-  setDeveloperKey(key: string): PickerBuilder;
-  setAppId(id: string): PickerBuilder;
-  setOAuthToken(token: string): PickerBuilder;
-  setOrigin(origin: string): PickerBuilder;
-  addView(view: unknown): PickerBuilder;
-  setCallback(callback: (result: PickerResult) => void): PickerBuilder;
-  build(): Picker;
-}
-interface GoogleApi {
-  accounts: {
-    oauth2: {
-      initTokenClient(config: {
-        client_id: string;
-        scope: string;
-        callback: (result: TokenResponse) => void;
-        error_callback: () => void;
-      }): { requestAccessToken(options: { prompt: string }): void };
-      revoke(
-        token: string,
-        callback: (result: { successful: boolean; error?: string }) => void,
-      ): void;
-    };
-  };
-  picker: {
-    PickerBuilder: new () => PickerBuilder;
-    DocsView: new (view: unknown) => DocsView;
-    DocsViewMode: { LIST: unknown };
-    ViewId: { DOCS: unknown; FOLDERS: unknown };
-  };
-}
-declare global {
-  interface Window {
-    google?: GoogleApi;
-    gapi?: {
-      load(
-        name: string,
-        config: {
-          callback: () => void;
-          onerror: () => void;
-          timeout: number;
-          ontimeout: () => void;
-        },
-      ): void;
-    };
-  }
-}
+const IDENTITY_SCRIPT = 'https://accounts.google.com/gsi/client';
+const PICKER_SCRIPT = 'https://apis.google.com/js/api.js';
+const PICKER_TIMEOUT_MS = 15_000;
+const REVOKE_TIMEOUT_MS = 10_000;
+/** Google reports the lifetime in seconds; stop using a token a little before it lapses. */
+const EXPIRY_MARGIN_S = 30;
 
-const scripts = new Map<string, Promise<void>>();
-function script(src: string): Promise<void> {
-  if (!scripts.has(src))
-    scripts.set(
-      src,
-      new Promise((resolve, reject) => {
-        const element = document.createElement('script');
-        element.src = src;
-        element.async = true;
-        const timer = window.setTimeout(() => {
-          element.remove();
-          scripts.delete(src);
-          reject(new AppError('drive.googleConnectionTimedOut'));
-        }, 15000);
-        element.onload = () => {
-          clearTimeout(timer);
-          resolve();
-        };
-        element.onerror = () => {
-          clearTimeout(timer);
-          scripts.delete(src);
-          element.remove();
-          reject(new AppError('drive.couldNotLoadGoogleServices'));
-        };
-        document.head.append(element);
-      }),
-    );
-  return scripts.get(src)!;
-}
-
-export class GoogleConnection {
+/**
+ * A memory-only Google token with its expiry schedule, shared between open tabs through
+ * `channel`. Members passed as callbacks (`getToken` to the Drive client, `receive` to the
+ * channel) are arrow properties so they keep `this`.
+ */
+export class GoogleConnection implements DriveAuth {
   private token: string | null = null;
   private expiresAt = 0;
   private timers: number[] = [];
@@ -137,7 +46,9 @@ export class GoogleConnection {
     this.expiresAt = 0;
     return null;
   };
-  expiring = (): boolean => Boolean(this.getToken()) && this.expiresAt - Date.now() <= RENEW_BEFORE;
+  expiring(): boolean {
+    return Boolean(this.getToken()) && this.expiresAt - Date.now() <= RENEW_BEFORE;
+  }
   subscribe(listener: (event: AuthEvent) => void): () => void {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
@@ -195,15 +106,12 @@ export class GoogleConnection {
   }
 
   async prepare(): Promise<void> {
-    await Promise.all([
-      script('https://accounts.google.com/gsi/client'),
-      script('https://apis.google.com/js/api.js'),
-    ]);
+    await Promise.all([loadScript(IDENTITY_SCRIPT), loadScript(PICKER_SCRIPT)]);
     await new Promise<void>((resolve, reject) =>
       window.gapi!.load('picker', {
         callback: resolve,
         onerror: () => reject(new AppError('drive.couldNotLoadFilePicker')),
-        timeout: 15000,
+        timeout: PICKER_TIMEOUT_MS,
         ontimeout: () => reject(new AppError('drive.filePickerConnectionTimedOut')),
       }),
     );
@@ -227,7 +135,7 @@ export class GoogleConnection {
           }
           this.keep(
             result.access_token,
-            Date.now() + Math.max(0, (result.expires_in ?? 3600) - 30) * 1000,
+            Date.now() + Math.max(0, (result.expires_in ?? 3600) - EXPIRY_MARGIN_S) * 1000,
           );
           this.share();
           resolve();
@@ -238,41 +146,15 @@ export class GoogleConnection {
     });
   }
 
-  async pick(
-    kind: 'file' | 'folder' = 'file',
-    language: Language = 'ko',
-  ): Promise<GoogleSelection | null> {
+  async pick(kind: PickKind, options: PickOptions): Promise<DriveItem | null> {
     const token = this.getToken();
     if (!token) throw new AppError('drive.connectGoogleDriveFirst');
-    return new Promise((resolve) => {
-      const api = window.google!.picker;
-      const view = new api.DocsView(api.ViewId.DOCS)
-        .setIncludeFolders(true)
-        .setSelectFolderEnabled(kind === 'folder')
-        .setMode(api.DocsViewMode.LIST);
-      if (kind === 'folder')
-        view.setParent('root').setMimeTypes('application/vnd.google-apps.folder');
-      const picker = new window.google!.picker.PickerBuilder()
-        .setLocale(language)
-        .setTitle(
-          translate(
-            kind === 'folder' ? 'drive.pickerFolderTitle' : 'drive.pickerFileTitle',
-            language,
-          ),
-        )
-        .setDeveloperKey(this.config.apiKey)
-        .setAppId(this.config.appId)
-        .setOAuthToken(token)
-        .setOrigin(window.location.origin)
-        .addView(view)
-        .setCallback((result) => {
-          if (result.action === 'picked' || result.action === 'cancel') {
-            picker.dispose();
-            resolve(result.action === 'picked' ? (result.docs?.[0] ?? null) : null);
-          }
-        })
-        .build();
-      picker.setVisible(true);
+    return showPicker(kind, {
+      ...options,
+      api: window.google!.picker,
+      token,
+      apiKey: this.config.apiKey,
+      appId: this.config.appId,
     });
   }
 
@@ -282,25 +164,27 @@ export class GoogleConnection {
     this.channel?.post({ type: 'disconnected' });
     if (!token) return;
     try {
-      if (!window.google?.accounts?.oauth2) {
-        scripts.delete('https://accounts.google.com/gsi/client');
-        await script('https://accounts.google.com/gsi/client');
-      }
-      await new Promise<void>((resolve, reject) => {
-        const timer = window.setTimeout(() => reject(new Error('revoke timeout')), 10000);
-        try {
-          window.google!.accounts.oauth2.revoke(token, (result) => {
-            clearTimeout(timer);
-            if (result?.successful) resolve();
-            else reject(new Error('revoke failed'));
-          });
-        } catch (error) {
-          clearTimeout(timer);
-          reject(error);
-        }
-      });
+      await revoke(token);
     } catch {
       throw new AppError('drive.disconnectedDeviceButGooglePermission');
     }
   }
+}
+
+/** Withdraw Google's consent for `token`; rejects unless Google confirms it in time. */
+async function revoke(token: string): Promise<void> {
+  if (!window.google?.accounts?.oauth2) await reloadScript(IDENTITY_SCRIPT);
+  await new Promise<void>((resolve, reject) => {
+    const timer = window.setTimeout(() => reject(new Error('revoke timeout')), REVOKE_TIMEOUT_MS);
+    try {
+      window.google!.accounts.oauth2.revoke(token, (result) => {
+        clearTimeout(timer);
+        if (result?.successful) resolve();
+        else reject(new Error('revoke failed'));
+      });
+    } catch (error) {
+      clearTimeout(timer);
+      reject(error);
+    }
+  });
 }

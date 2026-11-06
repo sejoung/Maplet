@@ -2,13 +2,12 @@
 import { describe, expect, it } from 'vitest';
 import { addNode, addRoot, createMap, updateNode } from '../../src/domain/commands';
 import {
-  isOutlineName,
   mapToMarkdown,
   mapToOpml,
   markdownToMap,
   opmlToMap,
-  parseOutline,
 } from '../../src/adapters/outline/outline';
+import { formatOf, openMapFile } from '../../src/adapters/formats';
 import { parseMaplet, serializeMaplet } from '../../src/adapters/maplet/codec';
 import type { MindMap } from '../../src/domain/model';
 
@@ -28,8 +27,9 @@ const shape = (result: MindMap) => {
 
 describe('outline files', () => {
   it('recognizes outline names', () => {
-    expect(['a.md', 'b.markdown', 'c.OPML', 'd.txt'].every(isOutlineName)).toBe(true);
-    expect(isOutlineName('e.maplet')).toBe(false);
+    const outline = (name: string) => Boolean(formatOf(name).needsLayout);
+    expect(['a.md', 'b.markdown', 'c.OPML', 'd.txt'].every(outline)).toBe(true);
+    expect(outline('e.maplet')).toBe(false);
   });
 
   it('writes Markdown that reads back with the same hierarchy, notes and links', () => {
@@ -97,8 +97,12 @@ describe('outline files', () => {
       'y',
     );
     expect(read.nodes[read.roots[0]].links).toEqual([]);
-    const text = parseOutline('Top\n\tChild\n\t\tGrandchild\n- Next', 'list.txt', 'List');
-    expect(text.nodes[text.roots[0]].title).toBe('List');
+    const { map: text, needsLayout } = openMapFile(
+      'Top\n\tChild\n\t\tGrandchild\n- Next',
+      'List.txt',
+    );
+    expect(needsLayout).toBe(true);
+    expect(text.nodes[text.roots[0]].title).toBe('List.txt');
     expect(text.nodes[text.nodes[text.roots[0]].children[0]].children).toHaveLength(1);
   });
 });

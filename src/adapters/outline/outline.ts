@@ -1,17 +1,9 @@
-import {
-  MAX_DEPTH,
-  MAX_NODE_COUNT,
-  MAX_TITLE,
-  type MindMap,
-  type MindNode,
-} from '../../domain/model';
-import { safeUrl } from '../../domain/commands';
-import { AppError, formatCount } from '../../domain/errors';
+import { MAX_TITLE, type MindMap, type MindNode } from '../../domain/model';
+import { AppError } from '../../domain/errors';
 import { signedRank } from '../../domain/ranks';
-import { assertSize, MAX_MUP_BYTES, utf8Length } from '../limits';
+import { assertDepth, assertNodeCount, safeLinks } from '../limits';
 
-/** Markdown, OPML and plain text outlines open as new maps. */
-export const isOutlineName = (name: string) => /\.(md|markdown|opml|txt)$/i.test(name);
+// Markdown, OPML and plain text outlines open as new maps; formats.ts picks the reader.
 
 interface Item {
   /** Larger is deeper; only the order matters. */
@@ -41,15 +33,14 @@ function buildMap(items: Item[], title: string): MindMap {
       collapsed: false,
       style: {},
       notes: item.notes.join('\n').trim(),
-      links: item.link && safeUrl(item.link) ? [item.link] : [],
+      links: safeLinks(item.link === null ? [] : [item.link]),
       position: null,
       rawExtensions: {},
     });
   const minimum = Math.min(...items.map((item) => item.level));
   const tops = items.filter((item) => item.level === minimum).length;
   const wrap = tops > 1 || items[0].level !== minimum;
-  if (items.length + (wrap ? 1 : 0) > MAX_NODE_COUNT)
-    throw new AppError('file.mapMustHaveMostNodes', { max: formatCount(MAX_NODE_COUNT) });
+  assertNodeCount(items.length + (wrap ? 1 : 0));
   const stack: { level: number; id: string }[] = [];
   if (wrap) {
     node('root', { title, notes: [], link: null }, null);
@@ -57,7 +48,7 @@ function buildMap(items: Item[], title: string): MindMap {
   }
   items.forEach((item, index) => {
     while (stack.length && stack.at(-1)!.level >= item.level) stack.pop();
-    if (stack.length >= MAX_DEPTH) throw new AppError('file.nodeDepthMustLess', { max: MAX_DEPTH });
+    assertDepth(stack.length + 1);
     const parent = stack.at(-1)?.id ?? null;
     const id = `n${index + 1}`;
     node(id, item, parent);
@@ -178,8 +169,7 @@ export function opmlToMap(text: string, title: string): MindMap {
   const visit = (element: Element, level: number) => {
     for (const child of element.children) {
       if (child.tagName !== 'outline') continue;
-      if (items.length >= MAX_NODE_COUNT)
-        throw new AppError('file.mapMustHaveMostNodes', { max: formatCount(MAX_NODE_COUNT) });
+      assertNodeCount(items.length + 1);
       items.push({
         level,
         title: child.getAttribute('text') ?? child.getAttribute('title') ?? '',
@@ -210,11 +200,4 @@ export function textToMap(text: string, title: string): MindMap {
       link: null,
     }));
   return buildMap(items, title);
-}
-
-/** Parse an outline file by its extension; `title` names a root added for several top items. */
-export function parseOutline(source: string, name: string, title: string): MindMap {
-  assertSize(utf8Length(source), MAX_MUP_BYTES);
-  if (/\.opml$/i.test(name)) return opmlToMap(source, title);
-  return /\.txt$/i.test(name) ? textToMap(source, title) : markdownToMap(source, title);
 }

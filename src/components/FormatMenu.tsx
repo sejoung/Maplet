@@ -1,10 +1,9 @@
 import { forwardRef, useLayoutEffect, useState, type KeyboardEvent } from 'react';
 import { createPortal } from 'react-dom';
-import { Bold, Eraser, Italic } from 'lucide-react';
 import { useI18n } from '../i18n/react';
-import { HIGHLIGHT_COLORS, HIGHLIGHT_FILLS, type RangeFormat } from '../domain/rich-text';
-import type { FormatCommand } from './rich-editing';
-import { HIGHLIGHT_LABELS } from './highlight-color';
+import { HIGHLIGHT_COLORS, type FormatCommand, type RangeFormat } from '../domain/rich-text';
+import { CLEAR_FORMAT, FORMAT_TOGGLES, swatchProps } from './format-commands';
+import { clampToViewport, moveMenuFocus, viewportSize } from './menu-keys';
 
 const items = (menu: HTMLElement) => [
   ...menu.querySelectorAll<HTMLButtonElement>('[role^="menuitem"]'),
@@ -33,26 +32,14 @@ export const FormatMenu = forwardRef<
   const [menu, setMenu] = useState<HTMLDivElement | null>(null);
   useLayoutEffect(() => {
     if (!menu) return;
-    const { width, height } = menu.getBoundingClientRect();
-    setPosition({
-      x: Math.max(8, Math.min(at.x, window.innerWidth - width - 8)),
-      y: Math.max(8, at.y + height > window.innerHeight - 8 ? at.y - height : at.y),
-    });
+    setPosition(clampToViewport(at, menu.getBoundingClientRect(), viewportSize()));
     if (keyboard) items(menu)[0]?.focus();
   }, [at, keyboard, menu]);
   const keydown = (event: KeyboardEvent) => {
-    const list = items(event.currentTarget as HTMLElement);
-    const index = list.indexOf(document.activeElement as HTMLButtonElement);
-    const move = (next: number) => {
-      event.preventDefault();
-      list[(next + list.length) % list.length]?.focus();
-    };
     event.stopPropagation();
-    if (event.key === 'ArrowDown' || event.key === 'ArrowRight') move(index + 1);
-    else if (event.key === 'ArrowUp' || event.key === 'ArrowLeft') move(index - 1);
-    else if (event.key === 'Home') move(0);
-    else if (event.key === 'End') move(list.length - 1);
-    else if (event.key === 'Escape' || event.key === 'Tab') {
+    // The swatches sit in a row, so ←→ step through the items too.
+    if (moveMenuFocus(items(event.currentTarget as HTMLElement), event, { across: true })) return;
+    if (event.key === 'Escape' || event.key === 'Tab') {
       event.preventDefault();
       onClose();
     }
@@ -84,26 +71,19 @@ export const FormatMenu = forwardRef<
         event.stopPropagation();
       }}
     >
-      <button
-        type="button"
-        role="menuitemcheckbox"
-        aria-checked={format.bold === true}
-        onClick={() => onCommand({ kind: 'bold' })}
-      >
-        <Bold size={15} aria-hidden="true" />
-        {t('format.bold')}
-        <kbd>⌘/Ctrl B</kbd>
-      </button>
-      <button
-        type="button"
-        role="menuitemcheckbox"
-        aria-checked={format.italic === true}
-        onClick={() => onCommand({ kind: 'italic' })}
-      >
-        <Italic size={15} aria-hidden="true" />
-        {t('format.italic')}
-        <kbd>⌘/Ctrl I</kbd>
-      </button>
+      {FORMAT_TOGGLES.map(({ command, icon: Icon, label, keys }) => (
+        <button
+          key={command.kind}
+          type="button"
+          role="menuitemcheckbox"
+          aria-checked={format[command.kind] === true}
+          onClick={() => onCommand(command)}
+        >
+          <Icon size={15} aria-hidden="true" />
+          {t(label)}
+          <kbd>{keys}</kbd>
+        </button>
+      ))}
       <span className="menu-label" aria-hidden="true">
         {t('format.highlight')}
       </span>
@@ -114,19 +94,16 @@ export const FormatMenu = forwardRef<
             type="button"
             role="menuitemradio"
             aria-checked={format.highlight === color}
-            aria-label={t(HIGHLIGHT_LABELS[color])}
-            title={t(HIGHLIGHT_LABELS[color])}
-            className="format-swatch"
-            style={{ background: HIGHLIGHT_FILLS[color] }}
+            {...swatchProps(color, t)}
             onClick={() => onCommand({ kind: 'highlight', color })}
           />
         ))}
       </div>
       <hr />
-      <button type="button" role="menuitem" onClick={() => onCommand({ kind: 'clear' })}>
-        <Eraser size={15} aria-hidden="true" />
-        {t('format.clear')}
-        <kbd>⌘/Ctrl \</kbd>
+      <button type="button" role="menuitem" onClick={() => onCommand(CLEAR_FORMAT.command)}>
+        <CLEAR_FORMAT.icon size={15} aria-hidden="true" />
+        {t(CLEAR_FORMAT.label)}
+        <kbd>{CLEAR_FORMAT.keys}</kbd>
       </button>
     </div>,
     document.body,

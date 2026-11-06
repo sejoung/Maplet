@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
+import { useCallback, useEffect } from 'react';
+import { useLatest } from '../components/useLatest';
+import { TEXT_EDITOR_SELECTOR } from '../components/canvas-dom';
 
 interface Shortcuts {
   save(): void;
@@ -7,20 +9,16 @@ interface Shortcuts {
   help(): void;
 }
 export function useEditorShortcuts(actions: Shortcuts) {
-  const latest = useRef(actions);
-  useLayoutEffect(() => {
-    latest.current = actions;
-  });
+  const latest = useLatest(actions);
   const save = useCallback(() => {
     const editor = document.activeElement as HTMLElement | null;
-    if (editor?.matches('[data-inline-editor],[data-filename-editor]')) {
+    if (editor?.matches(TEXT_EDITOR_SELECTOR)) {
       editor.blur();
       requestAnimationFrame(() => {
-        if (!document.querySelector('[data-inline-editor],[data-filename-editor]'))
-          latest.current.save();
+        if (!document.querySelector(TEXT_EDITOR_SELECTOR)) latest.current.save();
       });
     } else latest.current.save();
-  }, []);
+  }, [latest]);
   useEffect(() => {
     const shortcut = (event: KeyboardEvent) => {
       if (event.isComposing) return;
@@ -42,6 +40,6 @@ export function useEditorShortcuts(actions: Shortcuts) {
     };
     window.addEventListener('keydown', shortcut);
     return () => window.removeEventListener('keydown', shortcut);
-  }, [save]);
+  }, [save, latest]);
   return save;
 }

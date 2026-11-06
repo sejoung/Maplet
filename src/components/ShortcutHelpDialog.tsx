@@ -1,6 +1,48 @@
 import { useI18n } from '../i18n/react';
 import { manualPath } from '../i18n/locale';
 import { Dialog } from './Dialog';
+import { helpLabel, SHORTCUTS as S, type Shortcut } from './shortcuts';
+
+/** A row for key combinations, worded by their registry entry unless `description` is given. */
+const keys = (shortcuts: Shortcut[], description = shortcuts[0].description, separator?: string) =>
+  [helpLabel(shortcuts, separator), description] as const;
+
+/** Key combinations come from the registry; gestures are catalog keys, translated as shown. */
+const helpRows = (saveToDrive: boolean): (readonly [keys: string, description: string])[] => [
+  keys([S.addChild]),
+  keys([S.addSibling]),
+  ['shortcuts.f2DoubleClick', 'common.editTitle'],
+  keys([S.bold]),
+  keys([S.italic]),
+  keys([S.highlight]),
+  keys([S.clearFormat]),
+  ['shortcuts.rightClickSelection', 'shortcuts.formatMenu'],
+  ['shortcuts.arrowKeys', 'shortcuts.navigateBetweenNodes'],
+  keys([S.deleteNode]),
+  keys([S.copy, S.cut, S.paste], 'shortcuts.copyCutPasteBranch', ' · '),
+  keys([S.duplicate]),
+  keys([S.moveUp, S.moveDown], 'shortcuts.reorderAmongSiblings'),
+  ['shortcuts.rightClickShiftF10', 'shortcuts.openNodeMenu'],
+  ['shortcuts.rightClickEmptyCanvas', 'shortcuts.openMapMenu'],
+  keys([S.undo]),
+  keys([S.redo]),
+  keys([S.save], saveToDrive ? 'common.saveDrive' : S.save.description),
+  ['shortcuts.spaceDrag', 'shortcuts.panCanvas'],
+  ['shortcuts.ctrlWheelPinch', 'shortcuts.zoom'],
+  keys([S.zoomIn, S.zoomOut, S.fit], 'shortcuts.zoomZoomOutFitScreen'),
+  ['shortcuts.dragCorner', 'common.resizeNode'],
+  ['shortcuts.doubleClickCornerHome', 'shortcuts.automaticSize'],
+  ['shortcuts.dragNode', 'shortcuts.adjustPositionConnectionLength'],
+  ['shortcuts.dropAnotherNode', 'shortcuts.moveUnderNode'],
+  ['shortcuts.altDrag', 'shortcuts.movePositionOnlyEvenNear'],
+  ['shortcuts.dropAboveBelow', 'shortcuts.insertBeforeAfter'],
+  keys([S.find]),
+  ['shortcuts.shiftCmdCtrlClick', 'shortcuts.selectSeveralNodes'],
+  ['shortcuts.shiftDragEmptyArea', 'shortcuts.selectArea'],
+  ['shortcuts.shiftArrowKeys', 'shortcuts.extendSelection'],
+  keys([S.selectAll]),
+  keys([S.clearSelection]),
+];
 
 export function ShortcutHelpDialog({
   onClose,
@@ -19,44 +61,10 @@ export function ShortcutHelpDialog({
         </a>
       </p>
       <dl className="shortcut-list">
-        {[
-          ['Tab', 'common.addChildNode'],
-          ['Enter', 'common.addSiblingNode'],
-          ['shortcuts.f2DoubleClick', 'common.editTitle'],
-          ['⌘ / Ctrl + B', 'shortcuts.boldSelection'],
-          ['⌘ / Ctrl + I', 'shortcuts.italicSelection'],
-          ['⌘ / Ctrl + Shift + H', 'shortcuts.highlightSelection'],
-          ['⌘ / Ctrl + \\', 'shortcuts.clearInlineFormat'],
-          ['shortcuts.rightClickSelection', 'shortcuts.formatMenu'],
-          ['shortcuts.arrowKeys', 'shortcuts.navigateBetweenNodes'],
-          ['Delete / ⌫', 'shortcuts.deleteNodeDescendants'],
-          ['⌘ / Ctrl + C · X · V', 'shortcuts.copyCutPasteBranch'],
-          ['⌘ / Ctrl + D', 'shortcuts.duplicateBranch'],
-          ['Alt + ↑ / ↓', 'shortcuts.reorderAmongSiblings'],
-          ['shortcuts.rightClickShiftF10', 'shortcuts.openNodeMenu'],
-          ['shortcuts.rightClickEmptyCanvas', 'shortcuts.openMapMenu'],
-          ['⌘ / Ctrl + Z', 'common.undo'],
-          ['⌘ / Ctrl + Shift + Z', 'common.redo'],
-          ['⌘ / Ctrl + S', saveToDrive ? 'common.saveDrive' : 'shortcuts.downloadMapletFile'],
-          ['shortcuts.spaceDrag', 'shortcuts.panCanvas'],
-          ['shortcuts.ctrlWheelPinch', 'shortcuts.zoom'],
-          ['⌘ / Ctrl + + / − / 0', 'shortcuts.zoomZoomOutFitScreen'],
-          ['shortcuts.dragCorner', 'common.resizeNode'],
-          ['shortcuts.doubleClickCornerHome', 'shortcuts.automaticSize'],
-          ['shortcuts.dragNode', 'shortcuts.adjustPositionConnectionLength'],
-          ['shortcuts.dropAnotherNode', 'shortcuts.moveUnderNode'],
-          ['shortcuts.altDrag', 'shortcuts.movePositionOnlyEvenNear'],
-          ['shortcuts.dropAboveBelow', 'shortcuts.insertBeforeAfter'],
-          ['⌘ / Ctrl + F', 'shortcuts.findNodes'],
-          ['shortcuts.shiftCmdCtrlClick', 'shortcuts.selectSeveralNodes'],
-          ['shortcuts.shiftDragEmptyArea', 'shortcuts.selectArea'],
-          ['shortcuts.shiftArrowKeys', 'shortcuts.extendSelection'],
-          ['⌘ / Ctrl + A', 'shortcuts.selectAllVisibleNodes'],
-          ['Esc', 'shortcuts.clearMultiNodeSelection'],
-        ].map(([key, action]) => (
-          <div key={key}>
+        {helpRows(saveToDrive).map(([combo, action]) => (
+          <div key={combo}>
             <dt>
-              <kbd>{t(key)}</kbd>
+              <kbd>{t(combo)}</kbd>
             </dt>
             <dd>{t(action)}</dd>
           </div>

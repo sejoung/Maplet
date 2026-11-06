@@ -1,47 +1,32 @@
-import { parseMaplet } from '../maplet/codec';
+import { isNonEmptyString } from '../../domain/guards';
+import { isJsonObject } from '../../domain/json';
+import type { DriveBaseline } from '../../domain/snapshot';
 
-export interface DriveSnapshot {
-  content: string;
-  filename: string;
-}
-export interface DriveBaseline extends DriveSnapshot {
-  fileId: string;
-  version: string;
-  attempt?: DriveSnapshot;
-}
-/** Content lives only with the IndexedDB draft, never workspace localStorage metadata. */
-export function parseDriveBaseline(value: unknown): DriveBaseline | null {
-  if (!value || typeof value !== 'object') return null;
-  const item = value as Partial<DriveBaseline>;
+/**
+ * Content lives only with the IndexedDB draft, never workspace localStorage metadata.
+ * `valid` checks stored content with the caller's codec, so storage stays format-agnostic.
+ */
+export function parseDriveBaseline(
+  value: unknown,
+  valid: (content: string) => boolean,
+): DriveBaseline | null {
+  if (!isJsonObject(value)) return null;
+  const { content, filename, fileId, version, attempt } = value;
   if (
-    ![item.content, item.filename, item.fileId, item.version].every(
-      (field) => typeof field === 'string' && field.length > 0,
-    )
+    !isNonEmptyString(content) ||
+    !isNonEmptyString(filename) ||
+    !isNonEmptyString(fileId) ||
+    !isNonEmptyString(version) ||
+    !valid(content)
   )
     return null;
-  try {
-    parseMaplet(item.content!);
-  } catch {
-    return null;
-  }
-  let attempt: DriveSnapshot | undefined;
-  if (
-    item.attempt &&
-    typeof item.attempt.content === 'string' &&
-    typeof item.attempt.filename === 'string'
-  ) {
-    try {
-      parseMaplet(item.attempt.content);
-      attempt = { content: item.attempt.content, filename: item.attempt.filename };
-    } catch {
-      /* Discard an invalid pending snapshot. */
-    }
-  }
-  return {
-    content: item.content!,
-    filename: item.filename!,
-    fileId: item.fileId!,
-    version: item.version!,
-    ...(attempt && { attempt }),
-  };
+  // An invalid pending snapshot is discarded; the baseline itself stays usable.
+  const pending =
+    isJsonObject(attempt) &&
+    typeof attempt.content === 'string' &&
+    typeof attempt.filename === 'string' &&
+    valid(attempt.content)
+      ? { content: attempt.content, filename: attempt.filename }
+      : undefined;
+  return { content, filename, fileId, version, ...(pending && { attempt: pending }) };
 }

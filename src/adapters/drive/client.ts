@@ -1,18 +1,17 @@
 import { AppError } from '../../domain/errors';
-import { assertSize, byteLimitFor } from '../limits';
+import { assertSize } from '../limits';
+import { formatOf } from '../formats';
 import { multipartUpload } from './upload';
+import type { DriveFile, DriveFiles, DriveFolder, OpenedDriveFile, SaveOptions } from './types';
 
 const API = 'https://www.googleapis.com/drive/v3/files';
 const UPLOAD = 'https://www.googleapis.com/upload/drive/v3/files';
 const TIMEOUT_MS = 30_000;
-
-export interface DriveFile {
-  id: string;
-  name: string;
-  version: string;
-  etag: string | null;
-  parents?: string[];
-}
+/** Upload attempts for one creation; a pre-generated ID makes repeating it safe. */
+const CREATE_ATTEMPTS = 3;
+const RETRY_BASE_MS = 300;
+const backoff = (attempt: number) =>
+  new Promise((resolve) => setTimeout(resolve, RETRY_BASE_MS * 2 ** attempt));
 export class DriveConflict extends AppError {
   constructor() {
     super('drive.driveFileChangedKeepLocal');
@@ -48,12 +47,21 @@ interface Reply<T> {
 }
 const json = <T>(response: Response) => response.json() as Promise<T>;
 const text = (response: Response) => response.text();
+const isStatus = (error: unknown, status: number) =>
+  error instanceof DriveRequestError && error.status === status;
 
-export class DriveClient {
-  private creations = new Map<
-    string,
-    { id: string; content: string; name: string; previous?: { content: string; name: string } }
-  >();
+interface Snapshot {
+  content: string;
+  name: string;
+}
+/** A creation in progress: its reserved ID, what was last sent, and what was sent before. */
+interface Creation extends Snapshot {
+  id: string;
+  previous?: Snapshot;
+}
+
+export class DriveClient implements DriveFiles {
+  private creations = new Map<string, Creation>();
   constructor(
     private readonly token: () => string | null,
     private readonly fetcher: typeof fetch = (...args) => globalThis.fetch(...args),
@@ -96,19 +104,23 @@ export class DriveClient {
     }
   }
 
-  async open(id: string): Promise<DriveFile & { content: string }> {
+  async open(id: string): Promise<OpenedDriveFile> {
     const endpoint = `${API}/${encodeURIComponent(id)}`;
     const { data: meta, etag } = await this.request(
       `${endpoint}?fields=id,name,version,size,parents`,
       json<{ id: string; name: string; version: string; size: string; parents?: string[] }>,
     );
-    assertSize(Number(meta.size), byteLimitFor(meta.name ?? ''), 'drive.driveFilesMustMibSmaller');
+    assertSize(
+      Number(meta.size),
+      formatOf(meta.name ?? '').maxBytes,
+      'drive.driveFilesMustMibSmaller',
+    );
     const { data: content } = await this.request(`${endpoint}?alt=media`, text);
     // A media download validator must not be used to condition a metadata update.
     return { ...meta, etag, content };
   }
 
-  async folder(id: string): Promise<{ id: string; name: string }> {
+  async folder(id: string): Promise<DriveFolder> {
     const { data: meta } = await this.request(
       `${API}/${encodeURIComponent(id)}?fields=id,name,mimeType,trashed,capabilities`,
       json<{
@@ -133,8 +145,7 @@ export class DriveClient {
   async save(
     file: DriveFile,
     content: string,
-    overwrite = false,
-    name = file.name,
+    { overwrite = false, name = file.name }: SaveOptions = {},
   ): Promise<DriveFile> {
     const { data: meta, etag } = await this.request(
       `${API}/${encodeURIComponent(file.id)}?fields=version`,
@@ -166,74 +177,85 @@ export class DriveClient {
     parentId?: string,
     operation: string = crypto.randomUUID(),
   ): Promise<DriveFile> {
-    let pending = this.creations.get(operation);
-    if (!pending) {
-      const { data: generated } = await this.request(
-        `${API}/generateIds?count=1&space=drive&type=files`,
-        json<{ ids?: string[] }>,
-      );
-      if (!generated.ids?.[0]) throw new AppError('drive.couldNotPrepareDriveFile');
-      pending = { id: generated.ids[0], content, name };
-      this.creations.set(operation, pending);
-    }
-    for (let attempt = 0; attempt < 3; attempt++) {
-      const upload = multipartUpload(
-        {
-          id: pending.id,
-          name,
-          mimeType: 'application/json',
-          ...(parentId && { parents: [parentId] }),
-        },
-        content,
-      );
+    const creation = this.creations.get(operation) ?? (await this.reserve(name, content));
+    // Kept until it succeeds, so retrying the same operation reuses the reserved ID.
+    this.creations.set(operation, creation);
+    const file = await this.uploadReserved(creation, { name, content }, parentId);
+    this.creations.delete(operation);
+    return file;
+  }
+
+  private async reserve(name: string, content: string): Promise<Creation> {
+    const { data } = await this.request(
+      `${API}/generateIds?count=1&space=drive&type=files`,
+      json<{ ids?: string[] }>,
+    );
+    if (!data.ids?.[0]) throw new AppError('drive.couldNotPrepareDriveFile');
+    return { id: data.ids[0], content, name };
+  }
+
+  private async uploadReserved(
+    creation: Creation,
+    next: Snapshot,
+    parentId?: string,
+  ): Promise<DriveFile> {
+    for (let attempt = 0; attempt < CREATE_ATTEMPTS; attempt++) {
       try {
-        const { data: file, etag } = await this.request(
-          `${UPLOAD}?uploadType=multipart&fields=id,name,version`,
-          json<Omit<DriveFile, 'etag'>>,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': upload.contentType },
-            body: upload.body,
-          },
-        );
-        if (file.id !== pending.id) throw new AppError('drive.saveTargetMismatch');
-        this.creations.delete(operation);
-        return { ...file, etag };
+        return await this.upload(creation.id, next, parentId);
       } catch (error) {
         // 409: a lost response may already have created the pre-generated ID.
-        const created = error instanceof DriveRequestError && error.status === 409;
-        if (!created && !retryableDriveError(error)) throw error;
-        let existing: Awaited<ReturnType<DriveClient['open']>>;
-        try {
-          existing = await this.open(pending.id);
-        } catch (readError) {
-          if (
-            !(readError instanceof DriveRequestError && readError.status === 404) ||
-            attempt === 2
-          )
-            throw readError;
-          await new Promise((resolve) => setTimeout(resolve, 300 * 2 ** attempt));
-          continue;
-        }
-        const matches = (snapshot: { content: string; name: string }) =>
-          existing.content === snapshot.content && existing.name === snapshot.name;
-        if (
-          (!matches(pending) && (!pending.previous || !matches(pending.previous))) ||
-          (parentId && !existing.parents?.includes(parentId))
-        )
-          throw new DriveConflict();
-        if (content === existing.content && name === existing.name) {
-          this.creations.delete(operation);
-          return existing;
-        }
-        pending.previous = { content: existing.content, name: existing.name };
-        pending.content = content;
-        pending.name = name;
-        const saved = await this.save(existing, content, false, name);
-        this.creations.delete(operation);
-        return saved;
+        if (!isStatus(error, 409) && !retryableDriveError(error)) throw error;
+        const existing = await this.openCreated(creation.id, attempt === CREATE_ATTEMPTS - 1);
+        if (existing) return this.recoverCreation(creation, existing, next, parentId);
+        await backoff(attempt);
       }
     }
     throw new AppError('drive.couldNotFinishSavingDrive');
+  }
+
+  private async upload(id: string, { name, content }: Snapshot, parentId?: string) {
+    const upload = multipartUpload(
+      { id, name, mimeType: 'application/json', ...(parentId && { parents: [parentId] }) },
+      content,
+    );
+    const { data: file, etag } = await this.request(
+      `${UPLOAD}?uploadType=multipart&fields=id,name,version`,
+      json<Omit<DriveFile, 'etag'>>,
+      { method: 'POST', headers: { 'Content-Type': upload.contentType }, body: upload.body },
+    );
+    if (file.id !== id) throw new AppError('drive.saveTargetMismatch');
+    return { ...file, etag };
+  }
+
+  /** The file behind a reserved ID, or null while Drive does not list it yet. */
+  private async openCreated(id: string, last: boolean): Promise<OpenedDriveFile | null> {
+    try {
+      return await this.open(id);
+    } catch (error) {
+      if (last || !isStatus(error, 404)) throw error;
+      return null;
+    }
+  }
+
+  /**
+   * Adopt a file an unacknowledged upload created, if it holds what this operation sent
+   * (now or in its previous round); anything else was written by someone else.
+   */
+  private async recoverCreation(
+    creation: Creation,
+    existing: OpenedDriveFile,
+    next: Snapshot,
+    parentId?: string,
+  ): Promise<DriveFile> {
+    const matches = (snapshot: Snapshot) =>
+      existing.content === snapshot.content && existing.name === snapshot.name;
+    const ours =
+      matches(creation) || (creation.previous !== undefined && matches(creation.previous));
+    if (!ours || (parentId && !existing.parents?.includes(parentId))) throw new DriveConflict();
+    if (matches(next)) return existing;
+    creation.previous = { content: existing.content, name: existing.name };
+    creation.content = next.content;
+    creation.name = next.name;
+    return this.save(existing, next.content, { name: next.name });
   }
 }

@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowRight, X } from 'lucide-react';
 import type { MindMap } from '../domain/model';
 import { plainTitle } from '../domain/rich-text';
 import { useI18n } from '../i18n/react';
+import { DialogActions } from './Dialog';
 
 /** Cross-links from and to one node, with a picker to add another. */
 export function ConnectionsForm({
@@ -75,11 +76,7 @@ export function ConnectionsForm({
           </option>
         ))}
       </select>
-      <div className="dialog-actions">
-        <button className="button primary" type="submit" disabled={!chosen}>
-          {t('nodeTools.addConnection')}
-        </button>
-      </div>
+      <DialogActions submitLabel={t('nodeTools.addConnection')} disabled={!chosen} />
     </form>
   );
 }

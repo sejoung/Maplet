@@ -1,7 +1,9 @@
-import { useId, useState } from 'react';
-import { readTheme, saveTheme, type Theme } from './theme';
+import { useId } from 'react';
+import { isOneOf } from '../domain/guards';
+import { THEMES } from '../domain/preferences';
+import { usePreferences } from './preferences';
 import { useI18n } from '../i18n/react';
-import { Dialog } from './Dialog';
+import { Dialog, DialogActions } from './Dialog';
 import { LanguageSwitcher } from './LanguageSwitcher';
 
 export function SettingsDialog({
@@ -15,7 +17,7 @@ export function SettingsDialog({
   const languageId = useId();
   const descriptionId = useId();
   const themeId = useId();
-  const [theme, setTheme] = useState(readTheme);
+  const [{ theme }, updatePreferences] = usePreferences();
   return (
     <Dialog title={t('common.settings')} onClose={onClose}>
       <label htmlFor={languageId}>{t('settings.language')}</label>
@@ -28,9 +30,8 @@ export function SettingsDialog({
         id={themeId}
         value={theme}
         onChange={(event) => {
-          const next = event.target.value as Theme;
-          setTheme(next);
-          saveTheme(next);
+          const next = event.target.value;
+          if (isOneOf(THEMES, next)) updatePreferences({ theme: next });
         }}
       >
         <option value="system">{t('settings.matchSystem')}</option>
@@ -51,11 +52,7 @@ export function SettingsDialog({
           <p className="muted">{t('settings.draftPrivacyHint')}</p>
         </div>
       )}
-      <div className="dialog-actions">
-        <button className="button primary" onClick={onClose}>
-          {t('common.done')}
-        </button>
-      </div>
+      <DialogActions submitLabel={t('common.done')} onSubmit={onClose} />
     </Dialog>
   );
 }

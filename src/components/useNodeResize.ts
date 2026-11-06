@@ -1,8 +1,10 @@
-import { useEffect, useMemo, useRef, useState, type ButtonHTMLAttributes } from 'react';
+import { useCallback, useMemo, useRef, useState, type ButtonHTMLAttributes } from 'react';
 import type { MindMap, NodePosition } from '../domain/model';
 import { clampNodeWidth, resizeNode } from '../domain/node-size';
 import { measureNodeText } from './text-measure';
 import { layoutMap, type Layout } from '../engine/layout';
+import { travelled, type Point } from './canvas-gestures';
+import { useLatest } from './useLatest';
 
 export type ResizeAction = (
   id: string,
@@ -10,24 +12,33 @@ export type ResizeAction = (
   positions: Record<string, NodePosition>,
 ) => boolean;
 
-export function useNodeResize(map: MindMap, base: Layout, zoom: number, onResize: ResizeAction) {
-  type Preview = {
-    source: MindMap;
-    id: string;
-    width: number;
-    positions: Record<string, NodePosition>;
-  };
+/** Resizing by the handle's pointer; the canvas's pointer handling drives it as a gesture. */
+export interface ResizeGesture {
+  start(id: string, at: Point, zoom: number): void;
+  move(at: Point): void;
+  /** Commit the width if it changed. */
+  finish(): void;
+  cancel(): void;
+}
+
+interface Preview {
+  source: MindMap;
+  id: string;
+  width: number;
+  positions: Record<string, NodePosition>;
+}
+
+const positionsOf = (layout: Layout) =>
+  Object.fromEntries(layout.nodes.map(({ id, x, y }) => [id, { x, y }]));
+
+/**
+ * Node width: dragged on the resize handle with a live preview that keeps every node in
+ * place, stepped with the arrow keys, reset with Home or a double click.
+ */
+export function useNodeResize(map: MindMap, base: Layout, onResize: ResizeAction) {
   const [preview, setPreview] = useState<Preview | null>(null);
   const drag = useRef<
-    | (Preview & {
-        pointer: number;
-        x: number;
-        y: number;
-        zoom: number;
-        origin: number;
-        moved: boolean;
-      })
-    | null
+    (Preview & { start: Point; zoom: number; origin: number; moved: boolean }) | null
   >(null);
   const layout = useMemo(
     () =>
@@ -36,98 +47,81 @@ export function useNodeResize(map: MindMap, base: Layout, zoom: number, onResize
         : base,
     [map, base, preview],
   );
-  const cancel = () => {
+  // Handlers outlive renders (memoized nodes keep them), so they read the latest values.
+  const latest = useLatest({ map, base, layout, onResize });
+  const cancel = useCallback(() => {
     drag.current = null;
     setPreview(null);
-  };
-  useEffect(() => {
-    drag.current = null;
-  }, [map]);
-  const positions = () => Object.fromEntries(base.nodes.map(({ id, x, y }) => [id, { x, y }]));
-  const handlers = (id: string): ButtonHTMLAttributes<HTMLButtonElement> => ({
-    onPointerDown(event) {
-      event.stopPropagation();
-      if (event.button !== 0 || drag.current) return;
-      event.preventDefault();
-      event.currentTarget.focus({ preventScroll: true });
-      event.currentTarget.setPointerCapture(event.pointerId);
-      const placed = base.nodes.find((node) => node.id === id)!;
-      const width = placed.width;
-      drag.current = {
-        source: map,
-        id,
-        width: clampNodeWidth(width),
-        origin: width,
-        positions: positions(),
-        pointer: event.pointerId,
-        x: event.clientX,
-        y: event.clientY,
-        zoom,
-        moved: false,
-      };
-      setPreview({ ...drag.current });
-    },
-    onPointerMove(event) {
-      event.stopPropagation();
-      const current = drag.current;
-      if (!current || current.pointer !== event.pointerId) return;
-      const dx = event.clientX - current.x,
-        dy = event.clientY - current.y;
-      if (!current.moved && Math.hypot(dx, dy) < 4) return;
-      current.moved = true;
-      current.width = clampNodeWidth(current.origin + dx / current.zoom);
-      setPreview({ ...current });
-    },
-    onPointerUp(event) {
-      event.stopPropagation();
-      const current = drag.current;
-      if (!current || current.pointer !== event.pointerId) return;
-      const placed = layout.nodes.find((node) => node.id === id)!;
-      cancel();
-      if (event.currentTarget.hasPointerCapture(event.pointerId))
-        event.currentTarget.releasePointerCapture(event.pointerId);
-      if (current.moved && placed.width !== current.origin)
-        onResize(id, current.width, current.positions);
-    },
-    onPointerCancel(event) {
-      event.stopPropagation();
-      cancel();
-    },
-    onLostPointerCapture(event) {
-      event.stopPropagation();
-      cancel();
-    },
-    onClick(event) {
-      event.stopPropagation();
-    },
-    onDoubleClick(event) {
-      event.stopPropagation();
-      cancel();
-      onResize(id, null, {});
-    },
-    onKeyDown(event) {
-      if (event.key === 'Escape') {
-        event.preventDefault();
+  }, []);
+  const gesture = useMemo<ResizeGesture>(
+    () => ({
+      start(id, at, zoom) {
+        if (drag.current) return;
+        const { map, base } = latest.current;
+        const width = base.nodes.find((node) => node.id === id)!.width;
+        drag.current = {
+          source: map,
+          id,
+          width: clampNodeWidth(width),
+          origin: width,
+          positions: positionsOf(base),
+          start: at,
+          zoom,
+          moved: false,
+        };
+        setPreview({ ...drag.current });
+      },
+      move(at) {
+        const current = drag.current;
+        if (!current || (!current.moved && !travelled(current.start, at))) return;
+        current.moved = true;
+        current.width = clampNodeWidth(current.origin + (at.x - current.start.x) / current.zoom);
+        setPreview({ ...current });
+      },
+      finish() {
+        const current = drag.current;
+        if (!current) return;
+        cancel();
+        const { map, layout, onResize } = latest.current;
+        // A document that changed meanwhile has nothing left to resize.
+        if (current.source !== map || !current.moved) return;
+        const placed = layout.nodes.find((node) => node.id === current.id)!;
+        if (placed.width !== current.origin) onResize(current.id, current.width, current.positions);
+      },
+      cancel,
+    }),
+    [latest, cancel],
+  );
+  /** The handle's own events; its pointer presses reach the canvas. */
+  const handleProps = useCallback(
+    (id: string): ButtonHTMLAttributes<HTMLButtonElement> => ({
+      onClick: (event) => event.stopPropagation(),
+      onDoubleClick(event) {
         event.stopPropagation();
         cancel();
-      }
-      if (drag.current) return;
-      if (event.key === 'Home') {
+        latest.current.onResize(id, null, {});
+      },
+      onKeyDown(event) {
+        if (drag.current) return;
+        const { base, onResize } = latest.current;
+        if (event.key === 'Home') {
+          event.preventDefault();
+          event.stopPropagation();
+          onResize(id, null, {});
+        }
+        if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
         event.preventDefault();
         event.stopPropagation();
-        onResize(id, null, {});
-      }
-      if (!['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
-      event.preventDefault();
-      event.stopPropagation();
-      const node = base.nodes.find((node) => node.id === id)!;
-      const step = event.shiftKey ? 25 : 10;
-      onResize(
-        id,
-        clampNodeWidth(node.width + (event.key === 'ArrowRight' ? step : -step)),
-        positions(),
-      );
-    },
-  });
-  return { layout, active: preview?.source === map, handlers };
+        const node = base.nodes.find((node) => node.id === id)!;
+        const step = event.shiftKey ? 25 : 10;
+        onResize(
+          id,
+          clampNodeWidth(node.width + (event.key === 'ArrowRight' ? step : -step)),
+          positionsOf(base),
+        );
+      },
+    }),
+    [latest, cancel],
+  );
+  return { layout, gesture, handleProps };
 }

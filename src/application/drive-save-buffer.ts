@@ -10,56 +10,67 @@ interface BufferedSave extends Snapshot {
   changedAt: number;
 }
 
-/** Write-back cache: one immutable active upload is owned by the caller; retain only its latest successor. */
-export class DriveSaveBuffer {
-  private current: BufferedSave | null = null;
-  private lastStarted: { key: number; time: number } | null = null;
+/**
+ * Write-back cache: one immutable active upload is owned by the caller; the buffer retains
+ * only its latest successor and when the last upload of a document started. Updates return
+ * a new buffer, or the same one when nothing changed.
+ */
+export interface SaveBuffer {
+  readonly pending: Readonly<BufferedSave> | null;
+  readonly lastStarted: { key: number; time: number } | null;
+}
+export const EMPTY_SAVE_BUFFER: SaveBuffer = { pending: null, lastStarted: null };
 
-  get pending(): Readonly<BufferedSave> | null {
-    return this.current;
-  }
-
-  stage(key: number, snapshot: Snapshot, now: number, manual = false): boolean {
-    const previous = this.current?.key === key ? this.current : null;
-    const same = previous?.content === snapshot.content && previous.filename === snapshot.filename;
-    if (same && (!manual || previous.manual)) return false;
-    this.current = {
+/** Make `snapshot` the pending save; a manual request stays manual until it is cleared. */
+export function stageSave(
+  buffer: SaveBuffer,
+  key: number,
+  snapshot: Snapshot,
+  now: number,
+  manual = false,
+): SaveBuffer {
+  const previous = buffer.pending?.key === key ? buffer.pending : null;
+  const same = previous?.content === snapshot.content && previous.filename === snapshot.filename;
+  if (same && (!manual || previous.manual)) return buffer;
+  return {
+    ...buffer,
+    pending: {
       content: snapshot.content,
       filename: snapshot.filename,
       key,
       manual: manual || (previous?.manual ?? false),
       firstAt: previous?.firstAt ?? now,
       changedAt: same ? previous.changedAt : now,
-    };
-    return true;
-  }
+    },
+  };
+}
 
-  clear(automaticOnly = false): boolean {
-    if (!this.current || (automaticOnly && this.current.manual)) return false;
-    this.current = null;
-    return true;
-  }
+export function clearSave(buffer: SaveBuffer, automaticOnly = false): SaveBuffer {
+  if (!buffer.pending || (automaticOnly && buffer.pending.manual)) return buffer;
+  return { ...buffer, pending: null };
+}
 
-  started(key: number, now: number): void {
-    this.lastStarted = { key, time: now };
-  }
+export const startedSave = (buffer: SaveBuffer, key: number, now: number): SaveBuffer => ({
+  ...buffer,
+  lastStarted: { key, time: now },
+});
 
-  delay(now: number): number {
-    const request = this.current;
-    if (!request || request.manual) return 0;
-    const earliest =
-      this.lastStarted?.key === request.key
-        ? this.lastStarted.time + DRIVE_SAVE_POLICY.intervalMs
-        : 0;
-    return Math.max(
-      0,
-      Math.max(
-        earliest,
-        Math.min(
-          request.changedAt + DRIVE_SAVE_POLICY.idleMs,
-          request.firstAt + DRIVE_SAVE_POLICY.maxWaitMs,
-        ),
-      ) - now,
-    );
-  }
+/** Milliseconds until the pending save should start: at once when manual. */
+export function saveDelay(buffer: SaveBuffer, now: number): number {
+  const request = buffer.pending;
+  if (!request || request.manual) return 0;
+  const earliest =
+    buffer.lastStarted?.key === request.key
+      ? buffer.lastStarted.time + DRIVE_SAVE_POLICY.intervalMs
+      : 0;
+  return Math.max(
+    0,
+    Math.max(
+      earliest,
+      Math.min(
+        request.changedAt + DRIVE_SAVE_POLICY.idleMs,
+        request.firstAt + DRIVE_SAVE_POLICY.maxWaitMs,
+      ),
+    ) - now,
+  );
 }

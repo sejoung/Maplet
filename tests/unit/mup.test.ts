@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { parseMup, serializeMup, MAX_BYTES, MAX_NODES } from '../../src/adapters/mup/codec';
+import { parseMup, serializeMup } from '../../src/adapters/mup/codec';
+import { MAX_MUP_BYTES } from '../../src/adapters/limits';
+import { MAX_NODE_COUNT } from '../../src/domain/model';
 import { addNode, renameNode } from '../../src/domain/commands';
 
 const fixture = (name: string) => readFileSync(`${process.cwd()}/tests/fixtures/${name}`, 'utf8');
@@ -49,16 +51,16 @@ describe('MUP compatibility and data ownership', () => {
     expect(() => parseMup(source)).toThrow();
   });
   it('rejects size, node count and excessive depth before rendering', () => {
-    expect(() => parseMup(' '.repeat(MAX_BYTES + 1))).toThrow(/10|크기/);
+    expect(() => parseMup(' '.repeat(MAX_MUP_BYTES + 1))).toThrow(/10|크기/);
     const ideas = Object.fromEntries(
-      Array.from({ length: MAX_NODES }, (_, i) => [String(i + 1), { id: i + 1, title: 'x' }]),
+      Array.from({ length: MAX_NODE_COUNT }, (_, i) => [String(i + 1), { id: i + 1, title: 'x' }]),
     );
     expect(() => parseMup(JSON.stringify({ id: 0, title: 'x', ideas }))).toThrow(
       'file.mapMustHaveMostNodes (max: 5,000)',
     );
     let tree: object = { id: 150, title: 'x' };
     for (let i = 149; i >= 0; i--) tree = { id: i, title: 'x', ideas: { 1: tree } };
-    expect(() => parseMup(JSON.stringify(tree))).toThrow('file.nodeDepthMustLess');
+    expect(() => parseMup(JSON.stringify(tree))).toThrow('common.depthLimit (max: 100)');
   });
   it('reports unsupported features without removing their values', () => {
     expect(parseMup(fixture('v2-rich.mup')).warnings.length).toBeGreaterThan(0);

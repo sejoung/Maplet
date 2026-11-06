@@ -1,4 +1,5 @@
 import type { JsonObject } from './model';
+import { isOneOf } from './guards';
 
 export const FONT_SIZES = [12, 15, 20] as const;
 export const FONT_FAMILIES = {
@@ -6,34 +7,28 @@ export const FONT_FAMILIES = {
   serif: 'Georgia, "Times New Roman", "AppleMyungjo", "Batang", serif',
   mono: 'ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", monospace',
 } as const;
+export type FontFamily = keyof typeof FONT_FAMILIES;
+const TEXT_ALIGNS = ['left', 'center', 'right'] as const;
+const FAMILY_NAMES = Object.keys(FONT_FAMILIES) as FontFamily[];
 
+/**
+ * Older documents stored bold and italic for a whole node in `style.fontWeight` and
+ * `style.fontStyle`. They still display as before; the first formatting change or title
+ * edit moves them into the title, so a document only changes when the user changes it.
+ */
+export function legacyEmphasis(style: JsonObject) {
+  return { bold: style.fontWeight === 'bold', italic: style.fontStyle === 'italic' };
+}
+
+/** A node's text settings; unknown stored values fall back to the defaults. */
 export function nodeTypography(style: JsonObject) {
-  const textAlign =
-    style.textAlign === 'center' || style.textAlign === 'right' ? style.textAlign : 'left';
-  const fontSize = style.fontSize === 12 || style.fontSize === 20 ? style.fontSize : 15;
-  const fontFamily =
-    style.fontFamily === 'serif' || style.fontFamily === 'mono' ? style.fontFamily : 'sans';
+  const fontSize = isOneOf(FONT_SIZES, style.fontSize) ? style.fontSize : FONT_SIZES[1];
   return {
-    textAlign,
+    textAlign: isOneOf(TEXT_ALIGNS, style.textAlign) ? style.textAlign : TEXT_ALIGNS[0],
     fontSize,
-    fontFamily,
-    bold: style.fontWeight === 'bold',
-    italic: style.fontStyle === 'italic',
+    fontFamily: isOneOf(FAMILY_NAMES, style.fontFamily) ? style.fontFamily : FAMILY_NAMES[0],
+    ...legacyEmphasis(style),
     lineHeight: Math.round(fontSize * 1.5),
   } as const;
 }
-
-// Conservative glyph widths keep wrapping deterministic without browser APIs.
-export function characterWidth(char: string, typography: ReturnType<typeof nodeTypography>) {
-  const units =
-    char.codePointAt(0)! > 127
-      ? 1
-      : typography.fontFamily === 'mono'
-        ? 0.62
-        : /[MWmw@%&]/.test(char)
-          ? 1
-          : /[A-Z]/.test(char)
-            ? 0.85
-            : 0.65;
-  return units * typography.fontSize * (typography.bold ? 1.08 : 1);
-}
+export type NodeTypography = ReturnType<typeof nodeTypography>;

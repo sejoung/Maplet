@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState, type MouseEvent } from 'react';
-import { Bold, ChevronDown, Eraser, Highlighter, Italic } from 'lucide-react';
+import { ChevronDown, Highlighter } from 'lucide-react';
 import { useI18n } from '../i18n/react';
 import type { MindMap } from '../domain/model';
-import { HIGHLIGHT_COLORS, HIGHLIGHT_FILLS, type FormatCommand } from '../domain/rich-text';
+import { HIGHLIGHT_COLORS, type FormatCommand } from '../domain/rich-text';
+import { HIGHLIGHT_FILLS } from '../engine/render-metrics';
 import { nodesFormat } from '../domain/title-format';
-import { HIGHLIGHT_LABELS, setHighlightColor, useHighlightColor } from './highlight-color';
+import { CLEAR_FORMAT, FORMAT_TOGGLES, HIGHLIGHT_LABELS, swatchProps } from './format-commands';
+import { usePreferences } from './preferences';
 import { useRichEditorBridge, useRichEditorState } from './rich-editor-bridge';
 
 // Pressing a tool must not move focus: the title editor keeps its text selection.
@@ -25,7 +27,7 @@ export function FormatTools({
 }) {
   const { t } = useI18n();
   const editor = useRichEditorState(useRichEditorBridge());
-  const color = useHighlightColor();
+  const [{ highlight: color }, updatePreferences] = usePreferences();
   const [open, setOpen] = useState(false);
   const picker = useRef<HTMLDivElement>(null);
   const format = editor ? editor.format() : nodesFormat(map, selection);
@@ -54,30 +56,21 @@ export function FormatTools({
   const colorName = t(HIGHLIGHT_LABELS[color]);
   return (
     <div className="toolbar-group format-tools" role="group" aria-label={t('format.menu')}>
-      <button
-        type="button"
-        className="icon-button"
-        aria-label={t('format.bold')}
-        title={t('format.boldHint')}
-        aria-pressed={format?.bold === true}
-        disabled={!format}
-        onMouseDown={keepFocus}
-        onClick={() => run({ kind: 'bold' })}
-      >
-        <Bold size={17} />
-      </button>
-      <button
-        type="button"
-        className="icon-button"
-        aria-label={t('format.italic')}
-        title={t('format.italicHint')}
-        aria-pressed={format?.italic === true}
-        disabled={!format}
-        onMouseDown={keepFocus}
-        onClick={() => run({ kind: 'italic' })}
-      >
-        <Italic size={17} />
-      </button>
+      {FORMAT_TOGGLES.map(({ command, icon: Icon, label, hint }) => (
+        <button
+          key={command.kind}
+          type="button"
+          className="icon-button"
+          aria-label={t(label)}
+          title={t(hint)}
+          aria-pressed={format?.[command.kind] === true}
+          disabled={!format}
+          onMouseDown={keepFocus}
+          onClick={() => run(command)}
+        >
+          <Icon size={17} />
+        </button>
+      ))}
       <div className="highlight-picker" ref={picker}>
         <button
           type="button"
@@ -110,14 +103,11 @@ export function FormatTools({
                 <button
                   key={choice}
                   type="button"
-                  className="format-swatch"
-                  aria-label={t(HIGHLIGHT_LABELS[choice])}
-                  title={t(HIGHLIGHT_LABELS[choice])}
+                  {...swatchProps(choice, t)}
                   aria-pressed={choice === color}
-                  style={{ background: HIGHLIGHT_FILLS[choice] }}
                   onMouseDown={keepFocus}
                   onClick={() => {
-                    setHighlightColor(choice);
+                    updatePreferences({ highlight: choice });
                     setOpen(false);
                     if (format) run({ kind: 'highlight', color: choice });
                   }}
@@ -131,11 +121,11 @@ export function FormatTools({
               onMouseDown={keepFocus}
               onClick={() => {
                 setOpen(false);
-                run({ kind: 'clear' });
+                run(CLEAR_FORMAT.command);
               }}
             >
-              <Eraser size={15} aria-hidden="true" />
-              {t('format.clear')}
+              <CLEAR_FORMAT.icon size={15} aria-hidden="true" />
+              {t(CLEAR_FORMAT.label)}
             </button>
           </div>
         )}

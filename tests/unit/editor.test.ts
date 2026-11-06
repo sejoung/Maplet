@@ -6,9 +6,9 @@ import {
   deleteNode,
   moveNode,
   updateNode,
-  isDescendant,
   safeUrl,
 } from '../../src/domain/commands';
+import { isDescendant } from '../../src/domain/tree';
 import { createHistory, commit, undo, redo } from '../../src/application/history';
 import { parseMup, serializeMup } from '../../src/adapters/mup/codec';
 import { parseMaplet, serializeMaplet } from '../../src/adapters/maplet/codec';

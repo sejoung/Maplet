@@ -47,8 +47,13 @@ export interface Message {
 /** Catalog key, structured message (e.g. an error), or independent notices shown together. */
 export type Translatable = string | Message | readonly Translatable[];
 
-export function translateMessage(message: Translatable, language: Language): string {
-  if (typeof message === 'string') return translate(message, language);
+/** `parameters` fill a plain key; structured messages carry their own. */
+export function translateMessage(
+  message: Translatable,
+  language: Language,
+  parameters?: Parameters,
+): string {
+  if (typeof message === 'string') return translate(message, language, parameters);
   if (isList(message)) return message.map((part) => translateMessage(part, language)).join(' ');
   return translate(message.key, language, message.params);
 }

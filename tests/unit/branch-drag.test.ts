@@ -5,6 +5,7 @@ import {
   DROP_MAGNET,
   DROP_RELEASE,
   dragFrame,
+  dropIndicator,
   dropTargetAt,
   nodesInRect,
   translateBranches,
@@ -157,5 +158,26 @@ describe('reaching a drop target while dragging', () => {
     const width = bChild.x - span.x + 40;
     expect(dropTargetAt(spaced, start, ['a'], { ...span, width })?.id).toBe('bChild');
     expect(dropTargetAt(spaced, start, ['a'], { ...span, x: span.x - 40, width })?.id).toBe('b');
+  });
+});
+
+describe('showing a drop', () => {
+  it('highlights a new parent and draws a line above or below a sibling', () => {
+    const b = box('b');
+    expect(dropIndicator(layout, null)).toBeNull();
+    expect(dropIndicator(layout, { id: 'b', side: 'right', node: 'b', place: 'child' })).toEqual({
+      kind: 'child',
+      node: 'b',
+    });
+    expect(
+      dropIndicator(layout, { id: 'root', side: 'right', node: 'b', place: 'before' }),
+    ).toEqual({ kind: 'line', node: 'b', x: b.x, y: b.y - 9, width: b.width });
+    expect(dropIndicator(layout, { id: 'root', side: 'right', node: 'b', place: 'after' })).toEqual(
+      { kind: 'line', node: 'b', x: b.x, y: b.y + b.height + 6, width: b.width },
+    );
+    // A hidden node has nowhere to draw its line.
+    expect(
+      dropIndicator(layout, { id: 'root', side: 'right', node: 'gone', place: 'after' }),
+    ).toBeNull();
   });
 });

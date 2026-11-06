@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { addNode, createMap, updateNode } from '../../src/domain/commands';
-import { nodeMarkers, TASK_SIZE, MARKER_GAP } from '../../src/domain/node-markers';
+import { markerMetrics, TASK_SIZE, MARKER_GAP } from '../../src/engine/render-metrics';
 import { branchLine, nodeBorder } from '../../src/domain/node-colors';
 import { measureNode } from '../../src/engine/node-measure';
 import { layoutMap } from '../../src/engine/layout';
@@ -17,11 +17,11 @@ map = addNode(map, 'root', 'c', 'Gamma');
 
 describe('node markers and emphasis', () => {
   it('reserves room for a task box and a known icon only', () => {
-    expect(nodeMarkers({}, 15).width).toBe(0);
-    const both = nodeMarkers({ task: 'done', icon: '⭐' }, 20);
+    expect(markerMetrics({}, 15).width).toBe(0);
+    const both = markerMetrics({ task: 'done', icon: '⭐' }, 20);
     expect(both).toMatchObject({ task: 'done', icon: '⭐', iconSize: 25 });
     expect(both.width).toBe(TASK_SIZE + MARKER_GAP + 25 + MARKER_GAP);
-    expect(nodeMarkers({ task: 'later', icon: '<script>' }, 15)).toMatchObject({
+    expect(markerMetrics({ task: 'later', icon: '<script>' }, 15)).toMatchObject({
       task: null,
       icon: null,
       width: 0,
@@ -46,9 +46,9 @@ describe('node markers and emphasis', () => {
   it('inherits branch line color and style from the nearest styled ancestor', () => {
     let styled = updateNode(map, 'a', { style: { branchColor: '#3b6fb6' } });
     styled = updateNode(styled, 'a1', { style: { lineStyle: 'dotted', branchColor: 'red' } });
-    expect(branchLine(styled.nodes, 'a')).toEqual({ color: '#3b6fb6', style: 'solid' });
-    expect(branchLine(styled.nodes, 'a2')).toEqual({ color: '#3b6fb6', style: 'dotted' });
-    expect(branchLine(styled.nodes, 'b')).toEqual({ color: null, style: 'solid' });
+    expect(branchLine(styled, 'a')).toEqual({ color: '#3b6fb6', style: 'solid' });
+    expect(branchLine(styled, 'a2')).toEqual({ color: '#3b6fb6', style: 'dotted' });
+    expect(branchLine(styled, 'b')).toEqual({ color: null, style: 'solid' });
     expect(nodeBorder({ borderColor: '#c0504d' })).toBe('#c0504d');
     expect(nodeBorder({ borderColor: 'url(x)' })).toBeNull();
   });

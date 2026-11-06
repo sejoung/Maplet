@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { useI18n } from '../i18n/react';
-import { NodeActionItems, type NodeAction } from './node-actions';
+import { MenuItems, type MenuGroup } from './menu-actions';
+import { clampToViewport, moveMenuFocus, viewportSize } from './menu-keys';
 
 const items = (menu: HTMLElement) => [
   ...menu.querySelectorAll<HTMLButtonElement>('[role="menuitem"]:not(:disabled)'),
@@ -13,7 +14,7 @@ export function NodeContextMenu({
   label = 'common.nodeMenu',
   onClose,
 }: {
-  groups: NodeAction[][];
+  groups: readonly MenuGroup[];
   at: { x: number; y: number };
   label?: string;
   onClose(restoreFocus: boolean): void;
@@ -23,12 +24,7 @@ export function NodeContextMenu({
   const [position, setPosition] = useState(at);
   useLayoutEffect(() => {
     const element = menu.current!;
-    const { width, height } = element.getBoundingClientRect();
-    // Keep the whole menu on screen, flipping near the right and bottom edges.
-    setPosition({
-      x: Math.max(8, Math.min(at.x, window.innerWidth - width - 8)),
-      y: Math.max(8, at.y + height > window.innerHeight - 8 ? at.y - height : at.y),
-    });
+    setPosition(clampToViewport(at, element.getBoundingClientRect(), viewportSize()));
     items(element)[0]?.focus();
     const outside = (event: PointerEvent) => {
       if (!element.contains(event.target as Node)) onClose(false);
@@ -37,18 +33,9 @@ export function NodeContextMenu({
     return () => document.removeEventListener('pointerdown', outside, true);
   }, [at, onClose]);
   const keydown = (event: KeyboardEvent) => {
-    const list = items(menu.current!);
-    const index = list.indexOf(document.activeElement as HTMLButtonElement);
-    const move = (next: number) => {
-      event.preventDefault();
-      list[(next + list.length) % list.length]?.focus();
-    };
     event.stopPropagation();
-    if (event.key === 'ArrowDown') move(index + 1);
-    else if (event.key === 'ArrowUp') move(index - 1);
-    else if (event.key === 'Home') move(0);
-    else if (event.key === 'End') move(list.length - 1);
-    else if (event.key === 'Escape' || event.key === 'Tab') {
+    if (moveMenuFocus(items(menu.current!), event)) return;
+    if (event.key === 'Escape' || event.key === 'Tab') {
       event.preventDefault();
       onClose(true);
     }
@@ -63,15 +50,13 @@ export function NodeContextMenu({
       style={{ left: position.x, top: position.y }}
       onKeyDown={keydown}
       onContextMenu={(event) => event.preventDefault()}
+      // Closing waits for the bubble phase: closing on capture would unmount the item before
+      // its command ran. Both updates land in one render.
+      onClick={(event) => {
+        if ((event.target as Element).closest('button')) onClose(false);
+      }}
     >
-      <NodeActionItems
-        groups={groups}
-        role="menuitem"
-        wrap={(action) => () => {
-          onClose(false);
-          action();
-        }}
-      />
+      <MenuItems groups={groups} role="menuitem" />
     </div>
   );
 }

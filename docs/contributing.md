@@ -94,7 +94,7 @@ E2E `timings.json`은 각 검사와 재시도의 worker 번호·프로젝트·�
 4. 구조를 정리하고 `npm run verify` 및 관련 E2E를 통과시킨다.
 5. 구조·포맷·저장 정책 변경은 새 ADR에 배경/결정/결과를 기록한다.
 
-테스트 옆에 운영 코드를 두거나 src에서 테스트를 import하지 않는다. 도메인은 React/DOM/저장소를 참조하지 않는다. `tests/architecture/rules.ts`는 TypeScript AST로 import/export/동적 import 경로를 읽고 계층과 순환 참조를 검사한다. 규칙 검사기가 위반을 놓치지 않는지 고의 위반 그래프로 자체 검증한다. ESLint 접근성/Hook 규칙과 HTML 직접 삽입 금지도 필수다. React Compiler는 사용하지 않으므로 compiler 전용 lint 규칙 대신 Hook 사용·의존성 규칙을 적용한다.
+테스트 옆에 운영 코드를 두거나 src에서 테스트를 import하지 않는다. 도메인은 React/DOM/저장소를 참조하지 않는다. 계층·패키지·순환 참조·고아 파일 규칙은 `.dependency-cruiser.cjs`, 브라우저 API·어댑터 생성 위치·훅 위치 같은 코드 규칙은 `tests/architecture/code-rules.ts`에 두고 `tests/architecture`가 Vitest로 강제한다. 각 규칙은 고의 위반 프로젝트로 위반을 놓치지 않는지 자체 검증한다. `npm run arch`는 위반 보고서, `npm run arch:graph`는 계층 의존 그래프(Mermaid)를 출력한다. [ADR 0020](adr/0020-architecture-rules-as-tests.md)을 따른다. ESLint 접근성/Hook 규칙과 HTML 직접 삽입 금지도 필수다. React Compiler는 사용하지 않으므로 compiler 전용 lint 규칙 대신 Hook 사용·의존성 규칙을 적용한다.
 
 ## GitHub Pages
 

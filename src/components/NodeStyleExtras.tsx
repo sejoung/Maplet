@@ -3,6 +3,7 @@ import type { JsonObject } from '../domain/model';
 import { LINE_COLORS, LINE_STYLES } from '../domain/node-colors';
 import { NODE_ICONS } from '../domain/node-markers';
 import { useI18n } from '../i18n/react';
+import { isOneOf } from '../domain/guards';
 
 const colorNames = [
   'style.lineGreen',
@@ -54,7 +55,7 @@ export function NodeStyleExtras({
           className="swatch none"
           aria-label={t('style.defaultLine')}
           title={t('style.defaultLine')}
-          aria-pressed={!LINE_COLORS.includes(style[key] as string)}
+          aria-pressed={!isOneOf(LINE_COLORS, style[key])}
           onClick={() => set(key, null)}
         />
         {LINE_COLORS.map((color, index) => (
@@ -98,7 +99,7 @@ export function NodeStyleExtras({
             className="swatch none"
             aria-label={t('style.noIcon')}
             title={t('style.noIcon')}
-            aria-pressed={!(NODE_ICONS as readonly unknown[]).includes(style.icon)}
+            aria-pressed={!isOneOf(NODE_ICONS, style.icon)}
             onClick={() => set('icon', null)}
           />
           {NODE_ICONS.map((icon) => (
@@ -122,11 +123,7 @@ export function NodeStyleExtras({
         <label htmlFor="node-line-style">{t('style.branchLineStyle')}</label>
         <select
           id="node-line-style"
-          value={
-            (LINE_STYLES as readonly unknown[]).includes(style.lineStyle)
-              ? (style.lineStyle as string)
-              : 'solid'
-          }
+          value={isOneOf(LINE_STYLES, style.lineStyle) ? style.lineStyle : 'solid'}
           onChange={(event) =>
             set('lineStyle', event.target.value === 'solid' ? null : event.target.value)
           }

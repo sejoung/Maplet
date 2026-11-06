@@ -1,67 +1,58 @@
-import type { DriveFile } from '../drive/client';
-import type { GoogleSelection } from '../drive/google';
+import { isNonEmptyString } from '../../domain/guards';
+import { isJsonObject } from '../../domain/json';
+import type { DriveFile, DriveFolder } from '../drive/types';
+import { readJsonItem, writeJsonItem, type StorageScope } from './web-storage';
 
+/** The Drive folder and files a tab works with; metadata only, never content or tokens. */
 export interface DriveWorkspace {
-  folder: GoogleSelection;
+  folder: DriveFolder;
   file: DriveFile | null;
   source: DriveFile | null;
 }
-const text = (value: unknown): value is string => typeof value === 'string' && value.length > 0;
+
 function file(value: unknown): DriveFile | null {
-  if (!value || typeof value !== 'object') return null;
-  const item = value as Partial<DriveFile>;
+  if (!isJsonObject(value)) return null;
+  const { id, name, version, etag, parents } = value;
   if (
-    !text(item.id) ||
-    !text(item.name) ||
-    !text(item.version) ||
-    !(item.etag === null || typeof item.etag === 'string')
+    !isNonEmptyString(id) ||
+    !isNonEmptyString(name) ||
+    !isNonEmptyString(version) ||
+    !(etag === null || typeof etag === 'string')
   )
     return null;
   return {
-    id: item.id,
-    name: item.name,
-    version: item.version,
-    etag: item.etag,
-    ...(Array.isArray(item.parents) && item.parents.every(text)
-      ? { parents: [...item.parents] }
-      : {}),
+    id,
+    name,
+    version,
+    etag,
+    ...(Array.isArray(parents) && parents.every(isNonEmptyString) ? { parents: [...parents] } : {}),
   };
 }
+/** Copy only known fields from untrusted stored data. */
 export function parseDriveWorkspace(value: unknown): DriveWorkspace | null {
-  if (!value || typeof value !== 'object') return null;
-  const item = value as Partial<DriveWorkspace>;
-  if (!item.folder || !text(item.folder.id) || !text(item.folder.name)) return null;
-  const target = file(item.file),
-    source = file(item.source);
-  if ((item.file != null && !target) || (item.source != null && !source)) return null;
-  return { folder: { id: item.folder.id, name: item.folder.name }, file: target, source };
-}
-type Scope = 'localStorage' | 'sessionStorage';
-const storageKey = (clientId: string) => `maplet:drive:${clientId}`;
-function read(scope: Scope, clientId: string): unknown {
-  try {
-    return JSON.parse(window[scope].getItem(storageKey(clientId)) ?? 'null');
-  } catch {
+  if (!isJsonObject(value)) return null;
+  const { folder } = value;
+  if (!isJsonObject(folder) || !isNonEmptyString(folder.id) || !isNonEmptyString(folder.name))
     return null;
-  }
+  const target = file(value.file),
+    source = file(value.source);
+  if ((value.file != null && !target) || (value.source != null && !source)) return null;
+  return { folder: { id: folder.id, name: folder.name }, file: target, source };
 }
-function write(scope: Scope, clientId: string, value: object | null): void {
-  try {
-    if (value) window[scope].setItem(storageKey(clientId), JSON.stringify(value));
-    else window[scope].removeItem(storageKey(clientId));
-  } catch {
-    /* Drive remains usable when browser storage is unavailable. */
-  }
-}
+
+const storageKey = (clientId: string) => `maplet:drive:${clientId}`;
+const read = (scope: StorageScope, clientId: string) => readJsonItem(scope, storageKey(clientId));
+const write = (scope: StorageScope, clientId: string, value: object | null) =>
+  writeJsonItem(scope, storageKey(clientId), value);
 
 /** The most recently changed workspace of any tab, for a later visit. */
 export function readDriveWorkspace(clientId: string): DriveWorkspace | null {
-  return parseDriveWorkspace(read('localStorage', clientId));
+  return parseDriveWorkspace(read('local', clientId));
 }
 /** Which tab wrote the shared workspace; null for releases before tabs. */
 export function readDriveWorkspaceOwner(clientId: string): string | null {
-  const value = read('localStorage', clientId) as { tab?: unknown } | null;
-  return typeof value?.tab === 'string' ? value.tab : null;
+  const value = read('local', clientId);
+  return isJsonObject(value) && typeof value.tab === 'string' ? value.tab : null;
 }
 export function writeDriveWorkspace(
   clientId: string,
@@ -69,12 +60,12 @@ export function writeDriveWorkspace(
   owner?: string,
 ): void {
   const safe = parseDriveWorkspace(workspace);
-  write('localStorage', clientId, safe && (owner ? { ...safe, tab: owner } : safe));
+  write('local', clientId, safe && (owner ? { ...safe, tab: owner } : safe));
 }
 /** This tab's own workspace, kept across reloads of the tab. */
 export function readTabWorkspace(clientId: string): DriveWorkspace | null {
-  return parseDriveWorkspace(read('sessionStorage', clientId));
+  return parseDriveWorkspace(read('session', clientId));
 }
 export function writeTabWorkspace(clientId: string, workspace: DriveWorkspace | null): void {
-  write('sessionStorage', clientId, parseDriveWorkspace(workspace));
+  write('session', clientId, parseDriveWorkspace(workspace));
 }

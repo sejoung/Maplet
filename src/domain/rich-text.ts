@@ -5,14 +5,6 @@
  */
 export const HIGHLIGHT_COLORS = ['yellow', 'green', 'blue', 'pink'] as const;
 export type HighlightColor = (typeof HIGHLIGHT_COLORS)[number];
-/** Pastel fills that keep dark text readable in light and dark themes and in exports. */
-export const HIGHLIGHT_FILLS: Record<HighlightColor, string> = {
-  yellow: '#fde68a',
-  green: '#bbf7d0',
-  blue: '#bfdbfe',
-  pink: '#fbcfe8',
-};
-export const HIGHLIGHT_TEXT = '#25352d';
 
 export interface TextFormat {
   bold: boolean;

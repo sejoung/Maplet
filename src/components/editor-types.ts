@@ -1,4 +1,4 @@
-import type { DriveSyncStatus } from '../application/drive-sync';
+import type { DriveSyncKind } from '../application/drive-sync';
 import type { Translatable } from '../i18n/core';
 import type { CanvasProps } from './canvas-types';
 import type { NodePosition } from '../domain/model';
@@ -29,7 +29,7 @@ interface ClipboardActions {
   onReorder(id: string, offset: -1 | 1): void;
   canPaste: boolean;
 }
-interface FileActions {
+export interface FileActions {
   filename: string;
   onFilenameChange(name: string): void;
   dirty: boolean;
@@ -43,13 +43,13 @@ interface FileActions {
   onExportOutline(format: 'md' | 'opml'): void;
   onPrint(): void;
 }
-interface DriveIndicators {
+export interface DriveIndicators {
   driveConfigured: boolean;
   onOpenDrive(): void;
   onSaveCopy(): void;
   canSaveCopy: boolean;
   saveToDrive: boolean;
-  driveSync: DriveSyncStatus | null;
+  driveSync: DriveSyncKind | null;
   onDrive(): void;
   onDriveRenew(): void;
   driveConnected: boolean;

@@ -49,7 +49,7 @@ it.each([undefined, '"download-only"'])(
     const opened = await client.open('f');
     expect(opened.etag).toBeNull();
     const saved = await client.save(opened, '{"edit":1}');
-    const renamed = await client.save(saved, '{"edit":2}', false, 'renamed.maplet');
+    const renamed = await client.save(saved, '{"edit":2}', { name: 'renamed.maplet' });
     expect(renamed).toMatchObject({ id: 'f', version: '3', name: 'renamed.maplet', etag: null });
     for (const index of [3, 5])
       expect(fetcher.mock.calls[index][1].headers).not.toHaveProperty('If-Match');

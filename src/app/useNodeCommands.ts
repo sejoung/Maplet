@@ -3,40 +3,42 @@ import {
   addRoot,
   deleteNodes,
   insertNodes,
+  moveNodes,
   renameNode,
   showLevels,
   updateNode,
+  updateNodes,
+  type NodePatch,
 } from '../domain/commands';
 import { addConnection, removeConnection } from '../domain/connections';
 import type { MindMap, MindNode, NodePosition } from '../domain/model';
 import { resizeNode } from '../domain/node-size';
 import { setNodePositions } from '../domain/positions';
-import { moveNodes, topLevel, updateNodes, visibleSelection } from '../domain/selection';
+import {
+  fallbackAfterDelete,
+  topLevel,
+  visibleAncestor,
+  visibleSelection,
+} from '../domain/selection';
 import { autoArrange } from '../engine/auto-arrange';
 import { layoutMap } from '../engine/layout';
-import { measureNodeText } from '../components/text-measure';
+import type { TextMeasurer } from '../engine/node-measure';
 import { filenameFromTitle } from '../application/document-name';
 import type { FormatCommand } from '../domain/rich-text';
 import { formatNodeTitles, withoutLegacyEmphasis } from '../domain/title-format';
 import type { useI18n } from '../i18n/react';
 import type { DocumentState } from './useDocument';
 
-type NodePatch = Partial<Pick<MindNode, 'notes' | 'links' | 'style' | 'side' | 'collapsed'>>;
-
-/** Nearest ancestor-or-self of `id` that is not hidden in a collapsed branch. */
-function visibleAncestor(map: MindMap, id: string): string {
-  let visible = id;
-  for (let parent = map.nodes[id].parentId; parent; parent = map.nodes[parent].parentId)
-    if (map.nodes[parent].collapsed) visible = parent;
-  return visible;
+interface Options {
+  t: ReturnType<typeof useI18n>['t'];
+  /** Measures node text for automatic layout; the app passes the DOM measurer. */
+  measure: TextMeasurer;
+  /** A deletion removed more than one node. */
+  onDeleted?(count: number): void;
 }
 
 /** Editing commands on nodes and the map structure, wired to the open document. */
-export function useNodeCommands(
-  doc: DocumentState,
-  t: ReturnType<typeof useI18n>['t'],
-  onDeleted: (count: number) => void = () => {},
-) {
+export function useNodeCommands(doc: DocumentState, { t, measure, onDeleted = () => {} }: Options) {
   const { map, selectedId: selected, edit } = doc;
   const add = (sibling = false) => {
     const id = crypto.randomUUID();
@@ -58,8 +60,7 @@ export function useNodeCommands(
   // Deleting is undoable, so it acts at once and reports what went instead of asking first.
   const remove = () => {
     const ids = doc.targets(selected);
-    const nodes = ids.map((id) => map.nodes[id]);
-    const fallback = nodes[0].parentId ?? map.roots.find((id) => !ids.includes(id))!;
+    const fallback = fallbackAfterDelete(map, ids);
     let removed = 0;
     const deleted = edit((current) => {
       const next = deleteNodes(current, ids);
@@ -122,14 +123,14 @@ export function useNodeCommands(
       edit((current) => resizeNode(current, id, width, positions)),
     onReposition: (positions: Record<string, NodePosition>) =>
       edit((current) => setNodePositions(current, positions)),
-    onAutoLayout: () => edit((current) => autoArrange(current, measureNodeText)),
+    onAutoLayout: () => edit((current) => autoArrange(current, measure)),
     /** A new central topic; placing one fixes the current layout so nothing else moves. */
     onAddRoot: (at?: NodePosition) => {
       const id = crypto.randomUUID();
       const added = edit((current) => {
         let base = current;
         if (at && !Object.values(current.nodes).some((node) => node.position)) {
-          const placed = layoutMap(current, measureNodeText).nodes;
+          const placed = layoutMap(current, measure).nodes;
           base = setNodePositions(
             current,
             Object.fromEntries(placed.map((node) => [node.id, { x: node.x, y: node.y }])),

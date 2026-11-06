@@ -5,6 +5,7 @@ import {
   createMap,
   deleteNodes,
   insertNodes,
+  setBranchSide,
   showLevels,
   updateNode,
 } from '../../src/domain/commands';
@@ -161,5 +162,22 @@ describe('cross-links', () => {
     const { map } = mergeMaps(base, local, remote);
     expect(map.nodes.c).toBeUndefined();
     expect(map.connections ?? []).toEqual([]);
+  });
+});
+
+describe('branch sides', () => {
+  it('moves the whole top-level branch, ranks it last there and releases its positions', () => {
+    const placed = setNodePositions(base, { a: { x: 5, y: 5 }, a2: { x: 9, y: 9 } });
+    const moved = setBranchSide(placed, 'a2', 'left');
+    expect(['a', 'a1', 'a2'].map((id) => moved.nodes[id].side)).toEqual(['left', 'left', 'left']);
+    expect([moved.nodes.a.position, moved.nodes.a2.position]).toEqual([null, null]);
+    expect(moved.nodes.a.rank).toBe('-1');
+    expect(moved.nodes.b).toBe(placed.nodes.b);
+    expect(updateNode(placed, 'a2', { side: 'left' })).toEqual(moved);
+  });
+
+  it('keeps central topics where they are', () => {
+    expect(setBranchSide(base, 'root', 'right')).toBe(base);
+    expect(() => setBranchSide(base, 'root', 'left')).toThrow('edit.rootSideFixed');
   });
 });

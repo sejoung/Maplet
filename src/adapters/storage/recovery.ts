@@ -1,5 +1,5 @@
 import type { Draft } from './drafts';
-import { parseDocument, nativeFilename } from '../documents';
+import { parseDocument, nativeFilename } from '../formats';
 import { serializeMaplet } from '../maplet/codec';
 
 export function draftHasChanges(draft: Draft): boolean {

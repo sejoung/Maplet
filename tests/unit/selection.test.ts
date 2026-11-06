@@ -1,18 +1,22 @@
 import { describe, expect, it } from 'vitest';
 import {
   addNode,
+  addRoot,
   canMoveNode,
   createMap,
+  moveTargets,
   deleteNodes,
+  moveNodes,
   updateNode,
+  updateNodes,
 } from '../../src/domain/commands';
 import { copyBranches, outlineOf } from '../../src/domain/clipboard';
 import { MAX_DEPTH } from '../../src/domain/model';
 import {
   canDeleteNodes,
-  moveNodes,
+  fallbackAfterDelete,
   topLevel,
-  updateNodes,
+  visibleAncestor,
   visibleSelection,
 } from '../../src/domain/selection';
 import { setNodePositions } from '../../src/domain/positions';
@@ -76,6 +80,19 @@ describe('multi-node selection', () => {
     expect(canMoveNode(deep, 'b', `d${MAX_DEPTH - 3}`)).toBe(true);
   });
 
+  it('lists move targets that pass the same rules, keeping the current parent', () => {
+    let deep = base;
+    for (let level = 3; level <= MAX_DEPTH - 2; level++)
+      deep = addNode(deep, level === 3 ? 'a2' : `d${level - 1}`, `d${level}`, 'D');
+    const targets = moveTargets(deep, ['b']).map((node) => node.id);
+    expect(targets).toContain(deep.nodes.b.parentId);
+    expect(targets).toContain(`d${MAX_DEPTH - 3}`);
+    // Too deep for the branch: the picker must not offer what the move would reject.
+    expect(targets).not.toContain(`d${MAX_DEPTH - 2}`);
+    expect(targets).not.toContain('b');
+    expect(moveTargets(deep, ['a']).map((node) => node.id)).not.toContain('a1');
+  });
+
   it('applies only the changed style properties to every selected node', () => {
     let map = updateNode(base, 'a', { style: { fontSize: 'large', background: '#e8eef8' } });
     map = updateNode(map, 'b', { style: { fontFamily: 'serif' } });
@@ -108,5 +125,22 @@ describe('multi-node selection', () => {
     expect(Object.keys(fragment.nodes).sort()).toEqual(['a1', 'a2', 'b']);
     expect(outlineOf(fragment)).toBe('A1\n\tA2\nB');
     expect(() => copyBranches(base, [])).toThrow('edit.nodeNotFound');
+  });
+});
+
+describe('selection queries', () => {
+  it('picks the node to select after a delete', () => {
+    expect(fallbackAfterDelete(base, ['a1', 'b'])).toBe('a');
+    const twoRoots = addRoot(base, 'r2', 'Second');
+    expect(fallbackAfterDelete(twoRoots, ['root'])).toBe('r2');
+  });
+
+  it('finds the outermost collapsed ancestor that hides a node', () => {
+    expect(visibleAncestor(base, 'a2')).toBe('a2');
+    const folded = updateNode(updateNode(base, 'a1', { collapsed: true }), 'a', {
+      collapsed: true,
+    });
+    expect(visibleAncestor(folded, 'a2')).toBe('a');
+    expect(visibleAncestor(updateNode(base, 'a1', { collapsed: true }), 'a2')).toBe('a1');
   });
 });
