@@ -5,7 +5,7 @@ import { afterEach, expect, it, vi } from 'vitest';
 import { useUsageStats } from '../../../src/app/useUsageStats';
 import { USAGE_NOTICE_KEY } from '../../../src/adapters/storage/privacy';
 import type { UsageStats } from '../../../src/adapters/analytics';
-import { MessageBanner } from '../../../src/components/editor/MessageBanner';
+import { UsageNotice } from '../../../src/components/dialogs/UsageNotice';
 import { SettingsDialog } from '../../../src/components/dialogs/SettingsDialog';
 
 afterEach(() => {
@@ -32,12 +32,23 @@ it('shows the notice once and remembers that it was seen', () => {
   const stats = fakeStats();
   const first = renderHook(() => useUsageStats(stats));
   expect(first.result.current?.notice).not.toBeNull();
-  act(() => first.result.current!.notice!.onDismiss());
+  act(() => first.result.current!.notice!.onAccept());
   expect(first.result.current?.notice).toBeNull();
+  expect(stats.setEnabled).not.toHaveBeenCalled();
   expect(localStorage.getItem(USAGE_NOTICE_KEY)).toBe('seen');
 
   const later = renderHook(() => useUsageStats(stats));
   expect(later.result.current?.notice).toBeNull();
+});
+
+it('turns statistics off from the notice', () => {
+  const stats = fakeStats();
+  const { result } = renderHook(() => useUsageStats(stats));
+  act(() => result.current!.notice!.onDecline());
+  expect(stats.setEnabled).toHaveBeenCalledWith(false);
+  expect(result.current?.setting.enabled).toBe(false);
+  expect(result.current?.notice).toBeNull();
+  expect(localStorage.getItem(USAGE_NOTICE_KEY)).toBe('seen');
 });
 
 it('skips the notice when statistics are already off', () => {
@@ -64,17 +75,14 @@ it('renders the settings switch only when statistics are available', async () =>
   expect(change).toHaveBeenCalledWith(false);
 });
 
-it('runs the banner action', async () => {
-  const run = vi.fn();
-  render(
-    <MessageBanner
-      kind="notice"
-      message="app.usageStatsNotice"
-      onDismiss={() => {}}
-      action={{ label: 'common.settings', run }}
-    />,
-  );
-  expect(screen.getByRole('status')).toHaveTextContent('Google Analytics');
-  await userEvent.click(screen.getByRole('button', { name: '설정' }));
-  expect(run).toHaveBeenCalled();
+it('names the card and offers turning off or keeping statistics', async () => {
+  const onAccept = vi.fn();
+  const onDecline = vi.fn();
+  render(<UsageNotice onAccept={onAccept} onDecline={onDecline} />);
+  const card = screen.getByRole('region', { name: '사용 통계' });
+  expect(card).toHaveTextContent('Google Analytics');
+  await userEvent.click(screen.getByRole('button', { name: '끄기' }));
+  expect(onDecline).toHaveBeenCalled();
+  await userEvent.click(screen.getByRole('button', { name: '확인' }));
+  expect(onAccept).toHaveBeenCalled();
 });

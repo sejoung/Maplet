@@ -4,6 +4,7 @@ import { FolderOpen } from 'lucide-react';
 import { EditorHeader } from './EditorHeader';
 import { EditorToolbar } from './EditorToolbar';
 import { SettingsDialog } from '../dialogs/SettingsDialog';
+import { UsageNotice } from '../dialogs/UsageNotice';
 import { Canvas, type CanvasControls } from '../canvas/Canvas';
 import { NodeToolsDialog, type NodeTool } from '../dialogs/node-tools/NodeToolsDialog';
 import { NodeContextMenu } from '../menus/NodeContextMenu';
@@ -81,14 +82,6 @@ export function Editor(props: EditorProps) {
         {props.notice && (
           <MessageBanner kind="notice" message={props.notice} onDismiss={props.onDismissNotice} />
         )}
-        {props.usageNotice && (
-          <MessageBanner
-            kind="notice"
-            message="app.usageStatsNotice"
-            onDismiss={props.usageNotice.onDismiss}
-            action={{ label: 'common.settings', run: () => setSettingsOpen(true) }}
-          />
-        )}
         <main className="workspace" id="workspace" tabIndex={-1}>
           {view.focus && (
             <div className="focus-banner" role="status">
@@ -149,6 +142,7 @@ export function Editor(props: EditorProps) {
             onZoomChange={setZoom}
           />
           {props.deletedNotice && <DeletedToast {...props.deletedNotice} />}
+          {props.usageNotice && <UsageNotice {...props.usageNotice} />}
         </main>
         <StatusBar
           dirty={props.dirty}

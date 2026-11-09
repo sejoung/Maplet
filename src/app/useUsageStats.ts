@@ -11,15 +11,13 @@ export function useUsageStats(stats: UsageStats | null | undefined) {
     setNoticeOpen(false);
   }, []);
   if (!stats) return null;
+  const change = (next: boolean) => {
+    stats.setEnabled(next);
+    setEnabled(next);
+    closeNotice();
+  };
   return {
-    setting: {
-      enabled,
-      change(next: boolean) {
-        stats.setEnabled(next);
-        setEnabled(next);
-        closeNotice();
-      },
-    },
-    notice: noticeOpen ? { onDismiss: closeNotice } : null,
+    setting: { enabled, change },
+    notice: noticeOpen ? { onAccept: closeNotice, onDecline: () => change(false) } : null,
   };
 }

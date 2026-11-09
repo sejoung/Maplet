@@ -233,6 +233,37 @@
 .canvas-toast .text-button {
   font-weight: 600;
 }
+/* The one-time usage statistics card; bottom left, clear of the minimap on the right. */
+.usage-notice {
+  position: absolute;
+  left: 16px;
+  bottom: 16px;
+  z-index: 7;
+  width: min(380px, calc(100% - 32px));
+  padding: 18px 20px 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: var(--shadow-dialog);
+  color: var(--text);
+}
+.usage-notice h2 {
+  margin: 0 0 6px;
+  font-size: 15px;
+}
+.usage-notice p {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: 13px;
+  line-height: 1.6;
+  word-break: keep-all;
+}
+.usage-notice-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 14px;
+}
 /* The drag hint takes the same place while a branch moves. */
 .workspace:has(.canvas.is-dragging) .canvas-toast {
   display: none;

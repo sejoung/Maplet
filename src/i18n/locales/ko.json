@@ -23,7 +23,6 @@
   "app.undoDelete": "삭제 실행 취소",
   "app.unsavedChangesTitle": "저장하지 않은 변경",
   "app.untitled": "제목 없음",
-  "app.usageStatsNotice": "서비스 개선을 위해 방문·오류 통계를 Google Analytics로 수집합니다. 문서 내용과 파일 이름은 보내지 않으며 설정에서 끌 수 있습니다.",
   "canvas.closeFind": "찾기 닫기",
   "canvas.dragHint": "노드에 붙여 놓으면 하위로 이동 · 점선은 놓을 때 비켜날 자리 · Alt(⌥): 위치만 이동",
   "canvas.dragHintFree": "위치만 옮기는 중 · Alt(⌥)를 떼면 부모 바꾸기",
@@ -430,5 +429,9 @@
   "toolbar.nodeActions": "노드 작업",
   "toolbar.notesWritten": "메모 (작성됨)",
   "toolbar.view": "보기",
-  "toolbar.zoomLevel": "확대 비율"
+  "toolbar.zoomLevel": "확대 비율",
+  "usage.accept": "확인",
+  "usage.notice": "서비스 개선을 위해 방문·오류 통계를 Google Analytics로 보냅니다. 문서 내용과 파일 이름은 보내지 않으며, 설정에서 언제든 바꿀 수 있습니다.",
+  "usage.title": "사용 통계",
+  "usage.turnOff": "끄기"
 }

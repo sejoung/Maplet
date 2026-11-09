@@ -26,7 +26,6 @@
   "app.undoDelete": "Undo delete",
   "app.unsavedChangesTitle": "Unsaved changes",
   "app.untitled": "Untitled",
-  "app.usageStatsNotice": "Maplet collects visit and error statistics with Google Analytics to improve the app. Document content and file names are never sent. You can turn this off in Settings.",
   "canvas.closeFind": "Close find",
   "canvas.dragHint": "Drop next to a node to move under it · Dashed outlines show where branches will make room · Alt (⌥): move position only",
   "canvas.dragHintFree": "Moving position only, pushing branches aside · Release Alt (⌥) to reparent",
@@ -436,5 +435,9 @@
   "toolbar.nodeActions": "Node actions",
   "toolbar.notesWritten": "Notes (written)",
   "toolbar.view": "View",
-  "toolbar.zoomLevel": "Zoom level"
+  "toolbar.zoomLevel": "Zoom level",
+  "usage.accept": "OK",
+  "usage.notice": "Maplet sends visit and error statistics to Google Analytics to improve the app. Document content and file names are never sent, and you can change this anytime in Settings.",
+  "usage.title": "Usage statistics",
+  "usage.turnOff": "Turn off"
 }
