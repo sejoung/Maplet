@@ -70,7 +70,7 @@ test-results/
   latest-e2e -> 가장 최근 e2e 실행 폴더
 ```
 
-architecture·watch도 같은 규칙으로 링크를 만든다. `latest`에는 실패·정상 중단도 포함하므로 `summary.json`의 status를 확인한다. 실행 중에는 앞선 완료 결과를 가리키고 종료 후 링크를 원자적으로 교체한다. watch는 한 세션이 한 폴더이며 세션 종료 후 링크를 갱신한다. 이력은 자동 삭제하지 않고 결과와 링크 모두 Git에서 제외한다. CI는 성공·실패 결과를 artifact로 보관한다.
+architecture·watch도 같은 규칙으로 링크를 만든다. `latest`에는 실패·정상 중단도 포함하므로 `summary.json`의 status를 확인한다. 실행 중에는 앞선 완료 결과를 가리키고 종료 후 링크를 원자적으로 교체한다. watch는 한 세션이 한 폴더이며 세션 종료 후 링크를 갱신한다. 이력은 자동 삭제하지 않고 결과와 링크 모두 Git에서 제외한다. CI는 성공·실패 결과를 artifact로 3일간 보관한다.
 
 필터와 도구 옵션은 npm 뒤에 전달한다. 시간별 이력이 필요하면 직접 `npx vitest`/`npx playwright test` 대신 다음 명령을 사용한다. 직접 실행은 `test-results/unmanaged/`에 고정 출력한다.
 
