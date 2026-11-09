@@ -79,6 +79,9 @@ interface StatusMessages {
   /** A deletion that removed several nodes, with an undo shown beside it on the canvas. */
   deletedNotice?: { message: Translatable; onUndo(): void; onDismiss(): void } | null;
   draftPrivacy?: { enabled: boolean; busy: boolean; change(enabled: boolean): void };
+  usageStats?: { enabled: boolean; change(enabled: boolean): void };
+  /** The one-time notice that usage statistics are sent. */
+  usageNotice?: { onDismiss(): void } | null;
 }
 export interface EditorProps
   extends

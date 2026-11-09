@@ -81,6 +81,14 @@ export function Editor(props: EditorProps) {
         {props.notice && (
           <MessageBanner kind="notice" message={props.notice} onDismiss={props.onDismissNotice} />
         )}
+        {props.usageNotice && (
+          <MessageBanner
+            kind="notice"
+            message="app.usageStatsNotice"
+            onDismiss={props.usageNotice.onDismiss}
+            action={{ label: 'common.settings', run: () => setSettingsOpen(true) }}
+          />
+        )}
         <main className="workspace" id="workspace" tabIndex={-1}>
           {view.focus && (
             <div className="focus-banner" role="status">
@@ -150,7 +158,11 @@ export function Editor(props: EditorProps) {
           nodeCount={Object.keys(map.nodes).length}
         />
         {settingsOpen && (
-          <SettingsDialog onClose={closeSettings} draftPrivacy={props.draftPrivacy} />
+          <SettingsDialog
+            onClose={closeSettings}
+            draftPrivacy={props.draftPrivacy}
+            usageStats={props.usageStats}
+          />
         )}
         {tool && (
           <NodeToolsDialog

@@ -32,16 +32,20 @@ import { useFileImport } from './document/useFileImport';
 import { useUnloadWarning } from './useUnloadWarning';
 import { useDeletedNotice } from './document/useDeletedNotice';
 import { useRunOnce } from './useRunOnce';
+import { useUsageStats } from './useUsageStats';
+import type { UsageStats } from '../adapters/analytics';
 
 /** The composition root (`main.tsx`) builds the stores; tests inject their own. */
 export function App({
   drafts,
   driveServices,
   tab = FRESH_TAB,
+  usageStats,
 }: {
   drafts: DraftRepository;
   driveServices?: DriveServices;
   tab?: TabSession;
+  usageStats?: UsageStats | null;
 }) {
   const { t } = useI18n();
   const [error, setError] = useState<Translatable | null>(null);
@@ -68,6 +72,7 @@ export function App({
     drafts.enabled ? 'app.storedDeviceOnly' : 'app.deviceDraftStorageOff',
   );
   const draftPrivacy = useDraftPrivacy(drafts, setDraftStatus, setError);
+  const usage = useUsageStats(usageStats);
   useUnloadWarning(doc.dirty);
 
   const { markDownloaded } = doc;
@@ -176,6 +181,8 @@ export function App({
     <>
       <Editor
         draftPrivacy={draftPrivacy}
+        usageStats={usage?.setting}
+        usageNotice={usage?.notice}
         map={map}
         selected={selectedId}
         selection={doc.selection}

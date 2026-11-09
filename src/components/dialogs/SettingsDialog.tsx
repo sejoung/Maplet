@@ -9,9 +9,11 @@ import { LanguageSwitcher } from './LanguageSwitcher';
 export function SettingsDialog({
   onClose,
   draftPrivacy,
+  usageStats,
 }: {
   onClose(): void;
   draftPrivacy?: { enabled: boolean; busy: boolean; change(enabled: boolean): void };
+  usageStats?: { enabled: boolean; change(enabled: boolean): void };
 }) {
   const { t } = useI18n();
   const languageId = useId();
@@ -39,7 +41,7 @@ export function SettingsDialog({
         <option value="dark">{t('settings.dark')}</option>
       </select>
       {draftPrivacy && (
-        <div className="draft-privacy">
+        <div className="settings-toggle">
           <label>
             <input
               type="checkbox"
@@ -50,6 +52,19 @@ export function SettingsDialog({
             {t('settings.keepEditingDraftsDevice')}
           </label>
           <p className="muted">{t('settings.draftPrivacyHint')}</p>
+        </div>
+      )}
+      {usageStats && (
+        <div className="settings-toggle">
+          <label>
+            <input
+              type="checkbox"
+              checked={usageStats.enabled}
+              onChange={(event) => usageStats.change(event.target.checked)}
+            />
+            {t('settings.sendUsageStats')}
+          </label>
+          <p className="muted">{t('settings.usageStatsHint')}</p>
         </div>
       )}
       <DialogActions submitLabel={t('common.done')} onSubmit={onClose} />

@@ -46,15 +46,15 @@
   margin-top: 12px;
 }
 
-.draft-privacy {
+.settings-toggle {
   margin-top: 24px;
 }
-.draft-privacy label {
+.settings-toggle label {
   display: flex;
   align-items: center;
   gap: 12px;
 }
-.draft-privacy input[type='checkbox'] {
+.settings-toggle input[type='checkbox'] {
   width: auto;
   min-height: 0;
   flex: 0 0 auto;

@@ -8,21 +8,28 @@ const KINDS = {
   notice: { role: 'status', dismiss: 'editor.dismissNotification' },
 } as const;
 
-/** A dismissible message under the toolbar. */
+/** A dismissible message under the toolbar, with an optional follow-up action. */
 export function MessageBanner({
   kind,
   message,
   onDismiss,
+  action,
 }: {
   kind: keyof typeof KINDS;
   message: Translatable;
   onDismiss(): void;
+  action?: { label: Translatable; run(): void };
 }) {
   const { t } = useI18n();
   const { role, dismiss } = KINDS[kind];
   return (
     <div className={`message ${kind}`} role={role}>
       <span>{t(message)}</span>
+      {action && (
+        <button type="button" className="text-button" onClick={action.run}>
+          {t(action.label)}
+        </button>
+      )}
       <button className="icon-button" aria-label={t(dismiss)} onClick={onDismiss}>
         <X size={16} />
       </button>
