@@ -162,6 +162,13 @@ test('opens, updates and creates Drive files with the native browser fetch', asy
       path: '/drive/v3/files/file?alt=media',
       authorization: 'Bearer test-token',
     },
+    // Verify that the downloaded content still belongs to the opened version.
+    {
+      method: 'GET',
+      path: '/drive/v3/files/file?fields=version',
+      authorization: 'Bearer test-token',
+    },
+    // Recheck the current version immediately before saving.
     {
       method: 'GET',
       path: '/drive/v3/files/file?fields=version',
