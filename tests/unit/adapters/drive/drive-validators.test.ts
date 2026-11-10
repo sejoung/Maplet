@@ -42,6 +42,7 @@ it.each([undefined, '"download-only"'])(
       .mockResolvedValueOnce(response({ ...file, size: '2' }))
       .mockResolvedValueOnce(response('{}', mediaEtag))
       .mockResolvedValueOnce(response({ version: '1' }))
+      .mockResolvedValueOnce(response({ version: '1' }))
       .mockResolvedValueOnce(response({ ...file, version: '2' }))
       .mockResolvedValueOnce(response({ version: '2' }))
       .mockResolvedValueOnce(response({ ...file, name: 'renamed.maplet', version: '3' }));
@@ -51,9 +52,9 @@ it.each([undefined, '"download-only"'])(
     const saved = await client.save(opened, '{"edit":1}');
     const renamed = await client.save(saved, '{"edit":2}', { name: 'renamed.maplet' });
     expect(renamed).toMatchObject({ id: 'f', version: '3', name: 'renamed.maplet', etag: null });
-    for (const index of [3, 5])
+    for (const index of [4, 6])
       expect(fetcher.mock.calls[index][1].headers).not.toHaveProperty('If-Match');
-    expect(fetcher.mock.calls[5][0]).toContain('uploadType=multipart');
+    expect(fetcher.mock.calls[6][0]).toContain('uploadType=multipart');
   },
 );
 
@@ -61,7 +62,8 @@ it('uses the metadata validator instead of a different content download validato
   const fetcher = vi
     .fn()
     .mockResolvedValueOnce(response({ ...file, size: '2' }, '"metadata"'))
-    .mockResolvedValueOnce(response('{}', '"download"'));
+    .mockResolvedValueOnce(response('{}', '"download"'))
+    .mockResolvedValueOnce(response({ version: '1' }));
   const opened = await new DriveClient(() => 'token', fetcher).open('f');
   expect(opened.etag).toBe('"metadata"');
 });
@@ -96,4 +98,31 @@ it.each([
   await expect(result).rejects.toThrow('drive.versionCheckFailed');
   await expect(result).rejects.not.toBeInstanceOf(DriveConflict);
   expect(fetcher).toHaveBeenCalledTimes(1);
+});
+
+it('retries a torn snapshot and pairs the new name and content with their version', async () => {
+  const fetcher = vi
+    .fn()
+    .mockResolvedValueOnce(response({ ...file, size: '2' }))
+    .mockResolvedValueOnce(response('old'))
+    .mockResolvedValueOnce(response({ version: '2' }))
+    .mockResolvedValueOnce(response({ ...file, name: 'new.maplet', version: '2', size: '3' }))
+    .mockResolvedValueOnce(response('new'))
+    .mockResolvedValueOnce(response({ version: '2' }));
+  expect(await new DriveClient(() => 'token', fetcher).open('f')).toMatchObject({
+    name: 'new.maplet',
+    version: '2',
+    content: 'new',
+  });
+});
+
+it('stops after three unstable snapshots instead of adopting an untrusted merge base', async () => {
+  const fetcher = vi.fn().mockImplementation(async (url: string) => {
+    if (url.includes('alt=media')) return response('content');
+    return response(url.endsWith('?fields=version') ? { version: '2' } : { ...file, size: '7' });
+  });
+  await expect(new DriveClient(() => 'token', fetcher).open('f')).rejects.toBeInstanceOf(
+    DriveConflict,
+  );
+  expect(fetcher).toHaveBeenCalledTimes(9);
 });

@@ -105,6 +105,14 @@ export class DriveClient implements DriveFiles {
   }
 
   async open(id: string): Promise<OpenedDriveFile> {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const opened = await this.readSnapshot(id);
+      if (opened) return opened;
+    }
+    throw new DriveConflict();
+  }
+
+  private async readSnapshot(id: string): Promise<OpenedDriveFile | null> {
     const endpoint = `${API}/${encodeURIComponent(id)}`;
     const { data: meta, etag } = await this.request(
       `${endpoint}?fields=id,name,version,size,parents`,
@@ -116,6 +124,10 @@ export class DriveClient implements DriveFiles {
       'drive.driveFilesMustMibSmaller',
     );
     const { data: content } = await this.request(`${endpoint}?alt=media`, text);
+    // A merge base must pair content with the version it actually belongs to.
+    const verified = await this.request(`${endpoint}?fields=version`, json<{ version: string }>);
+    if (!meta.version || !verified.data.version) throw new AppError('drive.versionCheckFailed');
+    if (meta.version !== verified.data.version) return null;
     // A media download validator must not be used to condition a metadata update.
     return { ...meta, etag, content };
   }

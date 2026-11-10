@@ -64,7 +64,8 @@ describe('Drive transport contracts', () => {
       .mockResolvedValueOnce(
         response({ id: 'f', name: 'map.mup', version: '1', size: '32', parents: ['maps'] }),
       )
-      .mockResolvedValueOnce(response('{"id":1,"title":"x"}'));
+      .mockResolvedValueOnce(response('{"id":1,"title":"x"}'))
+      .mockResolvedValueOnce(response({ version: '1' }));
     const client = new DriveClient(() => 'token', fetcher);
     expect(await client.open('f')).toMatchObject({
       id: 'f',

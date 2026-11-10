@@ -15,7 +15,8 @@ it('uses the reserved ID to find a successful creation whose response was lost',
     .mockResolvedValueOnce(response({ ids: ['reserved'] }))
     .mockRejectedValueOnce(new TypeError('Lost response'))
     .mockResolvedValueOnce(response(metadata))
-    .mockResolvedValueOnce(new Response('content'));
+    .mockResolvedValueOnce(new Response('content'))
+    .mockResolvedValueOnce(response({ version: '1' }));
   const client = new DriveClient(() => 'token', fetcher);
   expect(await client.create('map.maplet', 'content', 'folder', 'operation')).toMatchObject({
     id: 'reserved',
@@ -37,6 +38,7 @@ it('reuses the same reserved ID across manual retries and updates newer edits af
     .mockResolvedValueOnce(response(metadata))
     .mockResolvedValueOnce(new Response('first'))
     .mockResolvedValueOnce(response({ version: '1' }))
+    .mockResolvedValueOnce(response({ version: '1' }))
     .mockResolvedValueOnce(response({ ...metadata, name: 'new.maplet', version: '2' }));
   expect(await client.create('new.maplet', 'latest', 'folder', 'operation')).toMatchObject({
     id: 'reserved',
@@ -53,7 +55,8 @@ it('does not replace a created file that was subsequently edited elsewhere', asy
     .mockResolvedValueOnce(response({ ids: ['reserved'] }))
     .mockResolvedValueOnce(response({}, 409))
     .mockResolvedValueOnce(response(metadata))
-    .mockResolvedValueOnce(new Response('external change'));
+    .mockResolvedValueOnce(new Response('external change'))
+    .mockResolvedValueOnce(response({ version: '1' }));
   const client = new DriveClient(() => 'token', fetcher);
   await expect(client.create('map.maplet', 'mine', 'folder', 'operation')).rejects.toBeInstanceOf(
     DriveConflict,
