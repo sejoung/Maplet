@@ -35,6 +35,8 @@ export const estimateTextWidth: TextMeasurer = (text, node, inline = {}) => {
 };
 export interface MeasuredRun extends TextRun {
   width: number;
+  /** Trailing soft-wrap separators: retained as text, without a visible advance. */
+  hanging?: number;
 }
 const graphemes = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
 
@@ -49,7 +51,19 @@ export function measureNode(node: MindNode, measureText: TextMeasurer = estimate
   const runs: MeasuredRun[][] = [];
   let line: MeasuredRun[] = [];
   let lineWidth = 0;
-  const finishLine = () => {
+  const finishLine = (soft = false) => {
+    // A soft break hangs the separator spaces outside the visible line. Keep
+    // them in the title, but exclude them from display, alignment and exports.
+    if (soft) {
+      for (let index = line.length - 1; index >= 0; index--) {
+        const last = line[index];
+        const text = last.text.replace(/[ \t]+$/, '');
+        if (text === last.text) break;
+        last.hanging = last.text.length - text.length;
+        last.width = text ? measureText(text, node, last) : 0;
+        if (text) break;
+      }
+    }
     runs.push(line);
     line = [];
     lineWidth = 0;
@@ -72,9 +86,16 @@ export function measureNode(node: MindNode, measureText: TextMeasurer = estimate
         finishLine();
       }
       for (const { segment } of graphemes.segment(paragraph)) {
-        if ((piece || line.length) && lineWidth + measure(piece + segment) > contentWidth) {
+        // With pre-wrap, separators hang at the end of a full line. Moving them to
+        // the next line would turn an ordinary word space into visible indentation.
+        if (
+          segment !== ' ' &&
+          segment !== '\t' &&
+          (piece || line.length) &&
+          lineWidth + measure(piece + segment) > contentWidth
+        ) {
           finishPiece();
-          finishLine();
+          finishLine(true);
         }
         piece += segment;
       }
@@ -84,7 +105,11 @@ export function measureNode(node: MindNode, measureText: TextMeasurer = estimate
   }
   if (!source.length) finishLine();
   const lines = runs.map((parts) => parts.map((part) => part.text).join(''));
-  const lineWidths = runs.map((parts) => parts.reduce((sum, part) => sum + part.width, 0));
+  const lineWidths = runs.map((parts) => {
+    const advance = parts.reduce((sum, part) => sum + part.width, 0);
+    // Preserved spaces at a paragraph's end may also hang past the content box.
+    return /[ \t]$/.test(parts.at(-1)?.text ?? '') ? Math.min(advance, contentWidth) : advance;
+  });
   return {
     width: width ?? Math.max(MIN_NODE_WIDTH, Math.ceil(Math.max(...lineWidths) + insetX)),
     // Old height metadata stays in files, but text determines the visible height.

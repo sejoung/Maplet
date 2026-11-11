@@ -95,7 +95,7 @@ function renderText(placed: LayoutNode, root: boolean, { typography, anchor, x, 
     return runs
       .map(
         (run, part) =>
-          `<tspan${part ? '' : ` ${at}`}${run.bold ? ` font-weight="${typography.bold || root ? 800 : 700}"` : ''}${run.italic ? ' font-style="italic"' : ''}>${escape(run.text)}</tspan>`,
+          `<tspan${part ? '' : ` ${at}`}${run.bold ? ` font-weight="${typography.bold || root ? 800 : 700}"` : ''}${run.italic ? ' font-style="italic"' : ''}>${escape(run.hanging ? run.text.slice(0, -run.hanging) : run.text)}</tspan>`,
       )
       .join('');
   });

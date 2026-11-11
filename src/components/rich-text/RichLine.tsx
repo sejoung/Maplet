@@ -3,10 +3,17 @@ import type { MeasuredRun } from '../../engine/layout/node-measure';
 import { richWrappers } from './rich-markup';
 
 function RichRun({ run }: { run: MeasuredRun }) {
-  return richWrappers(run).reduce<ReactNode>(
+  const visible = run.hanging ? run.text.slice(0, -run.hanging) : run.text;
+  const formatted = richWrappers(run).reduce<ReactNode>(
     (inner, { tag, className, highlight, style }) =>
       createElement(tag, { className, 'data-highlight': highlight, style }, inner),
-    run.text,
+    visible,
+  );
+  return (
+    <>
+      {formatted}
+      {run.hanging && <span hidden>{run.text.slice(-run.hanging)}</span>}
+    </>
   );
 }
 

@@ -28,6 +28,18 @@ it('draws every visible node and edge as standalone, escaped SVG', () => {
   expect(svg).not.toMatch(/<script|on\w+=/i);
 });
 
+it('omits hanging soft-wrap spaces from aligned exported text without changing the title', () => {
+  const map = updateNode(createMap('aaaa bbbb'), 'root', {
+    style: { width: 66, textAlign: 'center' },
+  });
+  const layout = layoutMap(map, (text) => text.length * 10);
+  const { svg } = renderSvg(map, layout);
+  expect(layout.nodes[0].lines).toEqual(['aaaa ', 'bbbb']);
+  expect(svg).toContain('>aaaa</tspan>');
+  expect(svg).not.toContain('>aaaa </tspan>');
+  expect(map.nodes.root.title).toBe('aaaa bbbb');
+});
+
 it('draws markers, emphasis, borders, branch lines and cross-links', () => {
   let map = addNode(createMap('Root'), 'root', 'a', 'Task');
   map = addNode(map, 'a', 'b', 'Child');

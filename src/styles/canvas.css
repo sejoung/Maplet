@@ -82,7 +82,7 @@
 }
 .node-text,
 .inline-node-editor {
-  white-space: break-spaces;
+  white-space: pre-wrap;
   word-break: break-all;
   line-break: anywhere;
   tab-size: 1;

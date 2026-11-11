@@ -53,4 +53,40 @@ describe('content fitting node measurements', () => {
     const result = measureNode(node, width);
     expect(result.lines).toEqual(['👨‍👩‍👧‍👦'.repeat(8), 'e\u0301', 'e\u0301', '']);
   });
+
+  it('excludes hanging separators instead of indenting a soft wrap', () => {
+    const node = {
+      ...createMap('WWWW  iiii\tWWWW').nodes.root,
+      style: { width: 82 },
+    };
+    const measured = measureNode(node, measuredWidth);
+    expect(measured.lines).toEqual(['WWWW  ', 'iiii\tWW', 'WW']);
+    expect(measured.lines.join('')).toBe(node.title);
+    expect(measured.runs[0][0]).toMatchObject({ text: 'WWWW  ', width: 56, hanging: 2 });
+  });
+
+  it('preserves authored indentation and formatting at a wrap boundary', () => {
+    const node = {
+      ...createMap('WWWW**  iiii**\n  WWWW\n\tend').nodes.root,
+      style: { width: 82 },
+    };
+    const measured = measureNode(node, measuredWidth);
+    expect(measured.lines).toEqual(['WWWW  ', 'iiii', '  WWW', 'W', '\tend']);
+    expect(measured.runs[0].at(-1)).toMatchObject({ text: '  ', width: 0, hanging: 2 });
+    expect(measured.runs[1][0]).toMatchObject({ text: 'iiii', bold: true });
+  });
+
+  it('does not widen automatic nodes to accommodate hanging spaces', () => {
+    const node = createMap('W'.repeat(15) + '      i').nodes.root;
+    const measured = measureNode(node, measuredWidth);
+    expect(measured.lines).toEqual(['W'.repeat(15) + '      ', 'i']);
+    expect(measured.width).toBe(236);
+  });
+
+  it('keeps long trailing whitespace on one line within the automatic width limit', () => {
+    const node = createMap('WWWW' + ' '.repeat(100)).nodes.root;
+    const measured = measureNode(node, measuredWidth);
+    expect(measured.lines).toEqual([node.title]);
+    expect(measured.width).toBe(236);
+  });
 });

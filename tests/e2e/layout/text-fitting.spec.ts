@@ -42,6 +42,7 @@ test('fits actual font widths and consistent padding across sizes, fonts and roo
       const expectedHeight = Math.max(36, lines.length * lineHeight + insetY);
       const range = document.createRange();
       let longest = 0;
+      let consumed = 0;
       const issues: string[] = [];
       if (Math.abs(node.offsetHeight - expectedHeight) > 1) issues.push('blank space below text');
       for (const [i, line] of lines.entries()) {
@@ -53,13 +54,19 @@ test('fits actual font widths and consistent padding across sizes, fonts and roo
         const probe = document.createElement('span');
         probe.style.cssText =
           'position:absolute;white-space:pre;width:max-content;visibility:hidden;';
+        consumed += line.textContent?.length ?? 0;
+        const remaining = node.getAttribute('aria-label')!.slice(consumed);
+        // Soft-wrap separators hang outside the visible line, but still take
+        // space if the next word were placed on that same line.
+        const separator = /^[ \t]*/.exec(remaining)![0];
+        consumed += separator.length;
         const next =
           [
             ...new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(
-              lines[i + 1].textContent ?? '',
+              remaining.slice(separator.length),
             ),
           ][0]?.segment ?? '';
-        probe.textContent = line.textContent + next;
+        probe.textContent = line.textContent + separator + next;
         node.append(probe);
         if (probe.getBoundingClientRect().width / scale <= line.clientWidth - 1.25)
           issues.push('line wraps before using available width');
