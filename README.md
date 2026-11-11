@@ -11,42 +11,108 @@
 </p>
 
 [![Quality](https://github.com/sejoung/Maplet/actions/workflows/ci.yml/badge.svg)](https://github.com/sejoung/Maplet/actions/workflows/ci.yml)
-[![MIT License](https://img.shields.io/badge/license-MIT-236b58.svg)](LICENSE)
-[![Node.js 24](https://img.shields.io/badge/Node.js-24-339933?logo=nodedotjs&logoColor=white)](.nvmrc)
-[![TypeScript 5.9](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white)](package.json)
+[![Pages deployment](https://github.com/sejoung/Maplet/actions/workflows/pages.yml/badge.svg)](https://github.com/sejoung/Maplet/actions/workflows/pages.yml)
+[![MIT License](https://img.shields.io/badge/license-MIT-236b58?style=flat)](LICENSE)
+[![Desktop Chrome](https://img.shields.io/badge/browser-desktop_Chrome-4285F4?style=flat)](#quick-start)
 
-Create `.maplet` documents or import `.mup` files, arrange your ideas, and download your changes. Maplet keeps editing in your browser, with a simple toolbar and a readable canvas. Local file editing requires no account or backend. Google Drive is optional.
+[![Node.js 24](https://img.shields.io/badge/Node.js-24-339933?logo=nodedotjs&logoColor=white)](.nvmrc)
+[![React 19](https://img.shields.io/badge/React-19-149ECA?logo=react&logoColor=white)](package.json)
+[![TypeScript 5.9](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white)](package.json)
+[![Vite 7](https://img.shields.io/badge/Vite-7-646CFF?logo=vite&logoColor=white)](package.json)
+[![Vitest 4](https://img.shields.io/badge/Vitest-4-6E9F18?logo=vitest&logoColor=white)](vite.config.ts)
+[![Playwright E2E](https://img.shields.io/badge/Playwright-E2E-2EAD33?style=flat)](playwright.config.ts)
+
+**[Open Maplet](https://sejoung.github.io/Maplet/) · [User guide](https://sejoung.github.io/Maplet/manual/en/index.html) · [Report an issue](https://github.com/sejoung/Maplet/issues)**
+
+Create `.maplet` documents or import MindMup `.mup` files, arrange your ideas, and download your work. Local editing runs in your browser without an account or backend. Google Drive is optional. The interface supports **English and Korean**.
 
 ![Maplet editor with a sample mind map and freely positioned nodes](docs/screenshots/free-positioning.png)
 
-[Quick start](#quick-start) · [Features](#features) · [User guide](https://sejoung.github.io/Maplet/manual/en/index.html) · [Development](#development) · [Contributing](#contributing)
-
-An illustrated user guide in [English](https://sejoung.github.io/Maplet/manual/en/index.html) and [Korean](https://sejoung.github.io/Maplet/manual/index.html) is published with the app (`manual/en/index.html`, `manual/index.html`). The **User guide** button in the header and the shortcut help open it in the interface language. Its screenshots come from `npm run manual:capture`, which recaptures both languages from a sample map using the message catalogs; run it after changing the interface.
-
-The officially supported browser is **desktop Google Chrome**. Automated browser tests use Chromium. Firefox, Safari, and mobile browsers are outside the current support scope.
-
-## Features
-
-- **Node dimensions:** drag the corner horizontally to change width; height follows the text using actual font measurements. Double-click the corner to restore automatic sizing. Small −/+ controls collapse and expand branches.
-- **Formatting and markers:** three alignments, sizes and system font families, bold and italic, background and border colors, branch line colors and dash styles that descendants inherit, one of ten icons, and a task checkbox you can tick on the node. Cross-links draw arrows between any two nodes. Light and dark themes follow the system or your choice in Settings.
-- **Native documents:** save `.maplet` files with a versioned JSON model for hierarchy, coordinates, notes, and styles.
-- **MindMup compatibility:** import `.mup` files, export compatible copies, and download an untouched MindMup original backup.
-- **Direct editing:** create, rename, delete, and reparent nodes; add notes, links, and optional background colors from the toolbar.
-- **Node menu and branch editing:** right-click a node (or press `Shift`+`F10`) for every node action in one menu. Copy, cut, paste, and duplicate branches, and reorder siblings. Pasting an indented or bulleted list from another app creates nodes that follow its hierarchy; copied branches paste into other apps as an indented outline.
-- **Select several nodes:** `Shift`/`Ctrl`/`⌘`-click nodes, `Shift`-drag an area on the empty canvas, extend with `Shift`+arrow keys, or press `Ctrl`/`⌘`+`A` for every visible node. Delete, copy, cut, duplicate, move, side, and style changes apply to the whole selection in one undo step; drag any selected node to move the group together. `Escape` or a click on the empty canvas returns to one node.
-- **Drag to reparent:** bring a dragged node within 16px of another node (or onto it) to make it that node's child; the target is highlighted and the connector follows. The rest of the map holds still while you drag, so targets never slip away; a caught target is kept until the gap exceeds 32px. Dropping onto a central topic picks its left or right side. Selected groups move and reparent together.
-- **Export, outlines and print:** download the map as PNG or SVG, Markdown or OPML, or print it (and save as PDF) from the File menu. Markdown, OPML and indented text files open as new maps.
-- **Move whole branches:** drag a parent and all its descendants together, preserving their relative positions. Connections follow as you move. Dashed guides show where overlapping branches will make room — including their empty interiors, keeping a 24px gap between groups' nodes — and they move there on release. Hold `Alt`/`⌥` to place freely next to other nodes without reparenting; branches then move aside live. Press Escape to restore the original positions. A hint at the bottom of the canvas shows the current mode.
-- **Arrange the whole map:** use `Auto arrange` in the toolbar to balance branches by their actual height, separate major branches, and fit the result on screen. One undo restores the previous arrangement. Content, hierarchy, formatting, and collapsed states are preserved.
-- **Navigate your map:** find nodes with a find bar (`Ctrl`/`⌘`+`F`) that highlights matches, show all levels or only the first two or three from the View menu, focus on one branch, use the minimap, zoom, pan, and fit to screen.
-- **Undo and recovery:** undo or redo a whole drag in one step; recover browser drafts from IndexedDB and keep manual positions when reopening files.
-- **Optional Google Drive:** choose a save folder first to batch later changes: 3 seconds after editing stops, at least 5 seconds between automatic uploads, and at most 15 seconds of continuous editing before a save. Unchanged snapshots are skipped; manual saves flush immediately. Credentials stay in memory only, so use Reconnect after every reload. A token lasts about an hour; in its last 10 minutes a click anywhere or **Extend** in the header keeps the connection. The folder and file location are remembered. Files opened from other folders are saved as copies in the selected folder. Imported .mup originals are preserved; external changes are merged by node and property, with explicit resolution for conflicting edits.
-
-The current app interface is in Korean. Both README versions describe the same features and commands.
+[Quick start](#quick-start) · [Features](#features) · [Keyboard shortcuts](#keyboard-shortcuts) · [Document formats](#document-formats) · [Google Drive](#google-drive) · [Development](#development) · [Documentation](#documentation) · [Contributing](#contributing)
 
 ## Quick start
 
-Use **Node.js 24** and npm.
+1. [Open Maplet](https://sejoung.github.io/Maplet/) in **desktop Google Chrome**.
+2. Start with the central topic, or choose **File → Open** to import a document. Double-click a node to edit its title; use `Tab` for a child and `Enter` for a sibling.
+3. Drag nodes to arrange branches, then use **Download** or `Ctrl`/`⌘` + `S` to save a `.maplet` file locally.
+
+The interface initially follows your browser language. Change it through **Settings → Language**; the choice is remembered and document contents stay unchanged. The **User guide** button opens the illustrated [English](https://sejoung.github.io/Maplet/manual/en/index.html) or [Korean](https://sejoung.github.io/Maplet/manual/index.html) guide in the current interface language.
+
+Browser drafts help recover local work. Download a `.maplet` file to keep a portable copy or move it to another device. When [Google Drive](#google-drive) is connected, `Ctrl`/`⌘` + `S` saves to Drive; **File → Download .maplet** still downloads a local copy.
+
+Desktop Google Chrome is the supported browser, with automated tests in Chromium. Firefox, Safari, and mobile browsers are outside the current support scope.
+
+## Features
+
+| Area                       | What you can do                                                                                                                                                                                             |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Editing                    | Create, rename, delete, reorder, and reparent nodes. Copy, cut, paste, and duplicate whole branches; paste indented or bulleted lists from other apps.                                                      |
+| Selection and layout       | Select several nodes by click, keyboard, or area. Move a parent with its descendants, drag onto another node to reparent, resize node widths, or auto-arrange the whole map.                                |
+| Text and appearance        | Apply bold, italic, and highlighter colors to text or selected nodes. Choose alignment, three font sizes and system font families, node colors and borders, branch line styles, icons, and task checkboxes. |
+| Navigation and connections | Find nodes, collapse branches, show selected levels, focus on one branch, zoom, pan, and use the minimap. Add notes, links, and cross-link arrows between nodes.                                            |
+| Files and exports          | Save native `.maplet` documents, exchange MindMup `.mup` files, import and export outlines, download PNG/SVG images, and print or save as PDF.                                                              |
+| History and recovery       | Undo and redo edits and whole-branch moves. Open new maps in separate tabs and recover browser drafts; draft storage can be disabled or cleared in Settings.                                                |
+| Google Drive               | Choose a save folder, batch automatic uploads, save manually, and merge external changes by node and property, with choices for conflicting edits.                                                          |
+
+Right-click a node or press `Shift` + `F10` for its actions. Right-click the empty canvas for map actions. During a drag, hold `Alt`/`⌥` to place freely without changing the parent, or press `Escape` to cancel. See the [user guide](https://sejoung.github.io/Maplet/manual/en/index.html) for illustrated workflows.
+
+## Keyboard shortcuts
+
+Use `Ctrl` on Windows/Linux and `⌘` on macOS where both are listed.
+
+| Shortcut                       | Action                                        |
+| ------------------------------ | --------------------------------------------- |
+| `Tab` / `Enter`                | Add a child / sibling                         |
+| `F2` / double-click            | Edit a title                                  |
+| Arrow keys                     | Navigate the hierarchy                        |
+| `Delete` / `Backspace`         | Delete selected nodes and their descendants   |
+| `Ctrl` / `⌘` + `Z`             | Undo                                          |
+| `Ctrl` / `⌘` + `Shift` + `Z`   | Redo                                          |
+| `Ctrl` / `⌘` + `S`             | Save to Drive / download locally              |
+| `Ctrl` / `⌘` + `C` / `X` / `V` | Copy / cut / paste branches                   |
+| `Ctrl` / `⌘` + `D`             | Duplicate branches                            |
+| `Ctrl` / `⌘` + `F`             | Find nodes                                    |
+| `Ctrl` / `⌘` + `B` / `I`       | Toggle bold / italic                          |
+| `Ctrl` / `⌘` + `Shift` + `H`   | Apply or remove the current highlighter color |
+| `Ctrl` / `⌘` + `\`             | Clear bold, italic, and highlights            |
+| `Alt` / `⌥` + `↑` / `↓`        | Reorder siblings                              |
+| Right-click / `Shift` + `F10`  | Open the node menu                            |
+| `Shift` / `Ctrl` / `⌘` + click | Add or remove a node from the selection       |
+| `Shift` + drag on empty canvas | Select an area                                |
+| `Shift` + arrow keys           | Extend the selection                          |
+| `Ctrl` / `⌘` + `A`             | Select all visible nodes                      |
+| `Space` + drag                 | Pan the canvas                                |
+| `Ctrl` + wheel / pinch         | Zoom                                          |
+| `Ctrl` / `⌘` + `+` / `-` / `0` | Zoom in / zoom out / fit to screen            |
+
+While editing a title, `Enter` applies, `Shift` + `Enter` inserts a newline, `Escape` cancels, and `Tab` applies the title and starts editing a child. Formatting shortcuts apply to the selected text while editing, or to selected nodes otherwise. Outside a drag or title editor, `Escape` clears a multi-node selection.
+
+## Document formats
+
+| Format          | Import | Export    | Purpose                                                                                             |
+| --------------- | ------ | --------- | --------------------------------------------------------------------------------------------------- |
+| `.maplet`       | Yes    | Yes       | Native working document: hierarchy, positions, text formatting, notes, styles, and connections.     |
+| `.mup`          | Yes    | Yes       | MindMup v1/v2/v3 exchange, including multiple roots in v3; original backups can also be downloaded. |
+| Markdown / OPML | Yes    | Yes       | Hierarchical outlines, notes, and links.                                                            |
+| Indented `.txt` | Yes    | —         | Create a map from a text outline.                                                                   |
+| PNG / SVG       | —      | Yes       | Share an image of the map.                                                                          |
+| PDF             | —      | Via print | Use the browser's Save as PDF option.                                                               |
+
+The [native format](docs/maplet-format.md) preserves unknown document and node fields. MindMup imports retain original metadata and attachments; images and HTML attachments are preserved without dedicated rendering. Cross-links are displayed and editable. MUP exports store manual positions in the **Maplet-specific** `attr["maplet:position"]` extension, so other editors may lay out the map differently. Outline exports omit formatting, coordinates, cross-links, and collapsed states.
+
+Import limits are **50 MiB for `.maplet`**, **10 MiB for `.mup` and outlines**, **5,000 nodes**, **100 levels**, and **10,000 characters per title**. Compatibility tests use synthetic fixtures; see the [compatibility matrix](docs/compatibility.md) for the supported scope.
+
+## Google Drive
+
+Choose a save folder from the **Google Drive** button to enable automatic saving. Edits are batched after 3 seconds of inactivity, with at least 5 seconds between automatic uploads and a save after at most 15 seconds of continuous editing. `Ctrl`/`⌘` + `S` saves immediately. You can keep editing during uploads; newer changes are saved in order, and conflicts prompt you to choose what to keep.
+
+Files opened outside the chosen folder and imported `.mup` files are saved as new `.maplet` copies in that folder, preserving their originals. Rename the document by clicking its filename in the header. If no filename was chosen, the first committed root title supplies it; later title edits keep that filename.
+
+Credentials stay in memory and can be shared with other connected Maplet tabs. If no connected tab remains, reconnect after reloading; the save location is remembered. The header shows connection and save status and offers extension near token expiry. See the [Drive setup and operation guide](docs/google-drive.md) for configuration and sync behavior.
+
+## Development
+
+Use **Node.js 24** and npm. Built with React, TypeScript, and Vite; tests use Vitest and Playwright.
 
 ```sh
 git clone https://github.com/sejoung/Maplet.git
@@ -55,85 +121,22 @@ npm ci
 npm run dev
 ```
 
-Open [http://127.0.0.1:5173](http://127.0.0.1:5173). Start from the central topic or open a file through **파일 → 열기** (File → Open). Double-click a node to edit it, drag it to move its branch, and use **다운로드** (Download, Ctrl/Cmd+S) in the header to download the document. Use **파일 → .mup 다운로드 (MindMup 호환)** for a MindMup-compatible copy.
-
-When Drive is connected, the primary Save button and Ctrl/Cmd+S save to Drive. Use **File → Download .maplet** for a local copy. The header shows editing, pending, saving, synced, error and reconnect states beneath the Drive button.
-
-Keep editing during saves: newer changes are coalesced and saved sequentially. External changes to different nodes or properties merge automatically. Conflicting property edits, deletions and structural changes prompt you to choose what to keep.
-
-Click the filename in the header to rename it. Press Enter or click outside to apply; Escape cancels. Downloads and Drive saves use the new name while node titles stay unchanged. Filename-only edits can also be recovered from the browser draft.
-
-If you start writing before choosing a filename, the first committed root title supplies it. Later root edits keep that filename. Explicitly chosen names and opened filenames are preserved.
-
-Local editing works without environment variables. To enable Drive, copy [`.env.example`](.env.example) to `.env.local`, fill in the public Google configuration, and follow the [Drive setup guide](docs/google-drive.md) (Korean). Never include a client secret in a browser build.
-
-The interface supports Korean and English, initially following your browser language. Open **Settings → Language** in the top-right corner to change it immediately; your choice is remembered for future visits. Changing language preserves document contents. Interface text is looked up by stable keys such as `menu.copy` in [`ko.json`](src/i18n/locales/ko.json) and [`en.json`](src/i18n/locales/en.json); code never contains display text. To add a language, add a catalog with the same keys and register it in `src/i18n/core.ts`.
-
-## Keyboard shortcuts
-
-| Shortcut                       | Action                                                  |
-| ------------------------------ | ------------------------------------------------------- |
-| `Tab`                          | Add a child                                             |
-| `Enter`                        | Add a sibling                                           |
-| `F2` / double-click            | Edit a title                                            |
-| Arrow keys                     | Navigate the hierarchy                                  |
-| `Delete` / `Backspace`         | Delete a node and its descendants                       |
-| `Ctrl` / `⌘` + `Z`             | Undo                                                    |
-| `Ctrl` / `⌘` + `Shift` + `Z`   | Redo                                                    |
-| `Ctrl` / `⌘` + `S`             | Save to Drive / download locally                        |
-| `Space` + drag                 | Pan the canvas                                          |
-| `Ctrl` + wheel / pinch         | Zoom                                                    |
-| `Ctrl` / `⌘` + `+` `-` `0`     | Zoom in, zoom out, fit                                  |
-| `Ctrl` / `⌘` + `C` `X` `V`     | Copy, cut, paste a branch                               |
-| `Ctrl` / `⌘` + `D`             | Duplicate a branch                                      |
-| `Alt` + `↑` / `↓`              | Reorder among siblings                                  |
-| Right-click / `Shift` + `F10`  | Node menu                                               |
-| Right-click empty canvas       | Map menu (undo, paste, select all, find, arrange, zoom) |
-| `Shift` / `Ctrl` / `⌘` + click | Add or remove a node from the selection                 |
-| `Shift` + drag on empty canvas | Select an area                                          |
-| `Shift` + arrow keys           | Extend the selection                                    |
-| `Ctrl` / `⌘` + `A`             | Select all visible nodes                                |
-| Drop next to or onto a node    | Move under that node                                    |
-
-While editing a title: `Enter` applies, `Shift` + `Enter` inserts a newline, `Escape` cancels, and `Tab` applies the title and starts a child. During a drag, `Escape` cancels the whole branch movement; otherwise it clears a multi-node selection.
-
-## Document formats
-
-The default [`.maplet` format](docs/maplet-format.md) stores node coordinates and hierarchy directly in a versioned JSON document. Unknown native document and node fields are preserved. Existing browser drafts are migrated when recovered.
-
-MindMup v1, v2, and v3 are supported for import/export, including multiple roots in v3. Original metadata and imported text are kept in a separate compatibility section. MUP exports retain positions in the **Maplet-specific** `attr["maplet:position"]` extension; other editors may display a different layout. Native saving and MUP export are separate actions.
-
-Images, HTML attachments, and cross-links are preserved as data but do not have dedicated rendering. Compatibility tests currently use synthetic fixtures; full compatibility with every MindMup file is not guaranteed. See the [compatibility matrix](docs/compatibility.md) and [verification record](docs/verification.md) (Korean).
-
-Import limits: **50 MiB for `.maplet`**, **10 MiB for `.mup`**, **5,000 nodes**, **100 levels**, and **10,000 characters per title**. Download `.maplet` files for a portable working copy; browser drafts are stored separately on the current device. Saving a Drive-imported `.mup` creates a new `.maplet` file and keeps the original untouched.
-
-## Development
-
-Built with React, TypeScript, Vite, and an SVG-based layout renderer. Tests use Vitest and Playwright.
+Open [http://127.0.0.1:5173](http://127.0.0.1:5173). Local editing needs no environment variables. For Drive, copy [`.env.example`](.env.example) to `.env.local`, set the public Google configuration, and follow the [Drive setup guide](docs/google-drive.md). Browser builds use public configuration, without a client secret.
 
 ```sh
 # Formatting, lint, types, unit/integration/architecture tests, coverage, and build
 npm run verify
 
-# Browser regression tests
+# Browser regression and accessibility tests
 npx playwright install chromium
 npm run test:e2e
-
-# Watch tests while developing
-npm run test:watch
 ```
 
-The quality and Pages workflows run verification and desktop Chromium E2E tests, including accessibility checks, with at most two test workers in CI. Architecture tests (dependency-cruiser plus AST rules) enforce layer boundaries, circular dependencies, orphan files and where adapters are built; `npm run arch` prints the report and `npm run arch:graph` the dependency graph. Code files are limited to **400 lines**, including comments and blank lines; source CSS has the same limit. Each folder in `src`, `tests` and `scripts` holds at most **10 files**; past that, split it into topic folders.
+Use `npm run test:watch` while developing, `npm run arch` to check dependencies, and `npm run arch:graph` for the dependency graph. `npm run manual:capture` refreshes the illustrated guides' screenshots in both languages. Translation catalogs live in [`src/i18n/locales/`](src/i18n/locales/).
 
-Each npm test command saves logs and reports in `test-results/<UTC timestamp>-<kind>-<unique suffix>/`. Relative symlinks point to the latest completed run, including failures:
+The [Quality workflow](.github/workflows/ci.yml) runs verification and Chromium E2E checks; the [Pages workflow](.github/workflows/pages.yml) also checks before deployment. Code files, including source CSS, are limited to **400 lines**; folders in `src`, `tests`, and `scripts` hold at most **10 files**. See the [development guide](docs/contributing.md) for architecture rules and the contribution workflow.
 
-| Path                                               | Contents                                                   |
-| -------------------------------------------------- | ---------------------------------------------------------- |
-| `test-results/latest/summary.json`                 | Most recent run status, command, timestamps, and exit code |
-| `test-results/latest-coverage/coverage/index.html` | Latest coverage report                                     |
-| `test-results/latest-e2e/html/index.html`          | Latest browser report                                      |
-
-Results are ignored by Git and uploaded as CI artifacts. Open the latest browser report with:
+Test logs, coverage, and browser reports are saved per run in `test-results/` and uploaded as CI artifacts. The latest completed runs are available through `test-results/latest/summary.json`, `test-results/latest-coverage/coverage/index.html`, and `test-results/latest-e2e/html/index.html`. Open the browser report with:
 
 ```sh
 npx playwright show-report test-results/latest-e2e/html
@@ -143,21 +146,17 @@ npx playwright show-report test-results/latest-e2e/html
 
 ```text
 src/
-  app/           Assembly and lifecycle (drive/, document/, drafts/)
-  components/    UI (canvas/, rich-text/, editor/, menus/, dialogs/, drive/, shared/)
-  domain/        Map model, commands, merge (commands/, merge/, style/, rich-text/, util/)
-  application/   History and Drive sync rules
-  adapters/      Maplet/MindMup codecs, file I/O, IndexedDB, Google Drive
-  engine/        Layout, geometry, viewport math (layout/)
-  i18n/          Message catalogs and translation
-  styles/        Base, editor, canvas, dialog, and responsive styles
-tests/
-  unit/          Unit tests mirroring the src layers
-  integration/   App, component, storage and tooling integration tests
-  architecture/  Layer, cycle, orphan and code-rule checks
-  e2e/           Browser scenarios by feature (drive/, editing/, layout/, app/)
-  fixtures/      Native and synthetic MindMup samples
-docs/            Guides, screenshots, and architecture decisions
+  app/           Application assembly, document lifecycle, drafts, and Drive hooks
+  components/    Canvas, rich text, toolbars, menus, and dialogs
+  domain/        Map model, editing commands, styles, and merge rules
+  application/   History and Drive synchronization
+  adapters/      File codecs, browser storage, and external services
+  engine/        Layout, geometry, connections, and SVG export
+  i18n/          English and Korean message catalogs
+  styles/        Application styles
+tests/           Unit, integration, architecture, and browser tests; fixtures
+public/manual/   Illustrated user guides and screenshots
+docs/            Developer guides, compatibility, and architecture decisions
 ```
 
 ### Self-hosting
@@ -167,30 +166,29 @@ npm run build
 npm run preview
 ```
 
-Deploy `dist/` to a static host. Asset paths are relative, so repository subpaths are supported. The [Pages workflow](.github/workflows/pages.yml) provides manual GitHub Pages deployment; enable GitHub Actions as the Pages source before running it. Drive requires configuration for the deployed origin and a rebuild.
+Deploy `dist/` to a static host. Relative asset paths support repository subpaths. For GitHub Pages, set GitHub Actions as the Pages source and run the [Pages workflow](.github/workflows/pages.yml) manually. Drive requires configuration for the deployed origin and a rebuild.
 
 ## Documentation
 
-Detailed guides are currently in Korean.
+The user guide is available in both languages; detailed developer guides are currently in Korean.
 
-| Document                                        | Topics                                                |
-| ----------------------------------------------- | ----------------------------------------------------- |
-| [Design guide](docs/design-guide.md)            | Readability, colors, interaction, and accessibility   |
-| [Development guide](docs/contributing.md)       | TDD, quality checks, test artifacts, and deployment   |
-| [Native format](docs/maplet-format.md)          | Versioned `.maplet` schema, metadata, and migration   |
-| [Compatibility](docs/compatibility.md)          | Supported formats and preservation rules              |
-| [Google Drive](docs/google-drive.md)            | Optional configuration and deployment checks          |
-| [Verification](docs/verification.md)            | Implemented scope, evidence, and remaining validation |
-| [Architecture decisions](docs/adr/)             | Layers, file formats, UI, dragging, and tooling       |
-| [Original product brief](docs/product-brief.md) | Historical goals and acceptance criteria              |
+| Document                                                                                                                                    | Topics                                                   |
+| ------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| [User guide: English](https://sejoung.github.io/Maplet/manual/en/index.html) / [한국어](https://sejoung.github.io/Maplet/manual/index.html) | Illustrated editing, layout, files, and Drive workflows. |
+| [Development guide](docs/contributing.md)                                                                                                   | TDD, architecture checks, test reports, and deployment.  |
+| [Design guide](docs/design-guide.md)                                                                                                        | Readability, colors, interaction, and accessibility.     |
+| [Native format](docs/maplet-format.md)                                                                                                      | `.maplet` schema, metadata, and migration.               |
+| [Compatibility](docs/compatibility.md)                                                                                                      | Import/export support and preservation rules.            |
+| [Google Drive](docs/google-drive.md)                                                                                                        | Optional configuration, saving, and deployment checks.   |
+| [Verification](docs/verification.md)                                                                                                        | Implemented scope, evidence, and remaining validation.   |
+| [Architecture decisions](docs/adr/)                                                                                                         | Design decisions and their rationale.                    |
+| [Original product brief](docs/product-brief.md)                                                                                             | Historical goals and acceptance criteria.                |
 
 ## Contributing
 
-Bug reports, fixes, accessibility improvements, and documentation translations are welcome. [Open an issue](https://github.com/sejoung/Maplet/issues) with steps to reproduce a problem. If a map is needed, use an anonymized sample.
+Bug reports, fixes, accessibility improvements, and translations are welcome. [Open an issue](https://github.com/sejoung/Maplet/issues) with reproduction steps and an anonymized map if needed.
 
-For code changes, add a failing regression test first, keep tests in `tests/` and production code in `src/`, and run `npm run verify` plus the relevant E2E tests before opening a pull request. Record architectural changes in `docs/adr/`. See the [development guide](docs/contributing.md) for the full workflow.
-
-When changing README content, update both [English](README.md) and [한국어](README.ko.md).
+For code changes, add a failing regression test first, keep tests in `tests/` and production code in `src/`, and run `npm run verify` plus relevant E2E tests. Record architecture changes in `docs/adr/`. Update both [English](README.md) and [한국어](README.ko.md) when changing README content. See the [development guide](docs/contributing.md) for details.
 
 ## License
 
