@@ -33,10 +33,14 @@ export function useDocument({ title, filename: initialFilename, onEdited, onErro
   const [saved, setSaved] = useState({ content, filename: initialFilename });
   const selection = useSelection(map);
   const [documentKey, setDocumentKey] = useState(0);
+  const activeDocument = useRef(documentKey);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [hasWork, setHasWork] = useState(false);
 
   const edit = (action: (current: MindMap) => MindMap) => {
+    // Replacement updates the model before React commits the new canvas. Old
+    // gesture callbacks can still arrive in that gap, but belong to another document.
+    if (documentKey !== activeDocument.current) return false;
     try {
       const next = action(latest.current.present);
       setHasWork(true);
@@ -50,6 +54,7 @@ export function useDocument({ title, filename: initialFilename, onEdited, onErro
   };
 
   const replace = (next: MindMap, name: string, lastSaved?: string, lastSavedName?: string) => {
+    activeDocument.current++;
     const native = nativeFilename(name);
     setHasWork(true);
     setEditingId(null);
@@ -58,7 +63,7 @@ export function useDocument({ title, filename: initialFilename, onEdited, onErro
     setFilename(native);
     setFilenamePending(false);
     setSaved({ content: lastSaved ?? serializeMaplet(next), filename: lastSavedName ?? native });
-    setDocumentKey((key) => key + 1);
+    setDocumentKey(activeDocument.current);
   };
 
   /** Select a node, expanding collapsed ancestors so it is visible. */

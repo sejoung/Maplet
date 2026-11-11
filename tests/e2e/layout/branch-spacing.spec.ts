@@ -157,7 +157,8 @@ test('abandons a live proposal if the document is replaced before release', asyn
   await expect(page.getByRole('treeitem')).toHaveCount(1);
   await expect(page.getByRole('treeitem')).toHaveAttribute('aria-label', 'Replacement');
   await expect(page.getByRole('button', { name: '실행 취소', exact: true })).toBeDisabled();
-  await expect(page.getByRole('alert')).toHaveCount(0);
+  // Include any unexpected error text in the failure, rather than only its count.
+  await expect(page.getByRole('alert')).toHaveText([]);
 });
 
 test('keeps other branches still by default, guiding where they will move on release', async ({
