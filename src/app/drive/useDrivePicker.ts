@@ -1,7 +1,8 @@
 import type { Dispatch } from 'react';
 import type { DriveAuth, DriveFiles, DriveFolder, PickKind } from '../../adapters/drive/types';
-import { isAutosaveFile, nativeFilename, parseDocument } from '../../adapters/formats';
-import { serializeMaplet } from '../../adapters/maplet/codec';
+import { isAutosaveFile, isDriveMaplet, nativeFilename } from '../../adapters/formats';
+import { parseMaplet, serializeMaplet } from '../../adapters/maplet/codec';
+import { AppError } from '../../domain/errors';
 import { useI18n } from '../../i18n/react';
 import type { DriveOptions } from './DriveOptions';
 import type { DriveWorkspaceAction, DriveWorkspaceState } from './state/driveWorkspaceState';
@@ -65,7 +66,8 @@ export function useDrivePicker({
         if (!selected) return dispatch({ type: 'fileCancelled' });
         const file = await drive.open(selected.id);
         if (!current()) return;
-        const next = parseDocument(file.content);
+        if (!isDriveMaplet(file)) throw new AppError('drive.onlyMapletFiles');
+        const next = parseMaplet(file.content);
         const name = nativeFilename(file.name);
         options.replace(next, name);
         dispatch({

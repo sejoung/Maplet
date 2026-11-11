@@ -38,7 +38,7 @@ describe('format registry', () => {
     for (const format of FORMATS)
       for (const extension of format.extensions)
         expect(stripMapExtension(`a.${extension}`) === 'a', extension).toBe(
-          format.mime === 'application/json',
+          ['maplet', 'mup', 'json'].includes(format.id),
         );
   });
 
@@ -105,6 +105,7 @@ describe('format registry', () => {
   });
 
   it('exports writable formats with their extension and MIME type', () => {
+    expect(exportMap(map, 'maplet', 'Plan').type).toBe('application/x-maplet+json;charset=utf-8');
     expect(exportMap(map, 'md', 'Plan')).toMatchObject({
       name: 'Plan.md',
       type: 'text/markdown;charset=utf-8',
@@ -127,7 +128,7 @@ describe('format registry', () => {
     expect(documentDownload('{}', 'notes')).toEqual({
       content: '{}',
       name: 'notes.maplet',
-      type: 'application/json;charset=utf-8',
+      type: 'application/x-maplet+json;charset=utf-8',
     });
   });
 

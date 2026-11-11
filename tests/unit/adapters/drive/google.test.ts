@@ -119,6 +119,9 @@ describe('optional Google SDK bridge', () => {
     expect(builder.setAppId).toHaveBeenCalledWith(config.appId);
     expect(docsView).toHaveBeenCalledWith('docs');
     expect(view.setSelectFolderEnabled).toHaveBeenLastCalledWith(false);
+    expect(view.setMimeTypes).toHaveBeenLastCalledWith(
+      'application/x-maplet+json,application/octet-stream',
+    );
     expect(view.setMode).toHaveBeenCalledWith('list');
     expect(visible).toHaveBeenCalledWith(true);
     expect(dispose).toHaveBeenCalledOnce();

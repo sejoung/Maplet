@@ -14,6 +14,10 @@ import {
   type JsonErrors,
 } from './limits';
 
+export const MAPLET_MIME = 'application/x-maplet+json';
+/** Manually uploaded .maplet files may arrive as generic binary files. */
+export const DRIVE_MAPLET_MIME_TYPES = [MAPLET_MIME, 'application/octet-stream'] as const;
+
 /** Everything the app knows about a file format, chosen by the file's extension. */
 export interface MapFormat {
   id: 'maplet' | 'mup' | 'json' | 'markdown' | 'opml' | 'text';
@@ -50,7 +54,7 @@ const NATIVE: MapFormat = {
   id: 'maplet',
   extensions: ['maplet'],
   maxBytes: MAX_MAPLET_BYTES,
-  mime: 'application/json',
+  mime: MAPLET_MIME,
   // Content decides, so a renamed MindMup file still opens.
   parse: (source) => parseDocument(source, MAPLET_JSON),
   serialize: serializeMaplet,
@@ -145,6 +149,9 @@ export function documentDownload(content: string, name: string): FileDownload {
 }
 
 export const isNativeName = (name: string) => formatOf(name) === NATIVE;
+/** MIME alone also admits unrelated binary files; require the native extension too. */
+export const isDriveMaplet = (file: { name: string; mimeType?: string }) =>
+  isNativeName(file.name) && DRIVE_MAPLET_MIME_TYPES.some((type) => file.mimeType === type);
 export const nativeFilename = (name: string) =>
   `${stripMapExtension(name)}.${NATIVE.extensions[0]}`;
 

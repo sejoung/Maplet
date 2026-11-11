@@ -42,6 +42,7 @@ export async function mockGoogle(page: Page) {
           dialog.setAttribute('aria-label', this.title);
           dialog.setAttribute('data-picker-locale', this.locale);
           dialog.setAttribute('data-picker-view', this.view.id);
+          if (this.view.mimeTypes) dialog.setAttribute('data-picker-mime-types', this.view.mimeTypes);
           if (this.view.parent) dialog.setAttribute('data-picker-parent', this.view.parent);
           dialog.style.cssText = 'position:fixed;inset:20px;z-index:1000;background:white;padding:24px';
           const choose = document.createElement('button');

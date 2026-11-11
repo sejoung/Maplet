@@ -1,5 +1,6 @@
 import type { PickerApi } from './google-types';
 import type { DriveItem, PickKind, PickOptions } from './types';
+import { DRIVE_MAPLET_MIME_TYPES } from '../formats';
 
 interface PickerAccess extends PickOptions {
   api: PickerApi;
@@ -18,6 +19,7 @@ export function showPicker(kind: PickKind, access: PickerAccess): Promise<DriveI
       .setMode(api.DocsViewMode.LIST);
     if (kind === 'folder')
       view.setParent('root').setMimeTypes('application/vnd.google-apps.folder');
+    else view.setMimeTypes(DRIVE_MAPLET_MIME_TYPES.join(','));
     const picker = new api.PickerBuilder()
       .setLocale(access.language)
       .setTitle(access.title)

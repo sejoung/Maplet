@@ -12,7 +12,7 @@ export interface DriveWorkspace {
 
 function file(value: unknown): DriveFile | null {
   if (!isJsonObject(value)) return null;
-  const { id, name, version, etag, parents } = value;
+  const { id, name, mimeType, version, etag, parents } = value;
   if (
     !isNonEmptyString(id) ||
     !isNonEmptyString(name) ||
@@ -23,6 +23,7 @@ function file(value: unknown): DriveFile | null {
   return {
     id,
     name,
+    ...(typeof mimeType === 'string' ? { mimeType } : {}),
     version,
     etag,
     ...(Array.isArray(parents) && parents.every(isNonEmptyString) ? { parents: [...parents] } : {}),

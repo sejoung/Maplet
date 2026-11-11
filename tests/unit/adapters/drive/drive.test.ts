@@ -33,7 +33,10 @@ describe('Drive transport contracts', () => {
     expect(request.headers['If-Match']).toBe('"v1"');
     const boundary = request.headers['Content-Type'].split('boundary=')[1];
     const parts = request.body.split(`--${boundary}`);
-    expect(JSON.parse(parts[1].split('\r\n\r\n')[1])).toEqual({ name: 'renamed.maplet' });
+    expect(JSON.parse(parts[1].split('\r\n\r\n')[1])).toEqual({
+      name: 'renamed.maplet',
+      mimeType: 'application/x-maplet+json',
+    });
     expect(parts[2].split('\r\n\r\n')[1]).toBe(content + '\r\n');
   });
   it('validates a remembered folder and rejects deleted or read-only destinations', async () => {
@@ -158,7 +161,7 @@ describe('Drive transport contracts', () => {
     expect(JSON.parse(parts[1].split('\r\n\r\n')[1])).toEqual({
       id: 'new',
       name: 'map.maplet',
-      mimeType: 'application/json',
+      mimeType: 'application/x-maplet+json',
       parents: ['chosen-folder'],
     });
     expect(parts[2].split('\r\n\r\n')[1]).toBe(content + '\r\n');

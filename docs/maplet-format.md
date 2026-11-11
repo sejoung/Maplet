@@ -2,6 +2,8 @@
 
 `.maplet`은 Maplet의 기본 문서 형식인 UTF-8 JSON이다. `.mup`은 MindMup과 데이터를 교환하는 호환 형식이다. 설계 결정은 [ADR 0009](adr/0009-native-maplet-format.md)를 참고한다.
 
+파일의 MIME 타입은 `application/x-maplet+json`이며 로컬 다운로드와 Drive 저장에 동일하게 사용한다. JSON 구조와 문서 버전은 그대로 유지한다. Drive에서 직접 업로드한 `application/octet-stream` 파일도 `.maplet` 확장자와 실제 네이티브 문서 내용이 맞으면 열 수 있다. [Drive 가이드](google-drive.md#파일-종류와-기존-파일)와 [ADR 0023](adr/0023-maplet-mime-type.md)을 참고한다.
+
 ## 최소 예제
 
 ```json

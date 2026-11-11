@@ -1,6 +1,6 @@
 import { AppError } from '../../domain/errors';
 import { assertSize } from '../limits';
-import { formatOf } from '../formats';
+import { formatOf, MAPLET_MIME } from '../formats';
 import { multipartUpload } from './upload';
 import type { DriveFile, DriveFiles, DriveFolder, OpenedDriveFile, SaveOptions } from './types';
 
@@ -115,8 +115,15 @@ export class DriveClient implements DriveFiles {
   private async readSnapshot(id: string): Promise<OpenedDriveFile | null> {
     const endpoint = `${API}/${encodeURIComponent(id)}`;
     const { data: meta, etag } = await this.request(
-      `${endpoint}?fields=id,name,version,size,parents`,
-      json<{ id: string; name: string; version: string; size: string; parents?: string[] }>,
+      `${endpoint}?fields=id,name,mimeType,version,size,parents`,
+      json<{
+        id: string;
+        name: string;
+        mimeType: string;
+        version: string;
+        size: string;
+        parents?: string[];
+      }>,
     );
     assertSize(
       Number(meta.size),
@@ -167,20 +174,24 @@ export class DriveClient implements DriveFiles {
       throw new AppError('drive.versionCheckFailed');
     if (!overwrite && meta.version !== file.version) throw new DriveConflict();
     // Drive v3 does not require an exposed ETag; use only the fresh metadata header if present.
-    const upload = name === file.name ? null : multipartUpload({ name }, content);
+    // A legacy or manually uploaded file needs a new revision to change its MIME type.
+    const upload =
+      name === file.name && file.mimeType === MAPLET_MIME
+        ? null
+        : multipartUpload({ name, mimeType: MAPLET_MIME }, content);
     const saved = await this.request(
       `${UPLOAD}/${encodeURIComponent(file.id)}?uploadType=${upload ? 'multipart' : 'media'}&fields=id,name,version`,
       json<Omit<DriveFile, 'etag'>>,
       {
         method: 'PATCH',
         headers: {
-          'Content-Type': upload?.contentType ?? 'application/json',
+          'Content-Type': upload?.contentType ?? MAPLET_MIME,
           ...(!overwrite && etag ? { 'If-Match': etag } : {}),
         },
         body: upload?.body ?? content,
       },
     );
-    return { ...file, ...saved.data, etag: saved.etag };
+    return { ...file, ...saved.data, mimeType: MAPLET_MIME, etag: saved.etag };
   }
 
   async create(
@@ -227,7 +238,7 @@ export class DriveClient implements DriveFiles {
 
   private async upload(id: string, { name, content }: Snapshot, parentId?: string) {
     const upload = multipartUpload(
-      { id, name, mimeType: 'application/json', ...(parentId && { parents: [parentId] }) },
+      { id, name, mimeType: MAPLET_MIME, ...(parentId && { parents: [parentId] }) },
       content,
     );
     const { data: file, etag } = await this.request(
@@ -236,7 +247,7 @@ export class DriveClient implements DriveFiles {
       { method: 'POST', headers: { 'Content-Type': upload.contentType }, body: upload.body },
     );
     if (file.id !== id) throw new AppError('drive.saveTargetMismatch');
-    return { ...file, etag };
+    return { ...file, mimeType: MAPLET_MIME, etag };
   }
 
   /** The file behind a reserved ID, or null while Drive does not list it yet. */

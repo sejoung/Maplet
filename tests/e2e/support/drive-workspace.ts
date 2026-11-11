@@ -17,6 +17,7 @@ export async function setupDriveWorkspace(
   const state = {
     content: JSON.stringify(document),
     name: 'source.maplet',
+    mimeType: 'application/x-maplet+json',
     version: 1,
     versionAvailable: true,
     folderAvailable: true,
@@ -70,7 +71,9 @@ export async function setupDriveWorkspace(
       let content = request.postData()!;
       if (url.searchParams.get('uploadType') === 'multipart') {
         const parts = content.split('\r\n\r\n');
-        state.name = JSON.parse(parts[1].split('\r\n')[0]).name;
+        const metadata = JSON.parse(parts[1].split('\r\n')[0]);
+        state.name = metadata.name;
+        state.mimeType = metadata.mimeType;
         content = parts[2].split('\r\n--')[0];
       }
       state.updates.push(content);
@@ -96,6 +99,7 @@ export async function setupDriveWorkspace(
       });
       state.content = state.creates.at(-1)!.content;
       state.name = meta.name;
+      state.mimeType = meta.mimeType;
       state.version = 1;
       return route.fulfill({
         contentType: 'application/json',
@@ -111,6 +115,7 @@ export async function setupDriveWorkspace(
         : JSON.stringify({
             id: url.pathname.split('/').at(-1),
             name: state.name,
+            mimeType: state.mimeType,
             ...(state.versionAvailable ? { version: String(state.version) } : {}),
             size: String(state.content.length),
             parents: ['chosen-folder'],
@@ -123,6 +128,7 @@ export async function setupDriveWorkspace(
       ? {
           id: 'chosen-file',
           name: state.name,
+          mimeType: state.mimeType,
           version: '1',
           etag: validators === 'all' || validators === 'upload-missing' ? '"v1"' : null,
           parents: ['chosen-folder'],

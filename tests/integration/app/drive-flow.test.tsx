@@ -4,6 +4,11 @@ import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { DriveDialogs } from '../../../src/components/drive/DriveDialogs';
 import { DriveConflict } from '../../../src/adapters/drive/client';
+import { createMap } from '../../../src/domain/commands';
+import { serializeMaplet } from '../../../src/adapters/maplet/codec';
+
+const nativeContent = serializeMaplet(createMap('From Drive'));
+const nativeMime = 'application/x-maplet+json';
 
 const bridge = vi.hoisted(() => ({
   prepare: vi.fn(),
@@ -176,7 +181,8 @@ beforeEach(() => {
     parents: ['selected-id'],
     version: '1',
     etag: '"v1"',
-    content: '{"id":1,"title":"From Drive"}',
+    mimeType: nativeMime,
+    content: nativeContent,
   });
   api.create.mockResolvedValue({ id: 'created', name: 'local.maplet', version: '1', etag: '"v1"' });
   api.save.mockResolvedValue({ id: 'created', name: 'local.maplet', version: '2', etag: '"v2"' });
@@ -343,55 +349,40 @@ describe('Drive actions continue through sign-in and selection', () => {
     expect(options.replace).not.toHaveBeenCalled();
   });
 
-  it('imports MUP as a native document, creates a .maplet file and updates only that copy', async () => {
-    const { user, options, refresh } = await setup();
-    api.open.mockResolvedValueOnce({
-      id: 'source-mup',
-      name: 'source.mup',
-      version: '1',
-      etag: '"mup-v1"',
-      content: '{"id":1,"title":"MUP source"}',
-    });
+  it.each(['application/x-maplet+json', 'application/octet-stream'])(
+    'opens a valid .maplet with MIME type %s',
+    async (mimeType) => {
+      const { user, options } = await setup();
+      api.open.mockResolvedValueOnce({
+        id: 'opened',
+        name: 'uploaded.MAPLET',
+        mimeType,
+        version: '1',
+        etag: null,
+        content: nativeContent,
+      });
+      await user.click(screen.getByRole('button', { name: 'Drive에서 열기' }));
+      await waitFor(() => expect(options.replace).toHaveBeenCalledOnce());
+      expect(options.replace.mock.calls[0][1]).toBe('uploaded.maplet');
+    },
+  );
+
+  it.each([
+    { name: 'source.mup', mimeType: nativeMime, content: nativeContent },
+    { name: 'source.maplet.bak', mimeType: nativeMime, content: nativeContent },
+    { name: 'source.maplet', mimeType: 'application/json', content: nativeContent },
+    { name: 'source.maplet', mimeType: undefined, content: nativeContent },
+    { name: 'source.bin', mimeType: 'application/octet-stream', content: nativeContent },
+    { name: 'source.maplet', mimeType: nativeMime, content: '{"id":1,"title":"MUP"}' },
+    { name: 'source.maplet', mimeType: 'application/octet-stream', content: 'not JSON' },
+  ])('keeps the local document when the selected Drive file is invalid: %j', async (selected) => {
+    const { user, options } = await setup();
+    api.open.mockResolvedValueOnce({ id: 'invalid', version: '1', etag: null, ...selected });
     await user.click(screen.getByRole('button', { name: 'Drive에서 열기' }));
-    await waitFor(() => expect(options.replace).toHaveBeenCalledOnce());
-    const [map, name] = options.replace.mock.calls[0] as unknown as [
-      import('../../../src/domain/model').MindMap,
-      string,
-    ];
-    expect(name).toBe('source.maplet');
-    const { serializeMaplet } = await import('../../../src/adapters/maplet/codec');
-    options.content = serializeMaplet(map);
-    options.filename = name;
-    api.create.mockResolvedValueOnce({
-      id: 'native-copy',
-      name,
-      version: '1',
-      etag: '"native-v1"',
-    });
-    await user.click(screen.getByRole('button', { name: 'Drive' }));
-    await user.click(screen.getByRole('button', { name: 'Drive에 저장' }));
-    await waitFor(() =>
-      expect(api.create).toHaveBeenCalledWith(
-        name,
-        options.content,
-        'selected-id',
-        expect.any(String),
-      ),
-    );
-    expect(JSON.parse(api.create.mock.calls[0][1])).toMatchObject({ format: 'maplet', version: 1 });
+    await waitFor(() => expect(screen.getByRole('alert')).toBeVisible());
+    expect(options.replace).not.toHaveBeenCalled();
+    expect(options.content).toBe('local content');
     expect(api.save).not.toHaveBeenCalled();
-    const { renameNode } = await import('../../../src/domain/commands');
-    options.content = serializeMaplet(renameNode(map, map.roots[0], 'Updated imported map'));
-    refresh();
-    await user.click(screen.getByRole('button', { name: 'Drive' }));
-    await user.click(screen.getByRole('button', { name: 'Drive에 저장' }));
-    await waitFor(() =>
-      expect(api.save).toHaveBeenCalledWith(
-        expect.objectContaining({ id: 'native-copy', name: 'source.maplet' }),
-        options.content,
-        expect.objectContaining({ overwrite: false }),
-      ),
-    );
-    expect(api.create).toHaveBeenCalledOnce();
+    expect(api.create).not.toHaveBeenCalled();
   });
 });

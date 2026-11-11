@@ -6,6 +6,8 @@ export interface DriveItem {
 export type DriveFolder = DriveItem;
 
 export interface DriveFile extends DriveItem {
+  /** Missing in metadata saved by older releases; fetched again before opening. */
+  mimeType?: string;
   version: string;
   etag: string | null;
   parents?: string[];

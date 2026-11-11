@@ -72,6 +72,7 @@ async function setup(page: Page, native = false, inDestination = true) {
         : JSON.stringify({
             id: 'chosen-file',
             name: native || url.pathname.endsWith('/native-copy') ? 'source.maplet' : 'source.mup',
+            mimeType: native ? 'application/x-maplet+json' : 'application/json',
             version: String(version),
             size: String(original.length),
             parents: [inDestination ? 'chosen-folder' : 'another-folder'],
@@ -81,6 +82,7 @@ async function setup(page: Page, native = false, inDestination = true) {
   const file = {
     id: 'chosen-file',
     name: native ? 'source.maplet' : 'source.mup',
+    mimeType: native ? 'application/x-maplet+json' : 'application/json',
     version: '1',
     etag: '"v1"',
     parents: [inDestination ? 'chosen-folder' : 'another-folder'],

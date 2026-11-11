@@ -104,9 +104,11 @@ Import limits are **50 MiB for `.maplet`**, **10 MiB for `.mup` and outlines**, 
 
 ## Google Drive
 
+**Open from Drive** accepts `.maplet` documents, including files manually uploaded as generic binary data. The chooser filters file types; the app also checks the extension and document contents before opening. Import MindMup and other formats through **File → Open**, then save the resulting map to Drive. See the [Drive guide](docs/google-drive.md#파일-종류와-기존-파일) for older JSON-type files.
+
 Choose a save folder from the **Google Drive** button to enable automatic saving. Edits are batched after 3 seconds of inactivity, with at least 5 seconds between automatic uploads and a save after at most 15 seconds of continuous editing. `Ctrl`/`⌘` + `S` saves immediately. You can keep editing during uploads; newer changes are saved in order, and conflicts prompt you to choose what to keep.
 
-Files opened outside the chosen folder and imported `.mup` files are saved as new `.maplet` copies in that folder, preserving their originals. Rename the document by clicking its filename in the header. If no filename was chosen, the first committed root title supplies it; later title edits keep that filename.
+Files opened outside the chosen folder and locally imported `.mup` files are saved as new `.maplet` copies in that folder, preserving their originals. Rename the document by clicking its filename in the header. If no filename was chosen, the first committed root title supplies it; later title edits keep that filename.
 
 Credentials stay in memory and can be shared with other connected Maplet tabs. If no connected tab remains, reconnect after reloading; the save location is remembered. The header shows connection and save status and offers extension near token expiry. See the [Drive setup and operation guide](docs/google-drive.md) for configuration and sync behavior.
 

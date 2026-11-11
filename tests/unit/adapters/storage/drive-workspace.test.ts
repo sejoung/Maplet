@@ -70,3 +70,18 @@ it('records which tab wrote the shared workspace and keeps a separate one per ta
   writeTabWorkspace('client', null);
   expect(readTabWorkspace('client')).toBeNull();
 });
+
+it('preserves known MIME metadata and keeps workspaces without it readable', () => {
+  const typed = {
+    ...workspace,
+    file: { ...workspace.file, mimeType: 'application/x-maplet+json' },
+  };
+  writeDriveWorkspace('client', typed);
+  expect(readDriveWorkspace('client')).toEqual(typed);
+  writeTabWorkspace('client', typed);
+  expect(readTabWorkspace('client')).toEqual(typed);
+  expect(parseDriveWorkspace(workspace)).toEqual(workspace);
+  expect(parseDriveWorkspace({ ...typed, file: { ...typed.file, mimeType: 12 } })).toEqual(
+    workspace,
+  );
+});
